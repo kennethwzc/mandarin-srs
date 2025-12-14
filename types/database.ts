@@ -1,12 +1,32 @@
 /**
- * Database types
+ * Database types generated from Drizzle schema
  *
- * These types will be auto-generated from the Drizzle schema.
- * See PROMPT 3 for database schema generation.
- *
- * For now, this is a minimal placeholder to prevent type errors.
+ * Import these types throughout the application for type safety.
  */
 
+export * from '@/lib/db/schema'
+
+// Re-export commonly used types
+export type {
+  Profile,
+  ProfileInsert,
+  Radical,
+  RadicalInsert,
+  Character,
+  CharacterInsert,
+  Vocabulary,
+  VocabularyInsert,
+  Lesson,
+  LessonInsert,
+  UserItem,
+  UserItemInsert,
+  ReviewHistory,
+  ReviewHistoryInsert,
+  DailyStats,
+  DailyStatsInsert,
+} from '@/lib/db/schema'
+
+// Legacy Supabase type for compatibility
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
