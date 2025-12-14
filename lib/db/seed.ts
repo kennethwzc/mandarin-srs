@@ -12,6 +12,11 @@
 
 /* eslint-disable no-console */
 
+import dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config({ path: '.env.local' })
+
 import { db } from './client'
 import * as schema from './schema'
 

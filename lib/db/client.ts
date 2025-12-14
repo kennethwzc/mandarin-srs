@@ -7,8 +7,14 @@
 
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import dotenv from 'dotenv'
 
 import * as schema from './schema'
+
+// Load environment variables if not already loaded
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: '.env.local' })
+}
 
 // Validate environment variable
 if (!process.env.DATABASE_URL) {
