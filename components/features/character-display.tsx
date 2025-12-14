@@ -1,28 +1,61 @@
+'use client'
+
 import { cn } from '@/lib/utils/cn'
 
-export interface CharacterDisplayProps {
+/**
+ * Character Display Component
+ *
+ * Shows the Chinese character in large, readable font.
+ * Also shows English meaning for context.
+ */
+
+interface CharacterDisplayProps {
   character: string
-  size?: 'default' | 'sm'
+  meaning: string
+  itemType: 'radical' | 'character' | 'vocabulary'
+  showMeaning?: boolean
   className?: string
 }
 
-/**
- * Large character display component for review cards
- */
 export function CharacterDisplay({
   character,
-  size = 'default',
+  meaning,
+  itemType,
+  showMeaning = true,
   className,
 }: CharacterDisplayProps) {
   return (
-    <div
-      className={cn(
-        'character-display chinese-display flex items-center justify-center',
-        size === 'sm' && 'text-character-sm',
-        className
-      )}
-    >
-      {character}
+    <div className={cn('space-y-2 text-center', className)}>
+      {/* Item type badge */}
+      <div className="flex justify-center">
+        <span
+          className={cn(
+            'inline-block rounded-full px-3 py-1 text-xs font-medium',
+            itemType === 'radical' &&
+              'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200',
+            itemType === 'character' &&
+              'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-200',
+            itemType === 'vocabulary' &&
+              'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
+          )}
+        >
+          {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
+        </span>
+      </div>
+
+      {/* Character */}
+      <div
+        className={cn(
+          'character-display chinese-text',
+          'select-none', // Prevent accidental copying
+          'py-8'
+        )}
+      >
+        {character}
+      </div>
+
+      {/* Meaning */}
+      {showMeaning && <div className="text-lg text-muted-foreground">{meaning}</div>}
     </div>
   )
 }

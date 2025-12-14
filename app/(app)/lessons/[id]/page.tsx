@@ -13,19 +13,30 @@ export default function LessonDetailPage({ params }: { params: { id: string } })
   // Placeholder data
   const currentReview = {
     character: '你',
+    meaning: 'you',
     correctPinyin: 'nǐ',
+    itemType: 'character' as const,
   }
 
-  const handleAnswer = (_isCorrect: boolean) => {
-    // TODO: Implement answer handling
+  const handleSubmit = (result: {
+    userAnswer: string
+    isCorrect: boolean
+    grade: number
+    responseTimeMs: number
+  }) => {
+    // TODO: Implement answer handling with SRS
+    // eslint-disable-next-line no-console
+    console.log('Review result:', result)
   }
 
   return (
     <div className="flex min-h-[600px] items-center justify-center">
       <ReviewCard
         character={currentReview.character}
+        meaning={currentReview.meaning}
         correctPinyin={currentReview.correctPinyin}
-        onAnswer={handleAnswer}
+        itemType={currentReview.itemType}
+        onSubmit={handleSubmit}
       />
     </div>
   )

@@ -1,32 +1,29 @@
-'use client'
+import { Suspense } from 'react'
 
-import { ReviewCard } from '@/components/features/review-card'
+import { ReviewSession } from '@/components/features/review-session'
+
+export const metadata = {
+  title: 'Reviews',
+  description: 'Practice typing pinyin for your scheduled reviews',
+}
 
 export default function ReviewsPage() {
-  // Placeholder data - will be replaced with real data
-  const currentReview = {
-    character: '好',
-    correctPinyin: 'hǎo',
-  }
-
-  const handleAnswer = (_isCorrect: boolean) => {
-    // TODO: Implement answer handling with SRS algorithm
-  }
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reviews</h1>
-        <p className="text-muted-foreground">Practice characters you&apos;ve learned</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 text-center">
+        <h1 className="mb-2 text-3xl font-bold">Reviews</h1>
+        <p className="text-muted-foreground">Type the correct pinyin with tone marks</p>
       </div>
 
-      <div className="flex min-h-[600px] items-center justify-center">
-        <ReviewCard
-          character={currentReview.character}
-          correctPinyin={currentReview.correctPinyin}
-          onAnswer={handleAnswer}
-        />
-      </div>
+      <Suspense
+        fallback={
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          </div>
+        }
+      >
+        <ReviewSession />
+      </Suspense>
     </div>
   )
 }
