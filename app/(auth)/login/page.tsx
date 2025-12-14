@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,6 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { toast } from 'sonner'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { signIn, isLoading: authLoading } = useAuth()
 
@@ -42,22 +41,33 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const { error } = await signIn(email, password)
+      const { error, session } = await signIn(email, password)
 
       if (error) {
         toast.error('Login failed', {
           description: error,
         })
+        setIsLoading(false)
+        return
+      }
+
+      if (!session) {
+        toast.error('Login failed', {
+          description: 'No session created. Please try again.',
+        })
+        setIsLoading(false)
         return
       }
 
       toast.success('Logged in successfully')
+
+      // Use window.location for a hard redirect to ensure session is picked up by middleware
+      // This ensures cookies are set and middleware can detect the session
       const redirectTo = searchParams.get('redirectTo') || '/dashboard'
-      router.push(redirectTo)
-      router.refresh()
+      window.location.href = redirectTo
     } catch (error) {
+      console.error('Login error:', error)
       toast.error('An unexpected error occurred')
-    } finally {
       setIsLoading(false)
     }
   }
