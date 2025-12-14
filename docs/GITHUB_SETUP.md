@@ -46,11 +46,13 @@ git push -u origin main
 Navigate to: **Settings → General**
 
 **Features**:
+
 - ✅ **Issues** - Enable for bug tracking and feature requests
 - ✅ **Discussions** (optional) - Enable for community discussions
 - ✅ **Projects** - Enable for project management boards
 
 **Pull Requests**:
+
 - ✅ **Allow squash merging** - Recommended for clean history
 - ✅ **Allow auto-merge** - Automatically merge when checks pass
 - ✅ **Automatically delete head branches** - Clean up merged branches
@@ -62,6 +64,7 @@ Navigate to: **Settings → Branches → Add rule**
 **Branch name pattern**: `main`
 
 **Protection settings**:
+
 - ✅ **Require a pull request before merging**
   - Required approvals: **1** (can skip for solo initially, increase for team)
   - Dismiss stale pull request approvals when new commits are pushed
@@ -75,6 +78,7 @@ Navigate to: **Settings → Branches → Add rule**
 - ❌ **Do not allow deletions**
 
 **Why these rules?**
+
 - Prevents direct commits to main (forces code review)
 - Ensures all code passes CI checks before merging
 - Maintains clean git history
@@ -86,14 +90,15 @@ Navigate to: **Settings → Secrets and variables → Actions**
 
 Click "New repository secret" for each required secret:
 
-| Secret Name | Description | Example Value | When Needed |
-|-------------|-------------|---------------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL | `https://xxx.supabase.co` | After Supabase setup |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | `eyJhbGc...` | After Supabase setup |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (admin) | `eyJhbGc...` | After Supabase setup |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:...` | After database setup |
+| Secret Name                 | Description                       | Example Value               | When Needed          |
+| --------------------------- | --------------------------------- | --------------------------- | -------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL         | `https://xxx.supabase.co`   | After Supabase setup |
+| `SUPABASE_ANON_KEY`         | Supabase anonymous key            | `eyJhbGc...`                | After Supabase setup |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (admin) | `eyJhbGc...`                | After Supabase setup |
+| `DATABASE_URL`              | PostgreSQL connection string      | `postgresql://postgres:...` | After database setup |
 
-⚠️ **SECURITY WARNING**: 
+⚠️ **SECURITY WARNING**:
+
 - Never commit these secrets to git
 - Never share secrets in screenshots or documentation
 - Rotate secrets if accidentally exposed

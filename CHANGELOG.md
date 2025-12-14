@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial project setup with Next.js 14 and TypeScript
 - Supabase authentication and database integration
 - Drizzle ORM for type-safe database access
@@ -31,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - YYYY-MM-DD
 
 ### Added
+
 - Project foundation and initial setup
 - Git version control with branch protection
 - Pre-commit hooks for code quality
@@ -65,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ```markdown
 ### Added
+
 - Pinyin input component with tone selection (#45)
 - User dashboard with learning statistics (#67)
 - Dark mode support (#89)
@@ -125,15 +128,19 @@ Update these links when creating new releases:
 ### Changelog Entry Examples
 
 **Good**:
+
 ```markdown
 ### Added
+
 - Pinyin input component with tone selector (#45)
 - User can now filter lessons by difficulty level (#67)
 ```
 
 **Bad**:
+
 ```markdown
 ### Added
+
 - Stuff
 - Things
 - More stuff (#45, #67, #89)
@@ -142,6 +149,7 @@ Update these links when creating new releases:
 ### Automated Changelog Generation
 
 For future automation, consider tools like:
+
 - [standard-version](https://github.com/conventional-changelog/standard-version)
 - [semantic-release](https://github.com/semantic-release/semantic-release)
 - [release-please](https://github.com/googleapis/release-please)

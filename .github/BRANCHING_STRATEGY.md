@@ -7,6 +7,7 @@ This project uses a simplified Git Flow suitable for solo development with futur
 ## Branch Types
 
 ### 1. Main Branch: `main`
+
 - **Purpose**: Production-ready code
 - **Protected**: Yes (requires PR + passing CI)
 - **Deployed to**: Production (auto-deploy via Vercel)
@@ -14,6 +15,7 @@ This project uses a simplified Git Flow suitable for solo development with futur
 - **Status**: Always deployable
 
 **Rules**:
+
 - ✅ All commits must come from Pull Requests
 - ✅ All CI checks must pass before merging
 - ✅ At least one approval required (can be self for solo dev)
@@ -21,6 +23,7 @@ This project uses a simplified Git Flow suitable for solo development with futur
 - ✅ No deletions allowed
 
 ### 2. Feature Branches: `feature/*`
+
 - **Purpose**: New features or enhancements
 - **Created from**: `main`
 - **Merged into**: `main` (via PR)
@@ -28,12 +31,14 @@ This project uses a simplified Git Flow suitable for solo development with futur
 - **Lifespan**: Temporary (delete after merge)
 
 **Examples**:
+
 - `feature/pinyin-input`
 - `feature/tone-selector`
 - `feature/lesson-unlocking`
 - `feature/dashboard-stats`
 
 **Workflow**:
+
 1. Create from latest `main`
 2. Develop feature with frequent commits
 3. Push to GitHub
@@ -43,6 +48,7 @@ This project uses a simplified Git Flow suitable for solo development with futur
 7. Delete branch after merge
 
 ### 3. Bug Fix Branches: `fix/*`
+
 - **Purpose**: Bug fixes
 - **Created from**: `main`
 - **Merged into**: `main` (via PR)
@@ -50,12 +56,14 @@ This project uses a simplified Git Flow suitable for solo development with futur
 - **Lifespan**: Temporary (delete after merge)
 
 **Examples**:
+
 - `fix/srs-calculation-bug`
 - `fix/issue-142`
 - `fix/auth-redirect-loop`
 - `fix/mobile-layout-overflow`
 
 **Workflow**:
+
 1. Create from `main`
 2. Fix the bug
 3. Add/update tests
@@ -64,6 +72,7 @@ This project uses a simplified Git Flow suitable for solo development with futur
 6. Delete branch
 
 ### 4. Hotfix Branches: `hotfix/*`
+
 - **Purpose**: Critical production bugs requiring immediate fix
 - **Created from**: `main`
 - **Merged into**: `main` (expedited PR process)
@@ -71,11 +80,13 @@ This project uses a simplified Git Flow suitable for solo development with futur
 - **Lifespan**: Very short (merge ASAP)
 
 **Examples**:
+
 - `hotfix/payment-gateway-down`
 - `hotfix/data-leak`
 - `hotfix/security-vulnerability`
 
 **Workflow**:
+
 1. Create from `main` immediately
 2. Fix the critical issue
 3. Test thoroughly
@@ -85,18 +96,21 @@ This project uses a simplified Git Flow suitable for solo development with futur
 7. Delete branch
 
 ### 5. Refactor Branches: `refactor/*`
+
 - **Purpose**: Code improvements without changing functionality
 - **Created from**: `main`
 - **Merged into**: `main` (via PR)
 - **Naming**: `refactor/component-or-area`
 
 **Examples**:
+
 - `refactor/srs-algorithm-cleanup`
 - `refactor/database-queries`
 - `refactor/auth-middleware`
 - `refactor/component-structure`
 
 **Workflow**:
+
 1. Create from `main`
 2. Refactor code
 3. Ensure all tests still pass
@@ -104,18 +118,21 @@ This project uses a simplified Git Flow suitable for solo development with futur
 5. Merge after review
 
 ### 6. Documentation Branches: `docs/*`
+
 - **Purpose**: Documentation-only changes
 - **Created from**: `main`
 - **Merged into**: `main` (via PR)
 - **Naming**: `docs/what-is-updated`
 
 **Examples**:
+
 - `docs/api-documentation`
 - `docs/setup-guide`
 - `docs/contributing-guide`
 - `docs/architecture-decision`
 
 **Workflow**:
+
 1. Create from `main`
 2. Update documentation
 3. Create PR (can skip CI for docs-only)
@@ -180,6 +197,7 @@ git push origin hotfix/critical-bug
 If `main` has updates while you're working on a feature branch:
 
 **Option 1: Rebase (Recommended for cleaner history)**
+
 ```bash
 git checkout feature/my-feature
 git fetch origin
@@ -195,6 +213,7 @@ git push origin feature/my-feature --force-with-lease
 ```
 
 **Option 2: Merge (Preserves history)**
+
 ```bash
 git checkout feature/my-feature
 git fetch origin
@@ -205,18 +224,21 @@ git push origin feature/my-feature
 ```
 
 **When to use each**:
+
 - **Rebase**: Small feature branches, cleaner history preferred
 - **Merge**: Large features, want to preserve all commit context
 
 ## Commit Guidelines
 
 ### Frequency
+
 - Commit early and often
 - Each commit should be a logical unit of work
 - Aim for 5-10 commits per day of active development
 - Never commit broken code (tests should pass)
 
 ### Message Format
+
 Follow Conventional Commits (see `.github/COMMIT_CONVENTION.md`):
 
 ```
@@ -228,7 +250,9 @@ footer
 ```
 
 ### Atomic Commits
+
 Each commit should:
+
 - Be self-contained and functional
 - Pass all tests
 - Be easily revertable
@@ -238,6 +262,7 @@ Each commit should:
 ### Examples of Good vs Bad Commits
 
 **❌ Bad**:
+
 ```bash
 git commit -m "fixed stuff"
 git commit -m "more changes"
@@ -246,6 +271,7 @@ git commit -m "asdf"  # Meaningless messages
 ```
 
 **✅ Good**:
+
 ```bash
 git commit -m "feat(auth): add email validation to signup form"
 git commit -m "test(auth): add unit tests for email validator"
@@ -259,6 +285,7 @@ Now applies 50% reduction cap as specified in algorithm design."
 ## Code Review Process
 
 ### For Author (Creating PR)
+
 1. ✅ Self-review code before requesting review
 2. ✅ Ensure all CI checks pass
 3. ✅ Write clear PR description using template
@@ -268,6 +295,7 @@ Now applies 50% reduction cap as specified in algorithm design."
 7. ✅ Keep PR focused (one feature/fix per PR)
 
 ### For Reviewer
+
 1. 🔍 Check code logic and correctness
 2. 🔍 Verify tests cover new functionality
 3. 🔍 Check for security vulnerabilities
@@ -280,18 +308,21 @@ Now applies 50% reduction cap as specified in algorithm design."
 ## Merge Strategies
 
 ### Squash and Merge (Recommended)
+
 - **Use for**: Feature branches with many small commits
 - **Result**: Clean, linear history on main
 - **GitHub setting**: "Squash and merge"
 - **When**: Most feature branches
 
 ### Regular Merge
+
 - **Use for**: Important historical context needed
 - **Result**: Preserves all commits with merge commit
 - **GitHub setting**: "Create a merge commit"
 - **When**: Large features with significant commit history
 
 ### Rebase and Merge
+
 - **Use for**: Small, clean feature branches
 - **Result**: Linear history without merge commit
 - **GitHub setting**: "Rebase and merge"
@@ -302,6 +333,7 @@ Now applies 50% reduction cap as specified in algorithm design."
 ## Conflict Resolution
 
 ### During Rebase
+
 ```bash
 # If you get merge conflicts during rebase
 git checkout feature/my-feature
@@ -323,6 +355,7 @@ git push origin feature/my-feature --force-with-lease
 ```
 
 ### During Merge
+
 ```bash
 # If you get merge conflicts during merge
 git checkout feature/my-feature
@@ -342,10 +375,12 @@ git push origin feature/my-feature
 ## Protected Branch Rules (main)
 
 ✅ **Require pull request before merging**
+
 - Required approvals: 1 (can skip for solo initially)
 - Dismiss stale approvals when new commits pushed
 
 ✅ **Require status checks to pass**
+
 - `lint` - ESLint and Prettier checks
 - `typecheck` - TypeScript compilation
 - `test` - Test suite execution
@@ -364,6 +399,7 @@ git push origin feature/my-feature
 ### Git Aliases for Efficiency
 
 Add to `~/.gitconfig`:
+
 ```ini
 [alias]
   co = checkout

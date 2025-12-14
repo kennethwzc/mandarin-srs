@@ -42,17 +42,9 @@ Add the following to your `package.json`:
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{js,jsx,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml,css,scss}": [
-      "prettier --write"
-    ]
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{js,jsx,mjs,cjs}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml,css,scss}": ["prettier --write"]
   }
 }
 ```
@@ -75,6 +67,7 @@ git commit -m "test: verify pre-commit hook"
 ```
 
 You should see:
+
 - Lint-staged running
 - TypeScript type checking
 - Files being formatted
@@ -99,6 +92,7 @@ If you haven't already initialized Git:
 ```
 
 This will:
+
 - Initialize Git repository (if not already done)
 - Set default branch to `main`
 - Create initial commit with all project files
@@ -106,6 +100,7 @@ This will:
 ## Step 6: Connect to GitHub
 
 Follow the instructions in `docs/GITHUB_SETUP.md` to:
+
 1. Create GitHub repository
 2. Connect local repository to GitHub
 3. Configure branch protection

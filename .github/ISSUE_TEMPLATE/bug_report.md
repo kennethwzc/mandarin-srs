@@ -55,6 +55,7 @@ Paste error logs here
 ## 🔍 Additional Context
 
 <!-- Any other relevant information that might help diagnose the issue -->
+
 - When did this start happening?
 - Does it happen consistently or intermittently?
 - Are there any workarounds?
@@ -76,12 +77,14 @@ Paste error logs here
 ## 🔄 Related Issues
 
 <!-- Link to related issues or PRs -->
+
 - Related to #123
 - Duplicate of #456
 
 ---
 
 **For Maintainers**:
+
 - [ ] Reproduced locally
 - [ ] Added to project board
 - [ ] Assigned priority

@@ -15,6 +15,7 @@ assignees: ''
 <!-- What problem does this feature solve? Why is it needed? What pain point does it address? -->
 
 **Is your feature request related to a problem?**
+
 <!-- e.g., "I'm always frustrated when I have to manually track my learning progress..." -->
 
 ## ✨ Proposed Solution
@@ -22,6 +23,7 @@ assignees: ''
 <!-- How should this feature work? Include as much detail as possible about the implementation, user flow, and behavior. -->
 
 ### User Flow
+
 <!-- Step-by-step description of how a user would interact with this feature -->
 
 1. User navigates to...
@@ -30,11 +32,13 @@ assignees: ''
 4. User can then...
 
 ### Mockups/Wireframes
+
 <!-- Add mockups, wireframes, or sketches if available. You can drag and drop images here. -->
 
 <!-- Drag and drop images here or paste image URLs -->
 
 ### Technical Approach
+
 <!-- If you have ideas about the technical implementation, share them here -->
 
 ## 🔄 Alternatives Considered
@@ -85,12 +89,15 @@ assignees: ''
 <!-- Any other information, examples from other apps, research, user feedback, etc. -->
 
 ### Examples from Other Apps
+
 <!-- If similar features exist in other apps, mention them here -->
 
 ### User Feedback
+
 <!-- If this request is based on user feedback, include quotes or summaries -->
 
 ### Research
+
 <!-- Any relevant research, articles, or best practices -->
 
 ## 🤝 Willingness to Contribute
@@ -106,6 +113,7 @@ assignees: ''
 ## 🔗 Related Issues
 
 <!-- Link to related issues or PRs -->
+
 - Related to #123
 - Blocked by #456
 - Would enable #789
@@ -113,6 +121,7 @@ assignees: ''
 ---
 
 **For Maintainers**:
+
 - [ ] Added to project board
 - [ ] Assigned priority
 - [ ] Added appropriate labels

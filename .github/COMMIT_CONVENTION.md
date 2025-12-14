@@ -3,6 +3,7 @@
 This project uses [Conventional Commits](https://www.conventionalcommits.org/) v1.0.0
 
 ## Format
+
 <type>(<scope>): <subject>
 
 [optional body]
@@ -10,6 +11,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) v
 [optional footer]
 
 ## Types (REQUIRED)
+
 - **feat**: New feature for the user
 - **fix**: Bug fix for the user
 - **docs**: Documentation only changes
@@ -22,9 +24,11 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) v
 - **chore**: Other changes that don't modify src or test files
 
 ## Scope (OPTIONAL)
+
 Component affected: auth, srs, review, lesson, dashboard, db, api, ui
 
 ## Subject Rules
+
 - Use imperative, present tense: "add" not "added" or "adds"
 - Don't capitalize first letter
 - No period at the end
@@ -53,7 +57,6 @@ fix(lesson): prevent duplicate lesson unlocks
 Fixes #142
 
 ## Pre-commit Validation
+
 Commits are validated automatically via Husky pre-commit hook.
 Invalid format will be rejected.
-
-
