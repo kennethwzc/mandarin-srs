@@ -40,19 +40,24 @@ export async function createClient(request: NextRequest) {
           options?: CookieOptions
         }>
       ) {
+        // Set all cookies on the request first
         cookiesToSet.forEach(({ name, value, options }) => {
-          // Set cookie on request (for current middleware execution)
           request.cookies.set({
             name,
             value,
             ...options,
           })
-          // Set cookie on response (for client to receive)
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+        })
+
+        // Create response once and set all cookies on it
+        // This ensures all cookies are preserved, not just the last one
+        response = NextResponse.next({
+          request: {
+            headers: request.headers,
+          },
+        })
+
+        cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set({
             name,
             value,

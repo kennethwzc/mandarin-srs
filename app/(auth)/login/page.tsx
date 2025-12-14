@@ -16,11 +16,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { useAuthStore } from '@/lib/stores/auth-store'
 import { toast } from 'sonner'
 
 function LoginForm() {
   const searchParams = useSearchParams()
   const { signIn, isLoading: authLoading } = useAuth()
+  const { initialize } = useAuthStore()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,9 +63,20 @@ function LoginForm() {
 
       toast.success('Logged in successfully')
 
-      // Use window.location for a hard redirect to ensure session is picked up by middleware
-      // This ensures cookies are set and middleware can detect the session
+      // Refresh auth store to sync session state
+      await initialize()
+
+      // Get redirect destination
       const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+
+      // Wait for auth state to update and cookies to be set
+      // The Supabase client should have set cookies, but we need to ensure
+      // they're available before redirecting
+      await new Promise((resolve) => setTimeout(resolve, 300))
+
+      // Use window.location for a hard redirect
+      // This forces a full page reload so middleware can detect the session
+      // The middleware will check for session and redirect accordingly
       window.location.href = redirectTo
     } catch (error) {
       console.error('Login error:', error)

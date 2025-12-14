@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
   const { supabase, response } = await createClient(request)
 
-  // Refresh session if needed
+  // Refresh session if needed - this ensures we have the latest session
   const {
     data: { session },
   } = await supabase.auth.getSession()

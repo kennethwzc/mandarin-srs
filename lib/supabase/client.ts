@@ -28,7 +28,7 @@
  * ```
  */
 
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient, type CookieOptions } from '@supabase/ssr'
 
 import type { Database } from '@/types/database'
 
@@ -44,5 +44,29 @@ export function createClient() {
     throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return document.cookie.split('; ').map((cookie) => {
+          const [name, ...rest] = cookie.split('=')
+          return { name: name || '', value: rest.join('=') }
+        })
+      },
+      setAll(
+        cookiesToSet: Array<{
+          name: string
+          value: string
+          options?: CookieOptions
+        }>
+      ) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          document.cookie = `${name}=${value}; path=${options?.path || '/'}; ${
+            options?.maxAge ? `max-age=${options.maxAge}; ` : ''
+          }${options?.domain ? `domain=${options.domain}; ` : ''}${
+            options?.sameSite ? `samesite=${options.sameSite}; ` : ''
+          }${options?.secure ? 'secure; ' : ''}`
+        })
+      },
+    },
+  })
 }
