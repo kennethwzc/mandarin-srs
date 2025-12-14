@@ -1,3 +1,5 @@
+'use client'
+
 import { ReviewCard } from '@/components/features/review-card'
 
 export default function ReviewsPage() {

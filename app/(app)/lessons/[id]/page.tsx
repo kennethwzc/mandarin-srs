@@ -1,3 +1,5 @@
+'use client'
+
 import { notFound } from 'next/navigation'
 
 import { ReviewCard } from '@/components/features/review-card'

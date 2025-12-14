@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -18,7 +18,7 @@ import {
 import { useAuth } from '@/lib/hooks/use-auth'
 import { toast } from 'sonner'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { signIn, isLoading: authLoading } = useAuth()
@@ -121,5 +121,27 @@ export default function LoginPage() {
         </form>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Welcome back</CardTitle>
+              <CardDescription>Sign in to continue learning pinyin</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center text-muted-foreground">Loading...</div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }
