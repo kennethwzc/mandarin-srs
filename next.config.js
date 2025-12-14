@@ -7,9 +7,8 @@ const nextConfig = {
       : [],
     formats: ['image/avif', 'image/webp'],
   },
-  experimental: {
-    serverActions: true,
-  },
+  // Server Actions are enabled by default in Next.js 14+
+  // experimental.serverActions is deprecated
   async headers() {
     return [
       {

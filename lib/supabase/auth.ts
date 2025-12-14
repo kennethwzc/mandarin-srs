@@ -6,7 +6,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 
 /**
  * Sign up a new user with email and password
@@ -152,22 +151,6 @@ export async function getSession() {
  */
 export async function getUser() {
   const supabase = createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  return user
-}
-
-/**
- * Get current user (server-side)
- * For use in Server Components and API routes
- *
- * @returns User object or null
- */
-export async function getServerUser() {
-  const supabase = createServerClient()
 
   const {
     data: { user },
