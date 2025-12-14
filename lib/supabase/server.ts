@@ -20,6 +20,34 @@ export function createClient() {
       get(name: string) {
         return cookieStore.get(name)?.value
       },
+      set(
+        name: string,
+        value: string,
+        options: {
+          path?: string
+          maxAge?: number
+          httpOnly?: boolean
+          secure?: boolean
+          sameSite?: 'lax' | 'strict' | 'none'
+          domain?: string
+        }
+      ) {
+        cookieStore.set(name, value, options)
+      },
+      remove(
+        name: string,
+        options: {
+          path?: string
+          domain?: string
+          httpOnly?: boolean
+          secure?: boolean
+          sameSite?: 'lax' | 'strict' | 'none'
+        }
+      ) {
+        // Cookie deletion requires matching all attributes used when setting
+        // Setting maxAge to 0 effectively deletes the cookie
+        cookieStore.set(name, '', { ...options, maxAge: 0 })
+      },
     },
   })
 }
