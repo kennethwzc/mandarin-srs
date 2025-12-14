@@ -25,6 +25,7 @@
     "exactOptionalPropertyTypes": false,
     "noPropertyAccessFromIndexSignature": false,
     "skipLibCheck": true,
+    "types": ["jest", "@testing-library/jest-dom"],
     "plugins": [
       {
         "name": "next"
