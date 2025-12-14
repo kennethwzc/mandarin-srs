@@ -38,7 +38,8 @@ next-env.d.ts
 
 # pnpm
 .pnpm-store
-pnpm-lock.yaml
+# pnpm-lock.yaml should be committed for reproducible builds
+# pnpm-lock.yaml
 
 # drizzle
 lib/db/migrations/*.sql
