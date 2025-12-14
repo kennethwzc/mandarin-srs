@@ -65,7 +65,7 @@ export function ReviewCard({
   const [selectedTone, setSelectedTone] = useState<number | null>(null)
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
-  const [startTime] = useState(Date.now())
+  const [startTime, setStartTime] = useState(Date.now())
 
   // Reset state when character changes
   useEffect(() => {
@@ -73,6 +73,7 @@ export function ReviewCard({
     setSelectedTone(null)
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
+    setStartTime(Date.now()) // Reset start time for accurate response time calculation
   }, [character])
 
   /**

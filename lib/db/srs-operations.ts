@@ -94,6 +94,7 @@ export async function submitReview(submission: ReviewSubmission) {
           srs_stage: 'new',
           ease_factor: 2500,
           interval_days: 0,
+          current_step: 0,
           next_review_date: new Date(),
         })
         .returning()
@@ -106,7 +107,7 @@ export async function submitReview(submission: ReviewSubmission) {
       currentStage: userItem.srs_stage as 'new' | 'learning' | 'review' | 'relearning',
       currentInterval: userItem.interval_days,
       currentEaseFactor: userItem.ease_factor,
-      currentStep: 0, // TODO: Track current step in database if needed
+      currentStep: userItem.current_step ?? 0, // Use stored step from database
       grade,
       timezone,
     }
@@ -120,6 +121,7 @@ export async function submitReview(submission: ReviewSubmission) {
         srs_stage: srsResult.newStage,
         ease_factor: srsResult.newEaseFactor,
         interval_days: srsResult.newInterval,
+        current_step: srsResult.newStep, // Save the new step to track learning/relearning progress
         next_review_date: srsResult.nextReviewDate,
         last_reviewed_at: new Date(),
         total_reviews: userItem.total_reviews + 1,

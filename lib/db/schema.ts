@@ -268,6 +268,7 @@ export const userItems = pgTable(
     srs_stage: srsStageEnum('srs_stage').notNull().default('new'),
     ease_factor: integer('ease_factor').notNull().default(2500), // Stored as 2500 = 2.5 (multiply by 1000)
     interval_days: integer('interval_days').notNull().default(0), // Days until next review
+    current_step: integer('current_step').notNull().default(0), // Current position in learning/relearning steps (0-indexed)
     next_review_date: timestamp('next_review_date').notNull().defaultNow(),
     last_reviewed_at: timestamp('last_reviewed_at'),
 
