@@ -1,28 +1,91 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+import { createClient } from '@/lib/supabase/server'
+import { submitReview } from '@/lib/db/srs-operations'
+import { GRADES } from '@/lib/utils/srs-constants'
 
 /**
  * POST /api/reviews/submit
- * Submits a review answer and updates SRS algorithm
+ *
+ * Submit a review and get updated SRS state
+ *
+ * Body:
+ * - itemId: number
+ * - itemType: 'radical' | 'character' | 'vocabulary'
+ * - userAnswer: string (pinyin input)
+ * - correctAnswer: string (expected pinyin)
+ * - grade: 0-3 (Again, Hard, Good, Easy)
+ * - responseTimeMs: number
+ *
+ * Returns:
+ * - Updated user_item with new SRS state
  */
+
+const reviewSubmissionSchema = z.object({
+  itemId: z.number(),
+  itemType: z.enum(['radical', 'character', 'vocabulary']),
+  userAnswer: z.string(),
+  correctAnswer: z.string(),
+  grade: z.number().min(GRADES.AGAIN).max(GRADES.EASY),
+  responseTimeMs: z.number().min(0),
+})
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { reviewId, isCorrect } = body
+    // 1. Authenticate user
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-    if (!reviewId || typeof isCorrect !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // TODO: Implement review submission
-    // 1. Validate user is authenticated
-    // 2. Update review record with answer
-    // 3. Calculate new interval using SRS algorithm
-    // 4. Update next review date
+    // 2. Parse and validate request body
+    const body = await request.json()
+    const validationResult = reviewSubmissionSchema.safeParse(body)
 
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: validationResult.error.errors },
+        { status: 400 }
+      )
+    }
+
+    const { itemId, itemType, userAnswer, correctAnswer, grade, responseTimeMs } =
+      validationResult.data
+
+    // 3. Determine if answer is correct
+    // For pinyin, we compare normalized versions
+    const isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim()
+
+    // 4. Get user's timezone (from profile or default to UTC)
+    // TODO: Fetch from user profile
+    const timezone = 'UTC'
+
+    // 5. Submit review
+    const updatedItem = await submitReview({
+      userId: user.id,
+      itemId,
+      itemType,
+      userAnswer,
+      correctAnswer,
+      isCorrect,
+      grade: grade as 0 | 1 | 2 | 3,
+      responseTimeMs,
+      timezone,
+    })
+
+    // 6. Return updated state
     return NextResponse.json({
       success: true,
-      nextReviewDate: new Date().toISOString(),
+      data: {
+        userItem: updatedItem,
+        isCorrect,
+      },
     })
   } catch (error) {
     console.error('Error submitting review:', error)
