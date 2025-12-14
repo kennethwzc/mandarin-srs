@@ -145,18 +145,20 @@ jobs:
 
       # Build with environment variables from secrets
       # These are required for Next.js build process
+      # NEXT_PUBLIC_ variables are embedded at build time and cannot be overridden at runtime
+      # Build will fail if required secrets are missing to prevent production issues
       - name: 🏗️ Build application
         run: pnpm build
         env:
           # Supabase environment variables (required for build)
-          # These should be set in GitHub Secrets
+          # These MUST be set in GitHub Secrets - build will fail if missing
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          # Add other required env vars here
+          NEXT_PUBLIC_APP_URL: ${{ secrets.APP_URL || 'http://localhost:3000' }}
 
       # Upload build artifacts for potential deployment or debugging
       - name: 📦 Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build
           path: .next
