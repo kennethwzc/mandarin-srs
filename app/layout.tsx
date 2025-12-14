@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/toaster'
 import { QueryProvider } from '@/components/providers/query-provider'
+import { AuthProvider } from '@/components/providers/auth-provider'
 
 import './globals.css'
 
@@ -51,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
           <Toaster />
         </QueryProvider>
       </body>

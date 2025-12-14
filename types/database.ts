@@ -1,22 +1,33 @@
 /**
- * Database types generated from Drizzle schema
- * This is a placeholder - will be generated from schema in PROMPT 2
+ * Database types
+ *
+ * These types will be auto-generated from the Drizzle schema.
+ * See PROMPT 3 for database schema generation.
+ *
+ * For now, this is a minimal placeholder to prevent type errors.
  */
 
-import type { InferSelectModel, InferInsertModel } from 'drizzle-orm'
-import * as schema from '@/lib/db/schema'
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export type User = InferSelectModel<typeof schema.users>
-export type UserInsert = InferInsertModel<typeof schema.users>
-
-export type Lesson = InferSelectModel<typeof schema.lessons>
-export type LessonInsert = InferInsertModel<typeof schema.lessons>
-
-export type Character = InferSelectModel<typeof schema.characters>
-export type CharacterInsert = InferInsertModel<typeof schema.characters>
-
-export type UserProgress = InferSelectModel<typeof schema.userProgress>
-export type UserProgressInsert = InferInsertModel<typeof schema.userProgress>
-
-export type ReviewHistory = InferSelectModel<typeof schema.reviewHistory>
-export type ReviewHistoryInsert = InferInsertModel<typeof schema.reviewHistory>
+export interface Database {
+  public: {
+    Tables: {
+      [key: string]: {
+        Row: Record<string, unknown>
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+      }
+    }
+    Views: {
+      [key: string]: {
+        Row: Record<string, unknown>
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
+}
