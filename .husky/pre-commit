@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged to format and lint staged files
+# This ensures only staged files are processed (faster)
+echo "📝 Formatting and linting staged files..."
+npx lint-staged
+
+# Check TypeScript compilation
+# This catches type errors before they reach the repository
+echo "📘 Type checking..."
+pnpm typecheck
+
+# Exit with error if typecheck fails
+# This prevents commits with type errors
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors found. Commit aborted."
+  echo "💡 Fix the errors above and try committing again."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
