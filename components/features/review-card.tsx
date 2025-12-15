@@ -7,6 +7,8 @@ import { CharacterDisplay } from './character-display'
 import { PinyinInput } from './pinyin-input'
 import { ToneSelector } from './tone-selector'
 import { GradeButtons } from './grade-buttons'
+import { PinyinFeedback } from './pinyin-feedback'
+import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
 /**
@@ -65,6 +67,7 @@ export function ReviewCard({
   const [selectedTone, setSelectedTone] = useState<number | null>(null)
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [isClose, setIsClose] = useState(false)
   const [startTime, setStartTime] = useState(Date.now())
 
   // Reset state when character changes
@@ -73,6 +76,7 @@ export function ReviewCard({
     setSelectedTone(null)
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
+    setIsClose(false)
     setStartTime(Date.now()) // Reset start time for accurate response time calculation
   }, [character])
 
@@ -85,12 +89,14 @@ export function ReviewCard({
       return // Don't submit empty answers
     }
 
-    // Check if answer is correct
-    const userAnswer = userInput.trim().toLowerCase()
-    const correctAnswer = correctPinyin.toLowerCase()
-    const answeredCorrectly = userAnswer === correctAnswer
+    // Check if answer is correct (flexible comparison)
+    const answeredCorrectly = comparePinyinFlexible(userInput, correctPinyin)
+
+    // Check if close (right pinyin, wrong tone)
+    const answerIsClose = !answeredCorrectly && comparePinyinIgnoreTones(userInput, correctPinyin)
 
     setIsCorrect(answeredCorrectly)
+    setIsClose(answerIsClose)
     setIsAnswerSubmitted(true)
   }, [userInput, correctPinyin])
 
@@ -190,29 +196,14 @@ export function ReviewCard({
         ) : (
           /* Answer Feedback */
           <div className="space-y-6">
-            {/* Feedback Message */}
-            <div
-              className={cn(
-                'rounded-lg p-4 text-center text-lg font-medium',
-                'duration-300 animate-in slide-in-from-bottom-4',
-                isCorrect
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200'
-              )}
-            >
-              {isCorrect ? (
-                <>✓ Correct!</>
-              ) : (
-                <>
-                  ✗ Incorrect
-                  <div className="mt-2 text-sm opacity-80">
-                    You typed: <span className="font-mono">{userInput}</span>
-                    <br />
-                    Correct answer: <span className="font-mono">{correctPinyin}</span>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Pinyin Feedback Component */}
+            <PinyinFeedback
+              isCorrect={isCorrect}
+              userAnswer={userInput}
+              correctAnswer={correctPinyin}
+              isClose={isClose}
+              show={isAnswerSubmitted}
+            />
 
             {/* Self-Grading Buttons */}
             <GradeButtons onGrade={handleGrade} isCorrect={isCorrect ?? false} />
