@@ -306,7 +306,7 @@ export async function getCharactersByIds(ids: number[]) {
   return await db
     .select()
     .from(schema.characters)
-    .where(sql`${schema.characters.id} = ANY(${ids})`)
+    .where(sql`${schema.characters.id} = ANY(${sql.array(ids, 'int4')})`)
 }
 
 /**
@@ -320,7 +320,7 @@ export async function getVocabularyByIds(ids: number[]) {
   return await db
     .select()
     .from(schema.vocabulary)
-    .where(sql`${schema.vocabulary.id} = ANY(${ids})`)
+    .where(sql`${schema.vocabulary.id} = ANY(${sql.array(ids, 'int4')})`)
 }
 
 /**
@@ -343,7 +343,7 @@ export async function hasUserStartedLesson(userId: string, lessonId: number) {
     .where(
       and(
         eq(schema.userItems.user_id, userId),
-        sql`${schema.userItems.item_id} = ANY(${allItemIds})`
+        sql`${schema.userItems.item_id} = ANY(${sql.array(allItemIds, 'int4')})`
       )
     )
     .limit(1)
@@ -371,7 +371,7 @@ export async function hasUserCompletedLesson(userId: string, lessonId: number) {
     .where(
       and(
         eq(schema.userItems.user_id, userId),
-        sql`${schema.userItems.item_id} = ANY(${allItemIds})`,
+        sql`${schema.userItems.item_id} = ANY(${sql.array(allItemIds, 'int4')})`,
         sql`${schema.userItems.total_reviews} > 0`
       )
     )
