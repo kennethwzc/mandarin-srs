@@ -1,0 +1,410 @@
+[
+  {
+    "character": "人",
+    "meaning": "person, human",
+    "stroke_count": 2,
+    "variants": ["亻"],
+    "mnemonic": "Looks like a person standing",
+    "example_characters": ["你", "他", "们"]
+  },
+  {
+    "character": "口",
+    "meaning": "mouth",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Square shape like an open mouth",
+    "example_characters": ["吃", "说", "听"]
+  },
+  {
+    "character": "手",
+    "meaning": "hand",
+    "stroke_count": 4,
+    "variants": ["扌"],
+    "mnemonic": "Fingers extending from palm",
+    "example_characters": ["打", "拿", "推"]
+  },
+  {
+    "character": "水",
+    "meaning": "water",
+    "stroke_count": 4,
+    "variants": ["氵"],
+    "mnemonic": "Flowing water stream",
+    "example_characters": ["河", "海", "洗"]
+  },
+  {
+    "character": "火",
+    "meaning": "fire",
+    "stroke_count": 4,
+    "variants": ["灬"],
+    "mnemonic": "Flames rising upward",
+    "example_characters": ["烧", "热", "灯"]
+  },
+  {
+    "character": "木",
+    "meaning": "tree, wood",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Tree trunk with branches",
+    "example_characters": ["树", "林", "桌"]
+  },
+  {
+    "character": "心",
+    "meaning": "heart",
+    "stroke_count": 4,
+    "variants": ["忄"],
+    "mnemonic": "Shape of a heart organ",
+    "example_characters": ["想", "情", "怕"]
+  },
+  {
+    "character": "日",
+    "meaning": "sun, day",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Round sun with center dot",
+    "example_characters": ["明", "时", "晚"]
+  },
+  {
+    "character": "月",
+    "meaning": "moon, month",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Crescent moon shape",
+    "example_characters": ["明", "朋", "期"]
+  },
+  {
+    "character": "土",
+    "meaning": "earth, soil",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Ground with plants growing",
+    "example_characters": ["地", "城", "坐"]
+  },
+  {
+    "character": "女",
+    "meaning": "woman, female",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Kneeling woman figure",
+    "example_characters": ["她", "妈", "好"]
+  },
+  {
+    "character": "子",
+    "meaning": "child, son",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Small child with arms outstretched",
+    "example_characters": ["字", "学", "孩"]
+  },
+  {
+    "character": "大",
+    "meaning": "big, large",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Person with arms spread wide",
+    "example_characters": ["太", "天", "夫"]
+  },
+  {
+    "character": "小",
+    "meaning": "small, little",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Three small dots",
+    "example_characters": ["少", "尖", "尘"]
+  },
+  {
+    "character": "山",
+    "meaning": "mountain",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Three mountain peaks",
+    "example_characters": ["岛", "峰", "岩"]
+  },
+  {
+    "character": "川",
+    "meaning": "river, stream",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Three parallel water streams",
+    "example_characters": ["州", "训", "巡"]
+  },
+  {
+    "character": "工",
+    "meaning": "work, labor",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Construction beam or tool",
+    "example_characters": ["左", "右", "差"]
+  },
+  {
+    "character": "弓",
+    "meaning": "bow",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Curved bow for arrows",
+    "example_characters": ["张", "强", "弹"]
+  },
+  {
+    "character": "刀",
+    "meaning": "knife, blade",
+    "stroke_count": 2,
+    "variants": ["刂"],
+    "mnemonic": "Curved blade shape",
+    "example_characters": ["切", "分", "刻"]
+  },
+  {
+    "character": "力",
+    "meaning": "strength, power",
+    "stroke_count": 2,
+    "variants": [],
+    "mnemonic": "Muscular arm showing strength",
+    "example_characters": ["加", "动", "努"]
+  },
+  {
+    "character": "又",
+    "meaning": "again, right hand",
+    "stroke_count": 2,
+    "variants": [],
+    "mnemonic": "Right hand reaching",
+    "example_characters": ["友", "取", "受"]
+  },
+  {
+    "character": "艹",
+    "meaning": "grass",
+    "stroke_count": 3,
+    "variants": ["草"],
+    "mnemonic": "Grass blades growing",
+    "example_characters": ["花", "草", "茶"]
+  },
+  {
+    "character": "竹",
+    "meaning": "bamboo",
+    "stroke_count": 6,
+    "variants": ["⺮"],
+    "mnemonic": "Bamboo leaves hanging down",
+    "example_characters": ["笔", "箱", "篮"]
+  },
+  {
+    "character": "米",
+    "meaning": "rice",
+    "stroke_count": 6,
+    "variants": [],
+    "mnemonic": "Rice grains scattered",
+    "example_characters": ["粮", "粉", "糖"]
+  },
+  {
+    "character": "糸",
+    "meaning": "silk, thread",
+    "stroke_count": 6,
+    "variants": ["纟"],
+    "mnemonic": "Twisted silk threads",
+    "example_characters": ["红", "线", "织"]
+  },
+  {
+    "character": "虫",
+    "meaning": "insect",
+    "stroke_count": 6,
+    "variants": [],
+    "mnemonic": "Insect with body segments",
+    "example_characters": ["蛇", "蚂", "蝴"]
+  },
+  {
+    "character": "金",
+    "meaning": "metal, gold",
+    "stroke_count": 8,
+    "variants": ["钅"],
+    "mnemonic": "Precious metal ingots",
+    "example_characters": ["钱", "铁", "银"]
+  },
+  {
+    "character": "石",
+    "meaning": "stone, rock",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Rock formation",
+    "example_characters": ["砖", "破", "硬"]
+  },
+  {
+    "character": "田",
+    "meaning": "field",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Square rice field divided",
+    "example_characters": ["男", "画", "留"]
+  },
+  {
+    "character": "目",
+    "meaning": "eye",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Eye turned sideways",
+    "example_characters": ["看", "眼", "睡"]
+  },
+  {
+    "character": "示",
+    "meaning": "show, spirit",
+    "stroke_count": 5,
+    "variants": ["礻"],
+    "mnemonic": "Altar for showing offerings",
+    "example_characters": ["神", "祝", "福"]
+  },
+  {
+    "character": "衣",
+    "meaning": "clothing",
+    "stroke_count": 6,
+    "variants": ["衤"],
+    "mnemonic": "Robe with sleeves",
+    "example_characters": ["裤", "袜", "被"]
+  },
+  {
+    "character": "言",
+    "meaning": "speech, words",
+    "stroke_count": 7,
+    "variants": ["讠"],
+    "mnemonic": "Words coming from mouth",
+    "example_characters": ["说", "话", "语"]
+  },
+  {
+    "character": "走",
+    "meaning": "walk, run",
+    "stroke_count": 7,
+    "variants": [],
+    "mnemonic": "Person taking big steps",
+    "example_characters": ["起", "越", "趣"]
+  },
+  {
+    "character": "足",
+    "meaning": "foot",
+    "stroke_count": 7,
+    "variants": ["⻊"],
+    "mnemonic": "Leg and foot shape",
+    "example_characters": ["跑", "跳", "路"]
+  },
+  {
+    "character": "车",
+    "meaning": "vehicle, cart",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Cart viewed from above",
+    "example_characters": ["轮", "转", "软"]
+  },
+  {
+    "character": "门",
+    "meaning": "door, gate",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Double door entrance",
+    "example_characters": ["问", "间", "闭"]
+  },
+  {
+    "character": "马",
+    "meaning": "horse",
+    "stroke_count": 3,
+    "variants": [],
+    "mnemonic": "Horse with flowing mane",
+    "example_characters": ["骑", "驾", "验"]
+  },
+  {
+    "character": "鸟",
+    "meaning": "bird",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Bird with long tail",
+    "example_characters": ["鸡", "鸭", "鹅"]
+  },
+  {
+    "character": "鱼",
+    "meaning": "fish",
+    "stroke_count": 8,
+    "variants": [],
+    "mnemonic": "Fish with scales and tail",
+    "example_characters": ["鲜", "鲸", "鲤"]
+  },
+  {
+    "character": "雨",
+    "meaning": "rain",
+    "stroke_count": 8,
+    "variants": [],
+    "mnemonic": "Clouds with raindrops falling",
+    "example_characters": ["雪", "雷", "霜"]
+  },
+  {
+    "character": "食",
+    "meaning": "food, eat",
+    "stroke_count": 9,
+    "variants": ["饣"],
+    "mnemonic": "Bowl of food with lid",
+    "example_characters": ["饭", "饿", "饮"]
+  },
+  {
+    "character": "页",
+    "meaning": "page, head",
+    "stroke_count": 6,
+    "variants": [],
+    "mnemonic": "Person's head and neck",
+    "example_characters": ["头", "题", "领"]
+  },
+  {
+    "character": "风",
+    "meaning": "wind",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Sail catching wind",
+    "example_characters": ["飞", "飘", "风"]
+  },
+  {
+    "character": "犬",
+    "meaning": "dog",
+    "stroke_count": 4,
+    "variants": ["犭"],
+    "mnemonic": "Dog in profile",
+    "example_characters": ["狗", "猫", "狼"]
+  },
+  {
+    "character": "王",
+    "meaning": "king, jade",
+    "stroke_count": 4,
+    "variants": [],
+    "mnemonic": "Three horizontal lines connected",
+    "example_characters": ["玩", "球", "理"]
+  },
+  {
+    "character": "立",
+    "meaning": "stand",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Person standing upright",
+    "example_characters": ["站", "竞", "章"]
+  },
+  {
+    "character": "穴",
+    "meaning": "cave, hole",
+    "stroke_count": 5,
+    "variants": [],
+    "mnemonic": "Cave opening in mountain",
+    "example_characters": ["空", "窗", "究"]
+  },
+  {
+    "character": "耳",
+    "meaning": "ear",
+    "stroke_count": 6,
+    "variants": [],
+    "mnemonic": "Shape of human ear",
+    "example_characters": ["听", "聪", "职"]
+  },
+  {
+    "character": "肉",
+    "meaning": "meat, flesh",
+    "stroke_count": 6,
+    "variants": ["⺼"],
+    "mnemonic": "Piece of meat",
+    "example_characters": ["胖", "脸", "腿"]
+  },
+  {
+    "character": "舟",
+    "meaning": "boat",
+    "stroke_count": 6,
+    "variants": [],
+    "mnemonic": "Boat hull shape",
+    "example_characters": ["船", "航", "般"]
+  }
+]
