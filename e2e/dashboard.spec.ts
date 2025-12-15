@@ -65,14 +65,12 @@ test.describe('Dashboard', () => {
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Click Lessons in sidebar
-    const lessonsLink = page.locator('a:has-text("Lessons")')
-    await lessonsLink.click()
+    // Click Lessons in sidebar (use getByRole to be specific)
+    await page.getByRole('link', { name: 'Lessons', exact: true }).first().click()
     await expect(page).toHaveURL('/lessons', { timeout: 5000 })
 
     // Navigate back to dashboard
-    const dashboardLink = page.locator('a:has-text("Dashboard")')
-    await dashboardLink.click()
+    await page.getByRole('link', { name: 'Dashboard', exact: true }).click()
     await expect(page).toHaveURL('/dashboard', { timeout: 5000 })
   })
 })

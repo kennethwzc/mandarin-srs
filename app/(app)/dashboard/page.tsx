@@ -46,7 +46,7 @@ const LessonProgress = dynamic(
     import('@/components/features/lesson-progress').then((m) => ({
       default: m.LessonProgress,
     })),
-  { loading: () => <WidgetSkeleton /> }
+  { ssr: false, loading: () => <WidgetSkeleton /> }
 )
 
 const UpcomingReviews = dynamic(
@@ -54,7 +54,7 @@ const UpcomingReviews = dynamic(
     import('@/components/features/upcoming-reviews').then((m) => ({
       default: m.UpcomingReviews,
     })),
-  { loading: () => <WidgetSkeleton /> }
+  { ssr: false, loading: () => <WidgetSkeleton /> }
 )
 
 export const metadata = {
