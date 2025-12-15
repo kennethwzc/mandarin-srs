@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/card'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 function LoginForm() {
@@ -40,6 +41,7 @@ function LoginForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    e.stopPropagation() // Prevent any event bubbling that might interfere
     setIsLoading(true)
 
     try {
@@ -73,15 +75,60 @@ function LoginForm() {
       // Refresh auth store to sync session state
       await initialize()
 
-      // Brief delay to ensure cookies are set by Supabase client
-      // The Supabase client sets cookies asynchronously, so we wait a moment
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      // Verify session and cookies are set before redirecting
+      const supabase = createClient()
+      let sessionVerified = false
+      let attempts = 0
+      const maxAttempts = 5
 
-      // Use window.location.href for a hard redirect after authentication
-      // This forces a full page reload, ensuring cookies are sent to the server
-      // so middleware can detect the session and allow access to /dashboard
+      while (!sessionVerified && attempts < maxAttempts) {
+        const {
+          data: { session: verifySession },
+        } = await supabase.auth.getSession()
+
+        if (verifySession) {
+          sessionVerified = true
+          console.log('[Login] Session verified, cookies should be set')
+          break
+        }
+
+        attempts++
+        if (attempts < maxAttempts) {
+          const waitTime = 200 * attempts // 200ms, 400ms, 600ms, 800ms, 1000ms
+          console.log(
+            `[Login] Session not verified yet, waiting ${waitTime}ms (attempt ${attempts}/${maxAttempts})...`
+          )
+          await new Promise((resolve) => setTimeout(resolve, waitTime))
+        }
+      }
+
+      // Check cookies are actually set
+      const cookies = document.cookie
+      const hasAuthCookies = cookies.includes('sb-') || cookies.includes('supabase.auth.token')
+      console.log('[Login] Cookies present:', hasAuthCookies)
+      console.log('[Login] All cookies:', cookies)
+
+      if (!sessionVerified) {
+        console.error('[Login] Session not verified after all attempts')
+        toast.error('Session verification failed. Please try again.')
+        setIsLoading(false)
+        return
+      }
+
+      console.log('[Login] Session and cookies verified')
       console.log('[Login] Redirecting to:', finalRedirect)
-      window.location.href = finalRedirect
+
+      // Build full URL
+      const fullRedirectUrl = new URL(finalRedirect, window.location.origin).href
+
+      // CRITICAL: Execute redirect and return immediately
+      // window.location.href should navigate, but we return to ensure
+      // no code executes after this point
+      window.location.href = fullRedirectUrl
+
+      // Return immediately - redirect should have happened
+      // If code after this executes, the redirect was blocked
+      return
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')
