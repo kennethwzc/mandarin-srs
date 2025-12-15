@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/card'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth-store'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 function LoginForm() {
@@ -63,9 +64,6 @@ function LoginForm() {
 
       toast.success('Logged in successfully')
 
-      // Refresh auth store to sync session state
-      await initialize()
-
       // Get redirect destination and decode it (handles URL-encoded paths like %2Fdashboard)
       const redirectToParam = searchParams.get('redirectTo')
       const redirectTo = redirectToParam ? decodeURIComponent(redirectToParam) : '/dashboard'
@@ -73,15 +71,70 @@ function LoginForm() {
       // Ensure redirectTo is a valid path (starts with /)
       const finalRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-      // Wait for cookies to be set and session to be available
-      // The Supabase client sets cookies, but we need to ensure they're propagated
-      // before redirecting so middleware can detect the session
-      await new Promise((resolve) => setTimeout(resolve, 200))
+      // Refresh auth store to sync session state
+      await initialize()
 
-      // Use window.location for a hard redirect
+      // Wait for cookies to be set and session to be available
+      // The Supabase client sets cookies via setAll, but we need to ensure
+      // they're propagated before redirecting so middleware can detect the session
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Verify session exists and cookies are set before redirecting
+      const supabase = createClient()
+      let verifySession = null
+      let attempts = 0
+      const maxAttempts = 3
+
+      // Retry getting session with exponential backoff
+      while (!verifySession && attempts < maxAttempts) {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Error getting session:', sessionError)
+        }
+
+        if (session) {
+          verifySession = session
+          break
+        }
+
+        attempts++
+        if (attempts < maxAttempts) {
+          const waitTime = 300 * attempts // 300ms, 600ms, 900ms
+          console.log(
+            `Session not found, retrying in ${waitTime}ms (attempt ${attempts}/${maxAttempts})...`
+          )
+          await new Promise((resolve) => setTimeout(resolve, waitTime))
+        }
+      }
+
+      if (!verifySession) {
+        console.error('Session not found after all retries')
+        console.log('Current cookies:', document.cookie)
+        toast.error('Session not available. Please try logging in again.')
+        setIsLoading(false)
+        return
+      }
+
+      // Verify cookies are actually set
+      const cookies = document.cookie
+      const hasAuthCookies = cookies.includes('sb-') || cookies.includes('supabase.auth')
+
+      if (!hasAuthCookies) {
+        console.warn('Auth cookies not found in document.cookie')
+        console.log('All cookies:', cookies)
+      }
+
+      // Use window.location.replace for a hard redirect
       // This forces a full page reload so middleware can detect the session
-      // The middleware will check for session and redirect accordingly
-      window.location.href = finalRedirect
+      console.log('Redirecting to:', finalRedirect)
+      console.log('Session verified, cookies present:', hasAuthCookies)
+
+      // Force redirect - this will trigger middleware which should see the session
+      window.location.replace(finalRedirect)
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')

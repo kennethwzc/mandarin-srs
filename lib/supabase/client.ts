@@ -60,11 +60,42 @@ export function createClient() {
         }>
       ) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          document.cookie = `${name}=${value}; path=${options?.path || '/'}; ${
-            options?.maxAge ? `max-age=${options.maxAge}; ` : ''
-          }${options?.domain ? `domain=${options.domain}; ` : ''}${
-            options?.sameSite ? `samesite=${options.sameSite}; ` : ''
-          }${options?.secure ? 'secure; ' : ''}`
+          // Build cookie string with all options
+          let cookieString = `${name}=${value}`
+
+          // Add path
+          cookieString += `; path=${options?.path || '/'}`
+
+          // Add maxAge (convert to expires if needed)
+          if (options?.maxAge) {
+            cookieString += `; max-age=${options.maxAge}`
+          }
+
+          // Add expires if provided (for compatibility)
+          if (options?.expires) {
+            cookieString += `; expires=${options.expires.toUTCString()}`
+          }
+
+          // Add domain
+          if (options?.domain) {
+            cookieString += `; domain=${options.domain}`
+          }
+
+          // Add sameSite
+          if (options?.sameSite) {
+            cookieString += `; samesite=${options.sameSite}`
+          }
+
+          // Add secure flag
+          if (options?.secure) {
+            cookieString += '; secure'
+          }
+
+          // Add httpOnly flag (note: can't be set from JS, but include for completeness)
+          // httpOnly cookies can only be set server-side
+
+          // Set the cookie
+          document.cookie = cookieString
         })
       },
     },
