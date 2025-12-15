@@ -36,10 +36,16 @@ export function StartLessonButton({
         method: 'POST',
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => null)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to start lesson')
+        const errorMessage =
+          (data &&
+            typeof data === 'object' &&
+            'error' in data &&
+            (data as { error?: string }).error) ||
+          `Failed to start lesson (status ${response.status})`
+        throw new Error(errorMessage)
       }
 
       toast.success('Lesson started!', {
@@ -48,8 +54,9 @@ export function StartLessonButton({
 
       router.push('/reviews')
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to start lesson'
       console.error('Error starting lesson:', error)
-      toast.error('Failed to start lesson')
+      toast.error('Failed to start lesson', { description: message })
     } finally {
       setIsLoading(false)
     }

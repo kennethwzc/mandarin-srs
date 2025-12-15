@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { NextRequest, NextResponse } from 'next/server'
 
 import { db } from '@/lib/db/client'
@@ -21,18 +22,38 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
+      console.error('[StartLesson] Unauthorized', { authError })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const lessonId = Number.parseInt(params.id, 10)
+
+    if (Number.isNaN(lessonId)) {
+      console.error('[StartLesson] Invalid lesson id', { raw: params.id })
+      return NextResponse.json({ error: 'Invalid lesson id' }, { status: 400 })
+    }
+
     const lesson = await getLessonById(lessonId)
 
     if (!lesson) {
+      console.error('[StartLesson] Lesson not found', { lessonId })
       return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
     }
 
     const characterIds = lesson.character_ids || []
     const vocabularyIds = lesson.vocabulary_ids || []
+
+    console.log('[StartLesson] Starting lesson', {
+      lessonId,
+      userId: user.id,
+      characterCount: characterIds.length,
+      vocabularyCount: vocabularyIds.length,
+    })
+
+    if (characterIds.length === 0 && vocabularyIds.length === 0) {
+      console.error('[StartLesson] Lesson has no items', { lessonId })
+      return NextResponse.json({ error: 'Lesson has no items to add' }, { status: 400 })
+    }
 
     const itemsToCreate: Array<{
       user_id: string
@@ -85,6 +106,14 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       }
     }
 
+    console.log('[StartLesson] Completed', {
+      lessonId,
+      userId: user.id,
+      totalItems: itemsToCreate.length,
+      newItems: addedCount,
+      existingItems: itemsToCreate.length - addedCount,
+    })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -95,7 +124,10 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       },
     })
   } catch (error) {
-    console.error('Error starting lesson:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[StartLesson] Internal error', {
+      error,
+    })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
