@@ -61,15 +61,6 @@ setup('authenticate', async ({ page }) => {
 
   console.log('[Auth Setup] Successfully redirected to dashboard')
 
-  // Wait for the dashboard heading to appear - this indicates the page rendered
-  // We don't wait for networkidle because the app may have persistent connections
-  // (Supabase realtime, etc.) that prevent it from ever becoming idle
-  await page.waitForSelector('h1:has-text("Dashboard")', { timeout: 15000 })
-  console.log('[Auth Setup] Dashboard loaded')
-
-  // Give a short delay for cookies and storage to settle
-  await page.waitForTimeout(2000)
-
   // Check for authentication-specific errors only
   // Note: We ignore general app errors like "Failed to load dashboard data"
   // since those don't indicate authentication failure
@@ -84,7 +75,8 @@ setup('authenticate', async ({ page }) => {
 
   console.log('[Auth Setup] Saving authentication state...')
 
-  // Save authentication state
+  // Save authentication state immediately after successful authentication
+  // The cookies and session are set during login, no need to wait for dashboard to fully load
   await page.context().storageState({ path: authFile })
 
   console.log('[Auth Setup] Authentication state saved successfully')
