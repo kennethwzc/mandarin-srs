@@ -28,7 +28,7 @@
  * ```
  */
 
-import { createBrowserClient, type CookieOptions } from '@supabase/ssr'
+import { createBrowserClient } from '@supabase/ssr'
 
 import type { Database } from '@/types/database'
 
@@ -44,60 +44,5 @@ export function createClient() {
     throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return document.cookie.split('; ').map((cookie) => {
-          const [name, ...rest] = cookie.split('=')
-          return { name: name || '', value: rest.join('=') }
-        })
-      },
-      setAll(
-        cookiesToSet: Array<{
-          name: string
-          value: string
-          options?: CookieOptions
-        }>
-      ) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          // Build cookie string with all options
-          let cookieString = `${name}=${value}`
-
-          // Add path
-          cookieString += `; path=${options?.path || '/'}`
-
-          // Add maxAge (convert to expires if needed)
-          if (options?.maxAge) {
-            cookieString += `; max-age=${options.maxAge}`
-          }
-
-          // Add expires if provided (for compatibility)
-          if (options?.expires) {
-            cookieString += `; expires=${options.expires.toUTCString()}`
-          }
-
-          // Add domain
-          if (options?.domain) {
-            cookieString += `; domain=${options.domain}`
-          }
-
-          // Add sameSite
-          if (options?.sameSite) {
-            cookieString += `; samesite=${options.sameSite}`
-          }
-
-          // Add secure flag
-          if (options?.secure) {
-            cookieString += '; secure'
-          }
-
-          // Add httpOnly flag (note: can't be set from JS, but include for completeness)
-          // httpOnly cookies can only be set server-side
-
-          // Set the cookie
-          document.cookie = cookieString
-        })
-      },
-    },
-  })
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 }
