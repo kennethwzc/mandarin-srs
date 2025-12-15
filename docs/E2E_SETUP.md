@@ -15,8 +15,9 @@ For E2E and accessibility tests to pass in CI, the following secrets must be set
    - Used as `NEXT_PUBLIC_SUPABASE_ANON_KEY` in tests
 
 3. **`DATABASE_URL`** - Your Supabase database connection string
-   - Example: `postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres`
-   - Find in: Supabase Dashboard → Settings → Database → Connection string (URI - Transaction mode)
+   - Example: `postgresql://postgres.kunqvklwntfaovoxghxl:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres`
+   - Find in: Supabase Dashboard → Settings → Database → Connection string (URI)
+   - ⚠️ Use port **5432** (direct connection) OR **6543** (pooler) depending on your Supabase setup
    - Required for server-side database queries during E2E tests
 
 4. **`TEST_USER_EMAIL`** (optional) - Email for test user account
