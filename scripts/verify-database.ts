@@ -51,13 +51,13 @@ async function verifyDatabase() {
     }
 
     console.log('\n🔒 Checking RLS policies on lessons table...')
-    const policies = await db.execute(sql`
+    const policiesResult = (await db.execute(sql`
       SELECT tablename, policyname, permissive, roles, cmd
       FROM pg_policies
       WHERE schemaname = 'public'
       AND tablename = 'lessons'
-    `)
-    const policyRows = policies.rows as { policyname: string; cmd: string }[]
+    `)) as unknown as { rows?: Array<{ policyname: string; cmd: string }> }
+    const policyRows = policiesResult.rows ?? []
     console.log(`   Found ${policyRows.length} RLS policies on lessons table`)
     policyRows.forEach((policy) => {
       console.log(`     - ${policy.policyname}: ${policy.cmd}`)
