@@ -19,12 +19,13 @@ const DashboardStats = dynamic(
 )
 
 // Lazy load heavy chart components for better performance
+// All charts use recharts which has SSR issues, so disable SSR
 const ReviewsChart = dynamic(
   () =>
     import('@/components/features/reviews-chart').then((m) => ({
       default: m.ReviewsChart,
     })),
-  { loading: () => <ChartSkeleton /> }
+  { ssr: false, loading: () => <ChartSkeleton /> }
 )
 
 const AccuracyChart = dynamic(
@@ -32,7 +33,7 @@ const AccuracyChart = dynamic(
     import('@/components/features/accuracy-chart').then((m) => ({
       default: m.AccuracyChart,
     })),
-  { loading: () => <ChartSkeleton /> }
+  { ssr: false, loading: () => <ChartSkeleton /> }
 )
 
 const ActivityCalendar = dynamic(
@@ -40,7 +41,7 @@ const ActivityCalendar = dynamic(
     import('@/components/features/activity-calendar').then((m) => ({
       default: m.ActivityCalendar,
     })),
-  { loading: () => <CalendarSkeleton /> }
+  { ssr: false, loading: () => <CalendarSkeleton /> }
 )
 
 const LessonProgress = dynamic(
