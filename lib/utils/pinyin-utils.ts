@@ -576,18 +576,42 @@ const VALID_SYLLABLES = new Set([
  * @returns True if valid pinyin
  */
 export function isValidPinyin(input: string): boolean {
-  if (!input) {
+  if (!input || !input.trim()) {
     return false
   }
 
-  // Remove tone marks for validation
-  const normalized = removeToneMarks(input)
+  const trimmed = input.trim().toLowerCase()
 
-  // Remove tone numbers (1-5)
-  const withoutNumbers = normalized.replace(/[1-5]/g, '').toLowerCase().trim()
+  // First, check for invalid characters
+  // Only allow: letters (a-z), ü, tone marks (āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ), and digits 1-5
+  const hasInvalidChars = /[^a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ1-5]/.test(trimmed)
+  if (hasInvalidChars) {
+    return false
+  }
 
-  // Check if syllable is in valid set
-  return VALID_SYLLABLES.has(withoutNumbers)
+  // If it contains digits, they must be a single tone number (1-5) at the end only
+  if (/\d/.test(trimmed)) {
+    // Valid pattern: letters + optional single digit 1-5 at the end
+    if (!/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]+[1-5]?$/.test(trimmed)) {
+      return false
+    }
+  }
+
+  // Remove tone marks and numbers for validation
+  const normalized = removeToneMarks(trimmed).replace(/[1-5]/g, '')
+
+  if (normalized.length === 0) {
+    return false
+  }
+
+  // Check if it's a single valid syllable
+  if (VALID_SYLLABLES.has(normalized)) {
+    return true
+  }
+
+  // For compound words (like "zhongguo"), verify all characters are valid pinyin letters
+  // This is more lenient but handles multi-syllable inputs
+  return /^[a-zü]+$/.test(normalized)
 }
 
 /**
