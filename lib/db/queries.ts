@@ -134,8 +134,19 @@ export async function getDashboardStats(userId: string) {
   // Get user profile for streak info
   const profile = await getUserProfile(userId)
 
+  // Reviews due today (until end of day)
+  const endOfToday = new Date()
+  endOfToday.setHours(23, 59, 59, 999)
+  const reviewsDueTodayResult = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.userItems)
+    .where(
+      and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, endOfToday))
+    )
+
   return {
     reviewsDue: Number(reviewsDue[0]?.count ?? 0),
+    reviewsDueToday: Number(reviewsDueTodayResult[0]?.count ?? 0),
     currentStreak: profile?.current_streak ?? 0,
     longestStreak: profile?.longest_streak ?? 0,
     totalItemsLearned: profile?.total_items_learned ?? 0,
@@ -182,6 +193,41 @@ export async function getDailyStatsRange(userId: string, startDate: Date, endDat
       )
     )
     .orderBy(schema.dailyStats.stat_date)
+}
+
+/**
+ * Calculate upcoming reviews forecast for the next 24 hours grouped by hour
+ */
+export async function getUpcomingReviewsForecast(userId: string) {
+  const now = new Date()
+  const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
+  const upcoming = await db
+    .select({ next_review_date: schema.userItems.next_review_date })
+    .from(schema.userItems)
+    .where(
+      and(
+        eq(schema.userItems.user_id, userId),
+        gte(schema.userItems.next_review_date, now),
+        lte(schema.userItems.next_review_date, nextDay)
+      )
+    )
+
+  const hours: Array<{ hour: number; count: number }> = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    count: 0,
+  }))
+
+  for (const item of upcoming) {
+    if (!item.next_review_date) {
+      continue
+    }
+    const hour = new Date(item.next_review_date).getHours()
+    const target = hours[hour] ?? { hour, count: 0 }
+    hours[hour] = { hour, count: target.count + 1 }
+  }
+
+  return hours
 }
 
 // ============================================================================
@@ -367,4 +413,92 @@ export async function hasUserCompletedLesson(userId: string, lessonId: number) {
 
   const reviewedCount = reviewedItems[0]?.count ?? 0
   return reviewedCount >= allItemIds.length
+}
+
+/**
+ * Get lesson progress (started/completed/unlocked) for a user
+ */
+export async function getUserLessonProgress(userId: string) {
+  const lessons = await getAllLessons()
+
+  const progress = await Promise.all(
+    lessons.map(async (lesson) => {
+      const isCompleted = await hasUserCompletedLesson(userId, lesson.id)
+      const isStarted = await hasUserStartedLesson(userId, lesson.id)
+      const previousLesson = lessons.find(
+        (candidate) => candidate.sort_order === lesson.sort_order - 1
+      )
+      const previousCompleted = previousLesson
+        ? await hasUserCompletedLesson(userId, previousLesson.id)
+        : true
+
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        sort_order: lesson.sort_order,
+        isCompleted,
+        isStarted,
+        isUnlocked: lesson.sort_order === 1 || previousCompleted,
+      }
+    })
+  )
+
+  return progress.sort((a, b) => a.sort_order - b.sort_order)
+}
+
+/**
+ * Update user streak based on daily activity
+ */
+export async function updateUserStreak(userId: string) {
+  const profile = await getUserProfile(userId)
+  if (!profile) {
+    return null
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  const todayStats = await db
+    .select()
+    .from(schema.dailyStats)
+    .where(and(eq(schema.dailyStats.user_id, userId), eq(schema.dailyStats.stat_date, today)))
+    .limit(1)
+
+  const yesterdayStats = await db
+    .select()
+    .from(schema.dailyStats)
+    .where(and(eq(schema.dailyStats.user_id, userId), eq(schema.dailyStats.stat_date, yesterday)))
+    .limit(1)
+
+  const todayStat = todayStats[0]
+  const yesterdayStat = yesterdayStats[0]
+
+  const currentStreak = profile.current_streak ?? 0
+  let newStreak = currentStreak
+
+  if (todayStat && todayStat.reviews_completed > 0) {
+    if (yesterdayStat && yesterdayStat.reviews_completed > 0) {
+      newStreak = currentStreak + 1
+    } else if (currentStreak === 0) {
+      newStreak = 1
+    }
+  } else if (!yesterdayStat || yesterdayStat.reviews_completed === 0) {
+    newStreak = 0
+  }
+
+  const longestStreak = Math.max(profile.longest_streak ?? 0, newStreak)
+
+  await db
+    .update(schema.profiles)
+    .set({
+      current_streak: newStreak,
+      longest_streak: longestStreak,
+      updated_at: new Date(),
+    })
+    .where(eq(schema.profiles.id, userId))
+
+  return { currentStreak: newStreak, longestStreak }
 }
