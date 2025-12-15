@@ -12,7 +12,7 @@ import { and, eq } from 'drizzle-orm'
  * Start a lesson by adding all its items to the user's review queue.
  * Creates user_items entries for each character and vocabulary item with SRS stage "new".
  */
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = createClient()
     const {
