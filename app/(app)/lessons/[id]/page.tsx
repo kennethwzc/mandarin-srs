@@ -48,7 +48,14 @@ export default async function LessonPage({ params }: LessonPageProps) {
   }
 
   const characters = lesson.character_ids ? await getCharactersByIds(lesson.character_ids) : []
-  const vocabulary = lesson.vocabulary_ids ? await getVocabularyByIds(lesson.vocabulary_ids) : []
+  const vocabularyRaw = lesson.vocabulary_ids ? await getVocabularyByIds(lesson.vocabulary_ids) : []
+  const vocabulary = vocabularyRaw.map((vocab) => ({
+    id: vocab.id,
+    word: vocab.word,
+    pinyin: vocab.pinyin,
+    translation: vocab.translation,
+    exampleSentence: vocab.example_sentence,
+  }))
 
   const totalItems = characters.length + vocabulary.length
 
