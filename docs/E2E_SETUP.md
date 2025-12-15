@@ -1,32 +1,38 @@
 # E2E Tests Setup
 
-## Required GitHub Secrets
+## 🚨 Critical: All 5 GitHub Secrets Required
 
-For E2E and accessibility tests to pass in CI, the following secrets must be set in the GitHub repository settings:
+For E2E and accessibility tests to pass in CI, **ALL** of the following secrets must be set in your GitHub repository:
 
 ### Required Secrets
 
-1. **`SUPABASE_URL`** - Your Supabase project URL
+1. **`SUPABASE_URL`** ✅ Required
+   - Your Supabase project URL
    - Example: `https://xxxxx.supabase.co`
-   - Used as `NEXT_PUBLIC_SUPABASE_URL` in tests
+   - Find in: Supabase Dashboard → Settings → API → Project URL
 
-2. **`SUPABASE_ANON_KEY`** - Your Supabase anonymous/public key
-   - This is the public anon key, safe to use in CI
-   - Used as `NEXT_PUBLIC_SUPABASE_ANON_KEY` in tests
+2. **`SUPABASE_ANON_KEY`** ✅ Required
+   - Your Supabase anonymous/public key (NOT the service role key)
+   - Find in: Supabase Dashboard → Settings → API → Project API keys → anon public
 
-3. **`DATABASE_URL`** - Your Supabase database connection string
-   - Example: `postgresql://postgres.kunqvklwntfaovoxghxl:[PASSWORD]@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres`
-   - Find in: Supabase Dashboard → Settings → Database → Connection string (URI)
-   - ⚠️ Use port **5432** (direct connection) OR **6543** (pooler) depending on your Supabase setup
-   - Required for server-side database queries during E2E tests
+3. **`DATABASE_URL`** ✅ **CRITICAL - Most Common Missing Secret**
+   - Your Supabase database connection string with password
+   - Example: `postgresql://postgres.[PROJECT_REF]:[YOUR_PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres`
+   - **How to get it:**
+     1. Go to Supabase Dashboard → Settings → Database
+     2. Scroll to "Connection string" section
+     3. Select "URI" tab
+     4. Copy the string (it includes your password)
+     5. Use the **pooler** connection (port 6543) for better performance in CI
+   - ⚠️ **Without this, the login page will freeze with disabled inputs**
 
-4. **`TEST_USER_EMAIL`** (optional) - Email for test user account
-   - Default: `test@example.com`
-   - Should be a real user in your Supabase database
+4. **`TEST_USER_EMAIL`** (Defaults to `test@example.com` if not set)
+   - Email for test user account
+   - Should be a real confirmed user in your Supabase Auth
 
-5. **`TEST_USER_PASSWORD`** (optional) - Password for test user
-   - Default: `testpassword123`
-   - Should match the test user's password
+5. **`TEST_USER_PASSWORD`** (Defaults to `testpassword123` if not set)
+   - Password for test user
+   - Should match the test user's actual password
 
 ### Setting GitHub Secrets
 

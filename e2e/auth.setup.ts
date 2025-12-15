@@ -13,8 +13,19 @@ setup('authenticate', async ({ page }) => {
   await page.goto('/login')
   await page.waitForLoadState('networkidle')
 
-  // Wait for login form to be ready
+  // Wait for login form to be ready - both visible AND enabled
+  // The inputs might be initially disabled while auth state initializes
   await page.waitForSelector('#email', { state: 'visible' })
+
+  // Wait for the email input to be enabled (not disabled)
+  // This ensures the auth loading state has completed
+  await page.waitForFunction(
+    () => {
+      const emailInput = document.querySelector('#email') as HTMLInputElement
+      return emailInput && !emailInput.disabled
+    },
+    { timeout: 10000 }
+  )
 
   // Fill in test credentials
   const email = process.env.TEST_USER_EMAIL || 'test@example.com'
