@@ -8,6 +8,12 @@
       "when": 1765733407493,
       "tag": "0000_clever_robin_chapel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765765200000,
+      "tag": "0001_add_current_step_to_user_items"
     }
   ]
 }
