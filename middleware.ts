@@ -27,6 +27,11 @@ export async function middleware(request: NextRequest) {
     console.log('[Middleware] Path:', request.nextUrl.pathname)
     console.log('[Middleware] Has session:', !!session)
     console.log('[Middleware] Cookie count:', cookies.length)
+    // Log cookie names for debugging auth cookie propagation
+    console.log(
+      '[Middleware] Cookies:',
+      cookies.map((c) => `${c.name}=${c.value.slice(0, 12)}...`).join('; ')
+    )
     if (sessionError) {
       console.error('[Middleware] Session error:', sessionError)
     }
