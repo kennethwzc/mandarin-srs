@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,6 @@ import { toast } from 'sonner'
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const { signIn, isLoading: authLoading } = useAuth()
   const { initialize } = useAuthStore()
 
@@ -78,10 +77,11 @@ function LoginForm() {
       // The Supabase client sets cookies asynchronously, so we wait a moment
       await new Promise((resolve) => setTimeout(resolve, 100))
 
-      // Use Next.js router for client-side navigation
-      // This is more reliable than window.location and works better with Next.js
+      // Use window.location.href for a hard redirect after authentication
+      // This forces a full page reload, ensuring cookies are sent to the server
+      // so middleware can detect the session and allow access to /dashboard
       console.log('[Login] Redirecting to:', finalRedirect)
-      router.replace(finalRedirect)
+      window.location.href = finalRedirect
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')
