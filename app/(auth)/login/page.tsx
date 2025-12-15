@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
@@ -17,11 +17,11 @@ import {
 } from '@/components/ui/card'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth-store'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 function LoginForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { signIn, isLoading: authLoading } = useAuth()
   const { initialize } = useAuthStore()
 
@@ -74,86 +74,14 @@ function LoginForm() {
       // Refresh auth store to sync session state
       await initialize()
 
-      // Wait for cookies to be set and session to be available
-      // The Supabase client sets cookies via setAll, but we need to ensure
-      // they're propagated before redirecting so middleware can detect the session
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Brief delay to ensure cookies are set by Supabase client
+      // The Supabase client sets cookies asynchronously, so we wait a moment
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
-      // Verify session exists and cookies are set before redirecting
-      const supabase = createClient()
-      let verifySession = null
-      let attempts = 0
-      const maxAttempts = 3
-
-      // Retry getting session with exponential backoff
-      while (!verifySession && attempts < maxAttempts) {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
-
-        if (sessionError) {
-          console.error('Error getting session:', sessionError)
-        }
-
-        if (session) {
-          verifySession = session
-          break
-        }
-
-        attempts++
-        if (attempts < maxAttempts) {
-          const waitTime = 300 * attempts // 300ms, 600ms, 900ms
-          console.log(
-            `Session not found, retrying in ${waitTime}ms (attempt ${attempts}/${maxAttempts})...`
-          )
-          await new Promise((resolve) => setTimeout(resolve, waitTime))
-        }
-      }
-
-      if (!verifySession) {
-        console.error('Session not found after all retries')
-        console.log('Current cookies:', document.cookie)
-        toast.error('Session not available. Please try logging in again.')
-        setIsLoading(false)
-        return
-      }
-
-      // Verify cookies are actually set
-      const cookies = document.cookie
-      const hasAuthCookies = cookies.includes('sb-') || cookies.includes('supabase.auth')
-
-      if (!hasAuthCookies) {
-        console.warn('Auth cookies not found in document.cookie')
-        console.log('All cookies:', cookies)
-      }
-
-      // Use window.location.replace for a hard redirect
-      // This forces a full page reload so middleware can detect the session
-      console.log('Redirecting to:', finalRedirect)
-      console.log('Session verified, cookies present:', hasAuthCookies)
-      console.log('All cookies:', document.cookie)
-
-      // CRITICAL: Force immediate redirect
-      // The redirect MUST happen immediately - no delays, no async operations
-      console.log('About to redirect to:', finalRedirect)
-      console.log('Current location:', window.location.href)
-
-      // IMPORTANT: Don't set isLoading to false - the redirect will reload the page
-      // The redirect must happen synchronously, not in a setTimeout
-
-      // Build full URL for redirect
-      const redirectUrl = new URL(finalRedirect, window.location.origin).href
-      console.log('Full redirect URL:', redirectUrl)
-
-      // CRITICAL: Use window.location.replace() directly - no setTimeout
-      // This should immediately navigate and cannot be blocked
-      window.location.replace(redirectUrl)
-
-      // If we somehow reach here (shouldn't happen), something is very wrong
-      console.error('Redirect did not execute! This should never happen.')
-      // Force it one more time as absolute last resort
-      window.location.href = redirectUrl
+      // Use Next.js router for client-side navigation
+      // This is more reliable than window.location and works better with Next.js
+      console.log('[Login] Redirecting to:', finalRedirect)
+      router.replace(finalRedirect)
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')
