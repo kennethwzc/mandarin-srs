@@ -18,7 +18,19 @@ export async function middleware(request: NextRequest) {
   // Refresh session if needed - this ensures we have the latest session
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession()
+
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    const cookies = request.cookies.getAll()
+    console.log('[Middleware] Path:', request.nextUrl.pathname)
+    console.log('[Middleware] Has session:', !!session)
+    console.log('[Middleware] Cookie count:', cookies.length)
+    if (sessionError) {
+      console.error('[Middleware] Session error:', sessionError)
+    }
+  }
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith('/login') ||

@@ -132,9 +132,25 @@ function LoginForm() {
       // This forces a full page reload so middleware can detect the session
       console.log('Redirecting to:', finalRedirect)
       console.log('Session verified, cookies present:', hasAuthCookies)
+      console.log('All cookies:', document.cookie)
 
-      // Force redirect - this will trigger middleware which should see the session
-      window.location.replace(finalRedirect)
+      // CRITICAL: The redirect must happen, but we need to ensure cookies are sent
+      // The issue might be that cookies are set but not sent with the redirect request
+      // Let's force a redirect and let middleware handle it
+      console.log('About to redirect - cookies should be sent with request')
+
+      // Use window.location.href for immediate redirect
+      // This ensures the browser sends all cookies with the request
+      window.location.href = finalRedirect
+
+      // If we somehow reach here (shouldn't happen), force it
+      // This is a safety net in case the redirect is somehow prevented
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          console.error('Redirect did not work! Forcing redirect...')
+          window.location.replace(finalRedirect)
+        }
+      }, 1000)
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')
