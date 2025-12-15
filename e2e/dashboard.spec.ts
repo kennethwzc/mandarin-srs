@@ -29,7 +29,9 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Current Streak' })).toBeVisible({
       timeout: 10000,
     })
-    await expect(page.getByRole('heading', { name: 'Accuracy' })).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: 'Accuracy', exact: true })).toBeVisible({
+      timeout: 10000,
+    })
   })
 
   test('displays charts', async ({ page }) => {
