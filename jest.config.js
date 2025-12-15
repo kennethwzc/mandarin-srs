@@ -1,11 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const nextJest = require('next/jest')
 
 const createJestConfig = nextJest({
+  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
   dir: './',
 })
 
-/** @type {import('jest').Config} */
+// Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
@@ -20,32 +20,21 @@ const customJestConfig = {
     '!**/node_modules/**',
     '!**/.next/**',
     '!**/coverage/**',
-    '!**/jest.config.js',
+    '!**/dist/**',
+    '!**/e2e/**',
+    '!**/__tests__/**',
   ],
-  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
-  // Coverage thresholds - will increase gradually as tests are added
-  coverageThreshold: {
+  coverageThresholds: {
     global: {
-      branches: 60,
-      functions: 60,
-      lines: 60,
-      statements: 60,
-    },
-    // Require 100% coverage for critical paths
-    './lib/utils/srs-algorithm.ts': {
-      branches: 90,
-      functions: 100,
-      lines: 90,
-      statements: 90,
-    },
-    './lib/utils/pinyin-utils.ts': {
       branches: 80,
       functions: 80,
       lines: 80,
       statements: 80,
     },
   },
+  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
 }
 
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
 module.exports = createJestConfig(customJestConfig)

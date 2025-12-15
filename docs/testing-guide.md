@@ -4,151 +4,106 @@
 
 This project uses a comprehensive testing strategy to ensure production reliability:
 
-- **Unit Tests**: Jest + React Testing Library
-- **Integration Tests**: React Testing Library
-- **E2E Tests**: Playwright
-- **Accessibility Tests**: axe-core + Playwright
-- **API Tests**: Jest with mocked dependencies
+- **Unit Tests**: Jest + React Testing Library (80%+ coverage)
+- **Integration Tests**: Testing Library (feature flows)
+- **E2E Tests**: Playwright (critical user journeys)
+- **Accessibility Tests**: axe-core (WCAG 2.1 AA compliance)
+- **API Tests**: Jest (route validation)
 
-## Test Coverage Goals
-
-- **Unit Tests**: 80%+ coverage
-- **Critical Paths**: 100% coverage
-- **All Features**: Integration tested
-- **User Journeys**: E2E tested
-- **Accessibility**: WCAG AA compliant
-
----
-
-## Running Tests
-
-### All Tests
+## Quick Start
 
 ```bash
-# Run all tests (unit + E2E)
+# Run all tests
 pnpm test:all
-```
 
-### Unit Tests
-
-```bash
-# Run unit tests once
-pnpm test
-
-# Watch mode (re-runs on file changes)
+# Unit tests (watch mode)
 pnpm test:watch
 
-# With coverage report
-pnpm test:coverage
+# Unit tests (single run)
+pnpm test
 
-# CI mode (for GitHub Actions)
-pnpm test:ci
-
-# Run specific test file
-pnpm test lib/utils/__tests__/pinyin-utils.test.ts
-```
-
-### Integration Tests
-
-```bash
-# Run integration tests only
+# Integration tests
 pnpm test:integration
-```
 
-### E2E Tests
-
-```bash
-# Run E2E tests (requires app running)
+# E2E tests
 pnpm test:e2e
 
-# Run with UI mode (visual test runner)
+# E2E with UI
 pnpm test:e2e:ui
 
-# Run with debugger
+# E2E debug mode
 pnpm test:e2e:debug
 
-# Run specific test file
-npx playwright test e2e/review-flow.spec.ts
-
-# Run specific browser
-npx playwright test --project=chromium
-```
-
-### Accessibility Tests
-
-```bash
-# Run accessibility tests only
+# Accessibility tests
 pnpm test:a11y
-```
 
----
+# Coverage report
+pnpm test:coverage
+```
 
 ## Test Structure
 
 ```
-mandarin-srs/
-├── lib/
-│   ├── utils/
-│   │   └── __tests__/
-│   │       ├── pinyin-utils.test.ts       # Pinyin utilities
-│   │       └── srs-algorithm.test.ts      # SRS algorithm
-│   └── hooks/
-│       └── __tests__/
-│           └── use-pinyin-input.test.tsx  # Custom hooks
-├── components/
-│   └── features/
-│       └── __tests__/
-│           ├── dashboard-stats.test.tsx   # Component tests
-│           └── pinyin-input.test.tsx
-├── app/
-│   ├── (app)/
-│   │   └── reviews/
-│   │       └── __tests__/
-│   │           └── review-flow.integration.test.tsx  # Integration
-│   └── api/
-│       └── reviews/
-│           └── __tests__/
-│               ├── queue.test.ts         # API tests
-│               └── submit.test.ts
-└── e2e/
-    ├── auth.setup.ts                     # E2E auth setup
-    ├── review-flow.spec.ts               # E2E user flows
+/
+├── lib/utils/__tests__/        # Utility function tests
+│   ├── pinyin-utils.test.ts
+│   └── srs-algorithm.test.ts
+├── lib/hooks/__tests__/        # Custom hook tests
+│   └── use-pinyin-input.test.tsx
+├── components/features/__tests__/  # Component tests
+│   ├── dashboard-stats.test.tsx
+│   ├── pinyin-input.test.tsx
+│   ├── review-card.test.tsx
+│   └── lesson-card.test.tsx
+├── app/(app)/reviews/__tests__/   # Integration tests
+│   └── review-flow.integration.test.tsx
+├── app/api/**/__tests__/       # API route tests
+│   ├── reviews/__tests__/submit.test.ts
+│   └── lessons/__tests__/start.test.ts
+└── e2e/                        # E2E tests (Playwright)
+    ├── review-flow.spec.ts
     ├── lesson-flow.spec.ts
     ├── dashboard.spec.ts
-    └── accessibility.spec.ts             # A11y tests
+    └── accessibility.spec.ts
 ```
 
----
+## Coverage Requirements
+
+### Minimum Coverage
+
+- **Branches**: 80%
+- **Functions**: 80%
+- **Lines**: 80%
+- **Statements**: 80%
+
+### Critical Path Coverage
+
+- SRS algorithm: 100%
+- Pinyin utilities: 100%
+- Review submission: 100%
+- Authentication: 100%
 
 ## Writing Tests
 
-### Unit Tests (Jest)
+### Unit Tests (Jest + React Testing Library)
 
-Test pure functions and isolated logic:
+**Test utilities:**
 
 ```typescript
-import { describe, it, expect } from '@jest/globals'
-import { myFunction } from '../my-function'
+import { addToneMark } from '../pinyin-utils'
 
-describe('myFunction', () => {
-  it('should handle basic case', () => {
-    expect(myFunction('input')).toBe('output')
+describe('addToneMark', () => {
+  it('adds tone marks correctly', () => {
+    expect(addToneMark('ni', 3)).toBe('nǐ')
   })
 
-  it('should handle edge cases', () => {
-    expect(myFunction('')).toBe('')
-    expect(myFunction(null)).toBe(null)
-  })
-
-  it('should throw on invalid input', () => {
-    expect(() => myFunction(undefined)).toThrow()
+  it('handles edge cases', () => {
+    expect(() => addToneMark('', 3)).toThrow()
   })
 })
 ```
 
-### Component Tests (React Testing Library)
-
-Test React components in isolation:
+**Test components:**
 
 ```typescript
 import { render, screen } from '@testing-library/react'
@@ -157,377 +112,349 @@ import { MyComponent } from '../my-component'
 
 describe('MyComponent', () => {
   it('renders correctly', () => {
-    render(<MyComponent title="Test" />)
-    expect(screen.getByText('Test')).toBeInTheDocument()
+    render(<MyComponent />)
+    expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
   it('handles user interaction', async () => {
-    const handleClick = jest.fn()
-    render(<MyComponent onClick={handleClick} />)
+    const user = userEvent.setup()
+    render(<MyComponent />)
 
-    await userEvent.click(screen.getByRole('button'))
-    expect(handleClick).toHaveBeenCalled()
+    await user.click(screen.getByRole('button'))
+    expect(screen.getByText('Clicked')).toBeInTheDocument()
   })
 })
 ```
 
 ### Integration Tests
 
-Test feature flows with multiple components:
+Test complete feature flows:
 
 ```typescript
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-
-// Mock API calls
-global.fetch = jest.fn()
-
-describe('Feature Flow', () => {
-  beforeEach(() => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({
+describe('Review Flow', () => {
+  it('completes full review session', async () => {
+    // Mock API calls
+    global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ data: {} }),
+      json: () => Promise.resolve({ data: mockData }),
     })
-  })
 
-  it('completes full flow', async () => {
-    const user = userEvent.setup()
-    render(<MyFeature />)
+    render(<ReviewsPage />)
 
-    // Interact with UI
-    await user.type(screen.getByRole('textbox'), 'test')
-    await user.click(screen.getByRole('button'))
-
-    // Verify result
-    await waitFor(() => {
-      expect(screen.getByText('Success')).toBeInTheDocument()
-    })
+    // Test complete flow
+    await userEvent.type(input, 'ni3')
+    await userEvent.keyboard('{Enter}')
+    // ... assertions
   })
 })
 ```
 
 ### E2E Tests (Playwright)
 
-Test real user journeys in actual browser:
+Test critical user journeys:
 
 ```typescript
-import { test, expect } from '@playwright/test'
-
-test('user can complete review', async ({ page }) => {
+test('user can complete review session', async ({ page }) => {
   await page.goto('/reviews')
 
+  // Type answer
   await page.fill('input[type="text"]', 'ni3')
   await page.keyboard.press('Enter')
 
-  await page.click('button:has-text("Good")')
+  // Verify feedback
+  await expect(page.locator('text=Correct')).toBeVisible()
 
-  await expect(page.locator('.next-character')).toBeVisible()
+  // Grade
+  await page.keyboard.press('3')
+
+  // Verify next card
+  await expect(page.locator('.character-display')).toBeVisible()
 })
 ```
 
----
+### API Tests
+
+Test API routes in isolation:
+
+```typescript
+import { POST } from '../route'
+import { NextRequest } from 'next/server'
+
+describe('POST /api/reviews/submit', () => {
+  it('validates input', async () => {
+    const req = new NextRequest('http://localhost/api/reviews/submit', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+
+    const res = await POST(req)
+    expect(res.status).toBe(400)
+  })
+})
+```
+
+### Accessibility Tests
+
+Test WCAG compliance:
+
+```typescript
+test('dashboard is accessible', async ({ page }) => {
+  await page.goto('/dashboard')
+
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
+
+  expect(results.violations).toEqual([])
+})
+```
 
 ## Best Practices
 
-### General
+### DO ✅
 
-1. **Test behavior, not implementation**
-   - Test what users see and do
-   - Don't test internal state
+- **Test behavior, not implementation**
+- **Use data-testid for stable selectors**
+- **Mock external dependencies**
+- **Test error states**
+- **Test loading states**
+- **Test accessibility**
+- **Keep tests fast (<2 minutes total)**
+- **Write clear test descriptions**
+- **Test edge cases**
 
-2. **Arrange-Act-Assert pattern**
-   - Arrange: Set up test data
-   - Act: Perform action
-   - Assert: Verify result
+### DON'T ❌
 
-3. **Descriptive test names**
-   - Use `it('should...')` format
-   - Name describes expected behavior
+- **Don't test implementation details**
+- **Don't test third-party libraries**
+- **Don't skip error handling tests**
+- **Don't hardcode test data in tests**
+- **Don't use brittle selectors**
+- **Don't write flaky tests**
+- **Don't skip accessibility tests**
 
-4. **One assertion per test (when possible)**
-   - Makes failures easy to diagnose
-   - Can group related assertions
+## Common Testing Patterns
 
-5. **Mock external dependencies**
-   - Database, API calls, third-party services
-   - Keeps tests fast and reliable
-
-### React Testing
-
-1. **Query by role/label, not implementation details**
-
-   ```typescript
-   // Good
-   screen.getByRole('button', { name: /submit/i })
-
-   // Bad
-   screen.getByClassName('submit-btn')
-   ```
-
-2. **Use userEvent over fireEvent**
-
-   ```typescript
-   // Good - simulates real user interaction
-   await userEvent.click(button)
-
-   // Bad - lower level
-   fireEvent.click(button)
-   ```
-
-3. **Wait for async updates**
-   ```typescript
-   await waitFor(() => {
-     expect(screen.getByText('Loaded')).toBeInTheDocument()
-   })
-   ```
-
-### E2E Testing
-
-1. **Test critical user paths first**
-   - Login → Dashboard
-   - Start Lesson → Complete Review
-   - Authentication flows
-
-2. **Use data-testid sparingly**
-   - Prefer semantic queries
-   - Use for complex selectors only
-
-3. **Handle flaky tests**
-   - Use proper waits
-   - Don't use fixed timeouts unless necessary
-   - Retry on CI
-
----
-
-## Coverage Requirements
-
-### Minimum Thresholds
-
-- **Branches**: 80%
-- **Functions**: 80%
-- **Lines**: 80%
-- **Statements**: 80%
-
-### Critical Paths (100% Required)
-
-- Pinyin validation logic
-- SRS algorithm calculations
-- Review submission flow
-- Authentication logic
-- Database operations
-
----
-
-## CI/CD Integration
-
-Tests run automatically on:
-
-- ✅ Push to `main` or `develop` branches
-- ✅ Pull requests
-- ✅ Manual workflow trigger
-
-### GitHub Actions Workflows
-
-1. **ci.yml**: Runs on every push/PR
-   - Linting
-   - Type checking
-   - Unit tests
-   - Build verification
-
-2. **e2e-tests.yml**: Runs E2E and accessibility tests
-   - Playwright tests
-   - Accessibility scans
-   - Cross-browser testing
-
-### Required Secrets
-
-Set these in GitHub repository settings:
-
-```
-SUPABASE_URL
-SUPABASE_ANON_KEY
-APP_URL
-TEST_USER_EMAIL (optional)
-TEST_USER_PASSWORD (optional)
-CODECOV_TOKEN (optional, for coverage tracking)
-```
-
----
-
-## Debugging Tests
-
-### Jest Tests
-
-```bash
-# Run with verbose output
-pnpm test --verbose
-
-# Run single test
-pnpm test -t "test name"
-
-# Debug in VS Code
-# Set breakpoint, press F5
-```
-
-### Playwright Tests
-
-```bash
-# Run with headed browser
-npx playwright test --headed
-
-# Run with UI mode (recommended)
-pnpm test:e2e:ui
-
-# Debug specific test
-npx playwright test e2e/review-flow.spec.ts --debug
-
-# See trace viewer
-npx playwright show-report
-```
-
-### Common Issues
-
-**Issue**: Tests timeout
-
-- **Solution**: Increase timeout, check for missing waits
-
-**Issue**: Cannot find element
-
-- **Solution**: Check selector, add proper wait conditions
-
-**Issue**: Flaky tests
-
-- **Solution**: Remove fixed timeouts, use waitFor()
-
-**Issue**: Mock not working
-
-- **Solution**: Check mock path, clear mocks between tests
-
----
-
-## Performance Testing
-
-### Load Time Tests
-
-Included in E2E tests:
+### Testing Async Components
 
 ```typescript
-test('loads quickly', async ({ page }) => {
-  const start = Date.now()
-  await page.goto('/dashboard')
-  const loadTime = Date.now() - start
+it('loads data', async () => {
+  render(<AsyncComponent />)
 
-  expect(loadTime).toBeLessThan(3000)
+  await waitFor(() => {
+    expect(screen.getByText('Loaded')).toBeInTheDocument()
+  })
 })
 ```
 
-### Bundle Size
+### Testing Form Submission
 
-```bash
-# Analyze bundle
-pnpm analyze
+```typescript
+it('submits form', async () => {
+  const user = userEvent.setup()
+  const onSubmit = jest.fn()
 
-# Check build output
-pnpm build
+  render(<Form onSubmit={onSubmit} />)
+
+  await user.type(screen.getByLabelText('Email'), 'test@example.com')
+  await user.click(screen.getByRole('button', { name: /submit/i }))
+
+  expect(onSubmit).toHaveBeenCalled()
+})
 ```
 
----
+### Testing Error States
 
-## Accessibility Testing
+```typescript
+it('shows error message', async () => {
+  global.fetch = jest.fn().mockRejectedValue(new Error('API Error'))
 
-### Running a11y Tests
+  render(<Component />)
 
-```bash
-# Run all accessibility tests
-pnpm test:a11y
-
-# Or run via Playwright
-npx playwright test e2e/accessibility.spec.ts
+  await waitFor(() => {
+    expect(screen.getByText(/error/i)).toBeInTheDocument()
+  })
+})
 ```
 
-### Manual Testing Checklist
+## Running Tests Locally
 
-- [ ] Keyboard navigation works
-- [ ] Screen reader compatible
-- [ ] Focus indicators visible
-- [ ] Color contrast sufficient
-- [ ] Form labels present
-- [ ] Alt text on images
-- [ ] ARIA landmarks used
-
----
-
-## Continuous Improvement
-
-### After Adding New Features
-
-1. Write unit tests first (TDD recommended)
-2. Add integration tests for feature flows
-3. Add E2E tests for critical paths
-4. Run coverage check: `pnpm test:coverage`
-5. Ensure coverage stays above 80%
-
-### Reviewing Coverage
+### Before Committing
 
 ```bash
-# Generate coverage report
+# Run all checks
+pnpm test:ci
+pnpm typecheck
+pnpm lint
+
+# Or use the pre-commit hook (automatic)
+git commit -m "feat: add feature"
+```
+
+### During Development
+
+```bash
+# Watch mode for fast feedback
+pnpm test:watch
+
+# Run specific test file
+pnpm test path/to/test.test.ts
+
+# Run tests matching pattern
+pnpm test --testNamePattern="pinyin"
+```
+
+### Debugging Tests
+
+**Jest:**
+
+```bash
+# Run with node debugger
+node --inspect-brk node_modules/.bin/jest --runInBand
+
+# VS Code: Add breakpoint and run "Jest: Debug"
+```
+
+**Playwright:**
+
+```bash
+# UI mode
+pnpm test:e2e:ui
+
+# Debug mode
+pnpm test:e2e:debug
+
+# Run specific test
+npx playwright test e2e/review-flow.spec.ts
+```
+
+## CI/CD Integration
+
+### GitHub Actions Workflows
+
+**Automatic Runs:**
+
+- ✅ On push to `main` or `develop`
+- ✅ On pull requests
+- ✅ Before deployment
+
+**What Gets Tested:**
+
+1. **Lint**: ESLint + Prettier
+2. **Typecheck**: TypeScript compilation
+3. **Unit Tests**: Jest with coverage
+4. **Build**: Next.js production build
+5. **E2E**: Playwright tests
+6. **Accessibility**: axe-core scans
+
+### Viewing Results
+
+**Coverage Report:**
+
+```bash
 pnpm test:coverage
-
-# Open in browser
 open coverage/lcov-report/index.html
 ```
 
-### Maintaining Test Quality
+**Playwright Report:**
 
-- Keep tests fast (<2 min for unit, <5 min for E2E)
-- Remove flaky tests or fix properly
-- Update tests when functionality changes
-- Don't skip failing tests
-- Review test logs in CI failures
+```bash
+pnpm test:e2e
+npx playwright show-report
+```
 
----
+## Troubleshooting
 
-## Test Data
+### Common Issues
 
-### Test Users
+**Issue: Tests timeout**
 
-- Email: `test@example.com`
-- Password: `testpassword123`
+```bash
+# Increase timeout in test
+test('slow test', async () => {
+  // ...
+}, 10000) // 10 seconds
+```
 
-### Test Content
+**Issue: Tests are flaky**
 
-Tests use either:
+```bash
+# Use waitFor for async updates
+await waitFor(() => {
+  expect(element).toBeInTheDocument()
+})
 
-- Mocked data (unit/integration tests)
-- Seeded database (E2E tests)
+# Use data-testid for stable selectors
+<div data-testid="my-element">
+```
 
-For E2E tests, ensure test database has:
+**Issue: Mock not working**
 
-- At least 10 lessons
-- At least 50 characters
-- At least one test user with profile
+```bash
+# Clear mocks between tests
+beforeEach(() => {
+  jest.clearAllMocks()
+})
+```
 
----
+**Issue: Playwright browser not found**
+
+```bash
+# Install browsers
+npx playwright install --with-deps
+```
+
+## Test Coverage Goals
+
+Current coverage:
+
+```
+Statements   : 80%+
+Branches     : 80%+
+Functions    : 80%+
+Lines        : 80%+
+```
+
+**Critical paths: 100% coverage**
+
+- Authentication flows
+- Review submission
+- SRS algorithm
+- Pinyin validation
+
+## Adding New Tests
+
+### When Adding New Features
+
+1. **Write tests first (TDD)** or **alongside code**
+2. **Test happy path** + **error cases**
+3. **Include accessibility tests**
+4. **Add E2E test if critical path**
+5. **Update this documentation**
+
+### Test Checklist
+
+When adding a new feature:
+
+- [ ] Unit tests for utilities/helpers
+- [ ] Component tests for UI
+- [ ] Integration tests for flows
+- [ ] E2E test if user-facing
+- [ ] Accessibility test
+- [ ] API test if adding routes
+- [ ] Update coverage thresholds if needed
 
 ## Resources
 
-- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [Jest Documentation](https://jestjs.io/)
 - [React Testing Library](https://testing-library.com/react)
-- [Playwright Documentation](https://playwright.dev)
+- [Playwright Documentation](https://playwright.dev/)
 - [axe-core Rules](https://github.com/dequelabs/axe-core/blob/develop/doc/rule-descriptions.md)
 - [Testing Best Practices](https://kentcdodds.com/blog/common-mistakes-with-react-testing-library)
 
+## Performance Testing
+
+See `/docs/performance-checklist.md` for performance testing guidelines.
+
 ---
 
-## Getting Help
-
-If tests are failing:
-
-1. Read the error message carefully
-2. Check test logs in CI
-3. Run tests locally to reproduce
-4. Use debugger or console.log
-5. Check recent code changes
-6. Review coverage report for gaps
-
-Tests are your safety net. Invest time in making them reliable, and they'll save you hours of debugging in production.
+**Remember:** Every test you write is a bug users won't encounter.
+Invest in testing now, save debugging time later! 🚀

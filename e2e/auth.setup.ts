@@ -1,26 +1,25 @@
+import { test as setup } from '@playwright/test'
+
 /**
- * Authentication Setup for E2E Tests
+ * Authentication setup for E2E tests
  *
- * Sets up authenticated state for tests that require login
+ * This runs before tests to establish authentication state
  */
 
-import { test as setup } from '@playwright/test'
-import path from 'path'
-
-const authFile = path.join(__dirname, '../playwright/.auth/user.json')
+const authFile = 'playwright/.auth/user.json'
 
 setup('authenticate', async ({ page }) => {
   // Navigate to login
   await page.goto('/login')
 
-  // Fill in credentials
-  await page.fill('input[name="email"]', process.env.TEST_USER_EMAIL || 'test@example.com')
-  await page.fill('input[name="password"]', process.env.TEST_USER_PASSWORD || 'testpassword123')
+  // Fill in test credentials
+  await page.fill('input[name="email"]', process.env.E2E_TEST_EMAIL || 'test@example.com')
+  await page.fill('input[name="password"]', process.env.E2E_TEST_PASSWORD || 'testpassword123')
 
-  // Click login
+  // Submit login form
   await page.click('button[type="submit"]')
 
-  // Wait for redirect to dashboard
+  // Wait for successful redirect to dashboard
   await page.waitForURL('/dashboard', { timeout: 10000 })
 
   // Save authentication state
