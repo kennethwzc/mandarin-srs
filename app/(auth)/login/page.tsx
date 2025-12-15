@@ -134,23 +134,26 @@ function LoginForm() {
       console.log('Session verified, cookies present:', hasAuthCookies)
       console.log('All cookies:', document.cookie)
 
-      // CRITICAL: The redirect must happen, but we need to ensure cookies are sent
-      // The issue might be that cookies are set but not sent with the redirect request
-      // Let's force a redirect and let middleware handle it
-      console.log('About to redirect - cookies should be sent with request')
+      // CRITICAL: Force immediate redirect
+      // The redirect MUST happen immediately - no delays, no async operations
+      console.log('About to redirect to:', finalRedirect)
+      console.log('Current location:', window.location.href)
 
-      // Use window.location.href for immediate redirect
-      // This ensures the browser sends all cookies with the request
-      window.location.href = finalRedirect
+      // IMPORTANT: Don't set isLoading to false - the redirect will reload the page
+      // The redirect must happen synchronously, not in a setTimeout
 
-      // If we somehow reach here (shouldn't happen), force it
-      // This is a safety net in case the redirect is somehow prevented
-      setTimeout(() => {
-        if (window.location.pathname === '/login') {
-          console.error('Redirect did not work! Forcing redirect...')
-          window.location.replace(finalRedirect)
-        }
-      }, 1000)
+      // Build full URL for redirect
+      const redirectUrl = new URL(finalRedirect, window.location.origin).href
+      console.log('Full redirect URL:', redirectUrl)
+
+      // CRITICAL: Use window.location.replace() directly - no setTimeout
+      // This should immediately navigate and cannot be blocked
+      window.location.replace(redirectUrl)
+
+      // If we somehow reach here (shouldn't happen), something is very wrong
+      console.error('Redirect did not execute! This should never happen.')
+      // Force it one more time as absolute last resort
+      window.location.href = redirectUrl
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')
