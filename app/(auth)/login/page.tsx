@@ -66,18 +66,22 @@ function LoginForm() {
       // Refresh auth store to sync session state
       await initialize()
 
-      // Get redirect destination
-      const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+      // Get redirect destination and decode it (handles URL-encoded paths like %2Fdashboard)
+      const redirectToParam = searchParams.get('redirectTo')
+      const redirectTo = redirectToParam ? decodeURIComponent(redirectToParam) : '/dashboard'
 
-      // Wait for auth state to update and cookies to be set
-      // The Supabase client should have set cookies, but we need to ensure
-      // they're available before redirecting
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      // Ensure redirectTo is a valid path (starts with /)
+      const finalRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
+
+      // Wait for cookies to be set and session to be available
+      // The Supabase client sets cookies, but we need to ensure they're propagated
+      // before redirecting so middleware can detect the session
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Use window.location for a hard redirect
       // This forces a full page reload so middleware can detect the session
       // The middleware will check for session and redirect accordingly
-      window.location.href = redirectTo
+      window.location.href = finalRedirect
     } catch (error) {
       console.error('Login error:', error)
       toast.error('An unexpected error occurred')

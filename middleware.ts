@@ -42,7 +42,14 @@ export async function middleware(request: NextRequest) {
 
   // Redirect to dashboard if accessing auth pages with active session
   if (isAuthPage && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Check if there's a redirectTo parameter in the URL
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo')
+    const destination = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+
+    // Ensure destination is a valid path
+    const finalDestination = destination.startsWith('/') ? destination : '/dashboard'
+
+    return NextResponse.redirect(new URL(finalDestination, request.url))
   }
 
   return response
