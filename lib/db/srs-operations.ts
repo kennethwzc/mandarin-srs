@@ -206,21 +206,59 @@ async function updateDailyStats(
 }
 
 /**
- * Get review queue for user
- * Returns items due for review
+ * Get review queue for user with actual content data
+ * Returns items due for review with joined character/vocabulary data
  */
 export async function getReviewQueue(userId: string, limit: number = 50) {
   const now = new Date()
 
   const items = await db
-    .select()
+    .select({
+      id: schema.userItems.id,
+      item_id: schema.userItems.item_id,
+      item_type: schema.userItems.item_type,
+      current_step: schema.userItems.current_step,
+      // Character data
+      character_simplified: schema.characters.simplified,
+      character_pinyin: schema.characters.pinyin,
+      character_meaning: schema.characters.meaning,
+      // Vocabulary data
+      vocabulary_word: schema.vocabulary.word,
+      vocabulary_pinyin: schema.vocabulary.pinyin,
+      vocabulary_translation: schema.vocabulary.translation,
+    })
     .from(schema.userItems)
+    .leftJoin(
+      schema.characters,
+      and(
+        eq(schema.userItems.item_id, schema.characters.id),
+        eq(schema.userItems.item_type, 'character')
+      )
+    )
+    .leftJoin(
+      schema.vocabulary,
+      and(
+        eq(schema.userItems.item_id, schema.vocabulary.id),
+        eq(schema.userItems.item_type, 'vocabulary')
+      )
+    )
     .where(and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, now)))
     .orderBy(schema.userItems.next_review_date)
     .limit(limit)
 
-  // TODO: Join with radicals/characters/vocabulary to get full content
-  // This will be added when we build the review interface
-
-  return items
+  // Transform to consistent format
+  return items.map((item) => ({
+    id: item.id,
+    item_id: item.item_id,
+    item_type: item.item_type,
+    current_step: item.current_step,
+    character:
+      item.item_type === 'character' ? item.character_simplified || '' : item.vocabulary_word || '',
+    pinyin:
+      item.item_type === 'character' ? item.character_pinyin || '' : item.vocabulary_pinyin || '',
+    meaning:
+      item.item_type === 'character'
+        ? item.character_meaning || ''
+        : item.vocabulary_translation || '',
+  }))
 }

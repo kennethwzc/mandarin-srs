@@ -62,22 +62,22 @@ export function ReviewSession() {
         throw new Error(data.error || 'Failed to fetch reviews')
       }
 
-      // Transform API data to ReviewItem format
-      // TODO: Fetch actual character/vocabulary data from database
-      // For now, using placeholder data
+      // Transform API data to ReviewItem format with actual content
       const items: ReviewItem[] = data.data.queue.map(
         (item: {
           id: string
           item_id: number
           item_type: 'radical' | 'character' | 'vocabulary'
+          character: string
+          pinyin: string
+          meaning: string
         }) => ({
           id: item.id,
           itemId: item.item_id,
           itemType: item.item_type,
-          // TODO: Join with radicals/characters/vocabulary tables to get actual data
-          character: '你', // Placeholder - will be replaced with actual data
-          meaning: 'you', // Placeholder
-          correctPinyin: 'nǐ', // Placeholder
+          character: item.character,
+          meaning: item.meaning,
+          correctPinyin: item.pinyin,
         })
       )
 
@@ -248,6 +248,7 @@ export function ReviewSession() {
 
       {/* Review card */}
       <ReviewCard
+        key={currentItem.id} // Force remount on each item change
         character={currentItem.character}
         meaning={currentItem.meaning}
         correctPinyin={currentItem.correctPinyin}
