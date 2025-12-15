@@ -55,8 +55,8 @@ describe('PinyinInput', () => {
     // Press 3 for tone 3
     await user.type(input, '3')
 
-    // Should call onChange with tone applied
-    expect(mockOnChange).toHaveBeenCalled()
+    // Should call onToneChange first (preventDefault prevents typing '3')
+    expect(mockOnToneChange).toHaveBeenCalledWith(3)
   })
 
   it('converts numeric pinyin to tone marks on space', async () => {
@@ -143,7 +143,7 @@ describe('PinyinInput', () => {
   it('does not submit when input is empty', async () => {
     const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} />)
+    render(<PinyinInput {...defaultProps} value="" />)
 
     const input = screen.getByRole('textbox')
     await user.type(input, '{Enter}')

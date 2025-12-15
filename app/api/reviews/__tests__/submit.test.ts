@@ -1,4 +1,8 @@
 /**
+ * @jest-environment node
+ */
+
+/**
  * API Route Tests: POST /api/reviews/submit
  *
  * Tests review submission endpoint
@@ -39,11 +43,35 @@ jest.mock('@/lib/db/srs-operations', () => ({
 }))
 
 describe('POST /api/reviews/submit', () => {
-  it('requires authentication', async () => {
-    // Override mock to return no user
+  beforeEach(() => {
+    // Reset mocks before each test
+    jest.clearAllMocks()
+
+    // Re-establish default authenticated user mock
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { createClient } = require('@/lib/supabase/server')
     createClient.mockImplementation(() => ({
+      auth: {
+        getUser: jest.fn(() =>
+          Promise.resolve({
+            data: {
+              user: {
+                id: 'test-user-id',
+                email: 'test@example.com',
+              },
+            },
+            error: null,
+          })
+        ),
+      },
+    }))
+  })
+
+  it('requires authentication', async () => {
+    // Override mock to return no user for this test only
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createClient } = require('@/lib/supabase/server')
+    createClient.mockImplementationOnce(() => ({
       auth: {
         getUser: jest.fn(() =>
           Promise.resolve({
@@ -80,7 +108,10 @@ describe('POST /api/reviews/submit', () => {
     const request = new NextRequest('http://localhost:3000/api/reviews/submit', {
       method: 'POST',
       body: JSON.stringify({
-        userItemId: 1,
+        itemId: 1,
+        itemType: 'character',
+        userAnswer: 'nǐ',
+        correctAnswer: 'nǐ',
         grade: 3,
         responseTimeMs: 1500,
       }),
@@ -97,7 +128,10 @@ describe('POST /api/reviews/submit', () => {
     const request = new NextRequest('http://localhost:3000/api/reviews/submit', {
       method: 'POST',
       body: JSON.stringify({
-        userItemId: 1,
+        itemId: 1,
+        itemType: 'character',
+        userAnswer: 'nǐ',
+        correctAnswer: 'nǐ',
         grade: 3,
         responseTimeMs: 1500,
       }),

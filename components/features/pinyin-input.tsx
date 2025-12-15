@@ -148,7 +148,8 @@ export function PinyinInput({
             setSuggestions([])
             setSelectedSuggestionIndex(-1)
           }
-        } else if (onSubmit) {
+        } else if (onSubmit && value.trim()) {
+          // Only submit if value is not empty
           e.preventDefault()
           onSubmit()
         }

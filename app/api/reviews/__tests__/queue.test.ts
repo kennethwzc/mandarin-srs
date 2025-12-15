@@ -1,16 +1,20 @@
 /**
+ * @jest-environment node
+ */
+
+/**
  * API Route Tests: GET /api/reviews/queue
  *
  * Tests review queue API endpoint
  */
 
-import { GET } from '../queue/route'
 import { NextRequest } from 'next/server'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/server')
 jest.mock('@/lib/db/srs-operations')
 
+import { GET } from '../queue/route'
 import { createClient } from '@/lib/supabase/server'
 import { getReviewQueue } from '@/lib/db/srs-operations'
 
