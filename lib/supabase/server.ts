@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Supabase client for server-side usage
  *
@@ -32,37 +33,39 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl) {
-    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL')
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_URL environment variable. Please check your .env.local file.'
+    )
   }
   if (!supabaseAnonKey) {
-    throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable. Please check your .env.local file.'
+    )
   }
+
+  console.log('Creating Supabase server client...', {
+    url: `${supabaseUrl.substring(0, 30)}...`,
+    hasAnonKey: !!supabaseAnonKey,
+  })
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      getAll() {
-        return cookieStore.getAll()
+      get(name: string) {
+        return cookieStore.get(name)?.value
       },
-      setAll(
-        cookiesToSet: Array<{
-          name: string
-          value: string
-          options?: CookieOptions
-        }>
-      ) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          try {
-            if (value === '') {
-              // Cookie deletion requires matching all attributes used when setting
-              cookieStore.set(name, '', { ...options, maxAge: 0 })
-            } else {
-              cookieStore.set({ name, value, ...options })
-            }
-          } catch (error) {
-            // Handle error in middleware where cookies can't be set
-            // This is expected in some contexts (e.g., static generation)
-          }
-        })
+      set(name: string, value: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value, ...options })
+        } catch (error) {
+          console.warn('Could not set cookie in server component:', name)
+        }
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({ name, value: '', ...options })
+        } catch (error) {
+          console.warn('Could not remove cookie in server component:', name)
+        }
       },
     },
   })

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Common database queries for the Mandarin SRS platform
  *
@@ -193,11 +194,25 @@ export async function getDailyStatsRange(userId: string, startDate: Date, endDat
  * @returns All published lessons ordered by sort_order
  */
 export async function getAllLessons() {
-  return await db
-    .select()
-    .from(schema.lessons)
-    .where(eq(schema.lessons.is_published, true))
-    .orderBy(schema.lessons.sort_order)
+  console.log('DB QUERY: getAllLessons() started')
+
+  try {
+    const result = await db
+      .select()
+      .from(schema.lessons)
+      .where(eq(schema.lessons.is_published, true))
+      .orderBy(schema.lessons.sort_order)
+
+    console.log('DB QUERY: getAllLessons() completed', {
+      count: result.length,
+      lessons: result.map((lesson) => ({ id: lesson.id, title: lesson.title })),
+    })
+
+    return result
+  } catch (error) {
+    console.error('DB QUERY ERROR: getAllLessons() failed', error)
+    throw error
+  }
 }
 
 /**

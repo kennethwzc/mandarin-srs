@@ -18,6 +18,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx lib/db/seed.ts",
+    "db:verify": "tsx scripts/verify-database.ts",
+    "debug:lessons": "pnpm db:verify && pnpm dev",
+    "fix:seed": "pnpm db:push && pnpm db:seed",
     "prepare": "husky install"
   },
   "dependencies": {
