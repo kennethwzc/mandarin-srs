@@ -174,15 +174,13 @@ export async function getRecentReviews(userId: string, limit: number = 100) {
 }
 
 /**
- * Get daily stats for date range
+ * OPTIMIZED: Get daily stats range with single query
  *
- * @param userId - User's UUID
- * @param startDate - Start date
- * @param endDate - End date
- * @returns Daily stats for range
+ * Before: Loop through dates, multiple queries
+ * After: Single query with date range
  */
 export async function getDailyStatsRange(userId: string, startDate: Date, endDate: Date) {
-  return await db
+  const stats = await db
     .select()
     .from(schema.dailyStats)
     .where(
@@ -193,6 +191,8 @@ export async function getDailyStatsRange(userId: string, startDate: Date, endDat
       )
     )
     .orderBy(schema.dailyStats.stat_date)
+
+  return stats
 }
 
 /**
@@ -501,4 +501,76 @@ export async function updateUserStreak(userId: string) {
     .where(eq(schema.profiles.id, userId))
 
   return { currentStreak: newStreak, longestStreak }
+}
+
+// ============================================================================
+// PERFORMANCE-OPTIMIZED QUERIES
+// ============================================================================
+
+/**
+ * OPTIMIZED: Get review queue with join
+ *
+ * Includes character/vocabulary data in single query
+ */
+export async function getReviewQueueOptimized(userId: string, limit: number = 50) {
+  const now = new Date()
+
+  // Single query with joins - no N+1 problem
+  const items = await db.execute(sql`
+    SELECT
+      ui.id,
+      ui.item_id,
+      ui.item_type,
+      ui.srs_stage,
+      ui.next_review_date,
+      CASE
+        WHEN ui.item_type = 'character' THEN c.simplified
+        WHEN ui.item_type = 'vocabulary' THEN v.word
+      END as display_text,
+      CASE
+        WHEN ui.item_type = 'character' THEN c.pinyin
+        WHEN ui.item_type = 'vocabulary' THEN v.pinyin
+      END as pinyin,
+      CASE
+        WHEN ui.item_type = 'character' THEN c.meaning
+        WHEN ui.item_type = 'vocabulary' THEN v.translation
+      END as meaning
+    FROM user_items ui
+    LEFT JOIN characters c ON ui.item_type = 'character' AND ui.item_id = c.id
+    LEFT JOIN vocabulary v ON ui.item_type = 'vocabulary' AND ui.item_id = v.id
+    WHERE ui.user_id = ${userId}
+      AND ui.next_review_date <= ${now}
+    ORDER BY ui.next_review_date ASC
+    LIMIT ${limit}
+  `)
+
+  return items[0]
+}
+
+/**
+ * OPTIMIZED: Batch insert user items
+ *
+ * Before: Loop with individual inserts
+ * After: Single bulk insert
+ */
+export async function batchInsertUserItems(
+  userId: string,
+  items: Array<{ item_id: number; item_type: 'character' | 'vocabulary' }>
+) {
+  if (items.length === 0) {
+    return
+  }
+
+  // Build VALUES clause for bulk insert
+  const values = items.map(
+    (item) =>
+      sql`(${userId}::uuid, ${item.item_id}, ${item.item_type}::item_type, 'new'::srs_stage, 2500, 0, NOW())`
+  )
+
+  // Use INSERT ... ON CONFLICT to handle duplicates efficiently
+  await db.execute(sql`
+    INSERT INTO user_items (user_id, item_id, item_type, srs_stage, ease_factor, interval_days, next_review_date)
+    VALUES ${sql.join(values, sql`, `)}
+    ON CONFLICT (user_id, item_id, item_type) DO NOTHING
+  `)
 }

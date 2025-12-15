@@ -1,18 +1,55 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
+import dynamic from 'next/dynamic'
 
 import { Brain } from 'lucide-react'
 
-import { AccuracyChart } from '@/components/features/accuracy-chart'
-import { ActivityCalendar } from '@/components/features/activity-calendar'
 import { DashboardStats } from '@/components/features/dashboard-stats'
-import { LessonProgress } from '@/components/features/lesson-progress'
-import { ReviewsChart } from '@/components/features/reviews-chart'
-import { UpcomingReviews } from '@/components/features/upcoming-reviews'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
+
+// Lazy load heavy chart components for better performance
+const ReviewsChart = dynamic(
+  () =>
+    import('@/components/features/reviews-chart').then((m) => ({
+      default: m.ReviewsChart,
+    })),
+  { loading: () => <ChartSkeleton /> }
+)
+
+const AccuracyChart = dynamic(
+  () =>
+    import('@/components/features/accuracy-chart').then((m) => ({
+      default: m.AccuracyChart,
+    })),
+  { loading: () => <ChartSkeleton /> }
+)
+
+const ActivityCalendar = dynamic(
+  () =>
+    import('@/components/features/activity-calendar').then((m) => ({
+      default: m.ActivityCalendar,
+    })),
+  { loading: () => <CalendarSkeleton /> }
+)
+
+const LessonProgress = dynamic(
+  () =>
+    import('@/components/features/lesson-progress').then((m) => ({
+      default: m.LessonProgress,
+    })),
+  { loading: () => <WidgetSkeleton /> }
+)
+
+const UpcomingReviews = dynamic(
+  () =>
+    import('@/components/features/upcoming-reviews').then((m) => ({
+      default: m.UpcomingReviews,
+    })),
+  { loading: () => <WidgetSkeleton /> }
+)
 
 export const metadata = {
   title: 'Dashboard',
@@ -104,6 +141,18 @@ export default function DashboardPage() {
   )
 }
 
+function ChartSkeleton() {
+  return <div className="h-[400px] animate-pulse rounded-lg bg-muted" />
+}
+
+function CalendarSkeleton() {
+  return <Card className="h-[220px] animate-pulse bg-muted" />
+}
+
+function WidgetSkeleton() {
+  return <div className="h-[200px] animate-pulse rounded-lg bg-muted" />
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">
@@ -119,16 +168,15 @@ function DashboardSkeleton() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {[...Array(2)].map((_, index) => (
-          <div key={index} className="h-[400px] animate-pulse rounded-lg bg-muted" />
-        ))}
+        <ChartSkeleton />
+        <ChartSkeleton />
       </div>
 
-      <Card className="h-[220px] animate-pulse bg-muted" />
+      <CalendarSkeleton />
+
       <div className="grid gap-4 md:grid-cols-2">
-        {[...Array(2)].map((_, index) => (
-          <div key={index} className="h-[200px] animate-pulse rounded-lg bg-muted" />
-        ))}
+        <WidgetSkeleton />
+        <WidgetSkeleton />
       </div>
     </div>
   )

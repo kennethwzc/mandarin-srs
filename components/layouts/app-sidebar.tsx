@@ -7,11 +7,11 @@ import { BookOpen, Home, Settings, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Lessons', href: '/lessons', icon: BookOpen },
-  { name: 'Reviews', href: '/reviews', icon: TrendingUp },
-  { name: 'Progress', href: '/progress', icon: TrendingUp },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: Home, prefetch: true },
+  { name: 'Lessons', href: '/lessons', icon: BookOpen, prefetch: true },
+  { name: 'Reviews', href: '/reviews', icon: TrendingUp, prefetch: false }, // Dynamic, don't prefetch
+  { name: 'Progress', href: '/progress', icon: TrendingUp, prefetch: true },
+  { name: 'Settings', href: '/settings', icon: Settings, prefetch: false },
 ]
 
 export function AppSidebar() {
@@ -29,6 +29,7 @@ export function AppSidebar() {
             <Link
               key={item.name}
               href={item.href}
+              prefetch={item.prefetch}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive

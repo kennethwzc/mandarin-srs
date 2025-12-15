@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { CharacterDisplay } from './character-display'
@@ -12,9 +12,10 @@ import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pin
 import { cn } from '@/lib/utils/cn'
 
 /**
- * Review Card Component
+ * Review Card Component (Optimized with React.memo)
  *
  * Main component for reviewing items. Shows character and collects pinyin answer.
+ * Memoized to prevent unnecessary re-renders.
  *
  * Flow:
  * 1. Show character
@@ -54,7 +55,7 @@ export interface ReviewResult {
   responseTimeMs: number // Time taken to answer
 }
 
-export function ReviewCard({
+export const ReviewCard = memo(function ReviewCard({
   character,
   meaning,
   correctPinyin,
@@ -224,4 +225,4 @@ export function ReviewCard({
       </CardContent>
     </Card>
   )
-}
+})

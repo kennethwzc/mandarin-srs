@@ -8,6 +8,9 @@ import { AuthProvider } from '@/components/providers/auth-provider'
 
 import './globals.css'
 
+// Export Web Vitals reporting function
+export { reportWebVitals } from '@/lib/monitoring/performance'
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
