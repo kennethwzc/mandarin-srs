@@ -1,12 +1,9 @@
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { cookies } from 'next/headers'
 import dynamic from 'next/dynamic'
 
-import { Brain } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { StartReviewsButton } from '@/components/ui/start-reviews-button'
 import { createClient } from '@/lib/supabase/server'
 
 // Lazy load client components to avoid SSR issues in CI
@@ -111,12 +108,7 @@ async function DashboardContent() {
           <p className="text-muted-foreground">Track your Mandarin learning progress</p>
         </div>
         {data.stats.reviewsDueToday > 0 && (
-          <Button asChild size="lg">
-            <Link href="/reviews">
-              <Brain className="mr-2 h-4 w-4" />
-              Start Reviews ({data.stats.reviewsDueToday})
-            </Link>
-          </Button>
+          <StartReviewsButton reviewsCount={data.stats.reviewsDueToday} />
         )}
       </div>
 

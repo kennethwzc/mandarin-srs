@@ -83,7 +83,14 @@ export function LessonCard({ lesson }: LessonCardProps) {
               </div>
               <CardTitle className="mb-1 text-xl">{title}</CardTitle>
               {description && (
-                <CardDescription className="line-clamp-2">{description}</CardDescription>
+                <CardDescription
+                  className={cn(
+                    'line-clamp-2',
+                    !isUnlocked && 'text-foreground/60' // Darker text for locked cards
+                  )}
+                >
+                  {description}
+                </CardDescription>
               )}
             </div>
             <BookOpen
@@ -96,7 +103,12 @@ export function LessonCard({ lesson }: LessonCardProps) {
         </CardHeader>
 
         <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div
+            className={cn(
+              'flex items-center gap-4 text-sm',
+              isUnlocked ? 'text-muted-foreground' : 'text-foreground/60' // Darker text for locked cards to meet contrast ratio
+            )}
+          >
             <div className="flex items-center gap-1">
               <span className="font-medium text-foreground">{characterCount}</span>
               <span>characters</span>
@@ -112,7 +124,7 @@ export function LessonCard({ lesson }: LessonCardProps) {
           </div>
 
           {!isUnlocked && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-3 flex items-center gap-2 text-sm text-foreground/60">
               <Lock className="h-4 w-4" />
               <span>Complete previous lesson to unlock</span>
             </div>
