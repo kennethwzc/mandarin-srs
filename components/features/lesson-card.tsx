@@ -54,7 +54,7 @@ export function LessonCard({ lesson }: LessonCardProps) {
       <Card
         className={cn(
           'relative overflow-hidden',
-          !isUnlocked && 'bg-muted opacity-60',
+          !isUnlocked && 'bg-muted', // Locked cards use muted background without opacity for proper contrast
           isCompleted && 'border-green-500 dark:border-green-700'
         )}
       >

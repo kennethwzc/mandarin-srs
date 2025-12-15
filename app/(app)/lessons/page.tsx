@@ -1,10 +1,17 @@
 /* eslint-disable no-console */
 
-import { LessonCard } from '@/components/features/lesson-card'
+import dynamic from 'next/dynamic'
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { getAllLessons } from '@/lib/db/queries'
 import { createClient } from '@/lib/supabase/server'
 import { AlertCircle, Info } from 'lucide-react'
+
+// Dynamically import LessonCard to avoid SSR issues with Link component
+const LessonCard = dynamic(
+  () => import('@/components/features/lesson-card').then((m) => ({ default: m.LessonCard })),
+  { ssr: false }
+)
 
 export const metadata = {
   title: 'Lessons',
