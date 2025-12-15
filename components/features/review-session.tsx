@@ -178,36 +178,41 @@ export function ReviewSession() {
   // Session complete
   if (sessionComplete) {
     const accuracy = totalReviewed > 0 ? Math.round((correctCount / totalReviewed) * 100) : 0
+    const hasCompletedReviews = totalReviewed > 0
 
     return (
       <div className="mx-auto max-w-2xl space-y-6 p-8 text-center">
-        <div className="mb-4 text-6xl">🎉</div>
-        <h1 className="text-3xl font-bold">Session Complete!</h1>
+        <div className="mb-4 text-6xl">{hasCompletedReviews ? '🎉' : '📚'}</div>
+        <h1 className="text-3xl font-bold">
+          {hasCompletedReviews ? 'Session Complete!' : 'No Reviews Due'}
+        </h1>
 
-        <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
-          <div className="rounded-lg bg-muted p-4">
-            <div className="text-3xl font-bold text-primary">{totalReviewed}</div>
-            <div className="text-sm text-muted-foreground">Reviews</div>
-          </div>
-          <div className="rounded-lg bg-muted p-4">
-            <div className="text-3xl font-bold text-green-600">{accuracy}%</div>
-            <div className="text-sm text-muted-foreground">Accuracy</div>
-          </div>
-        </div>
+        {hasCompletedReviews ? (
+          <>
+            <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-3xl font-bold text-primary">{totalReviewed}</div>
+                <div className="text-sm text-muted-foreground">Reviews</div>
+              </div>
+              <div className="rounded-lg bg-muted p-4">
+                <div className="text-3xl font-bold text-green-600">{accuracy}%</div>
+                <div className="text-sm text-muted-foreground">Accuracy</div>
+              </div>
+            </div>
+            <p className="text-muted-foreground">
+              Great work! Come back later for more reviews, or start a new lesson.
+            </p>
+          </>
+        ) : (
+          <p className="text-muted-foreground">
+            You&apos;re all caught up! Start a new lesson to learn more items.
+          </p>
+        )}
 
         <div className="flex justify-center gap-4">
           <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSessionComplete(false)
-              setCurrentIndex(0)
-              setTotalReviewed(0)
-              setCorrectCount(0)
-              fetchReviewQueue()
-            }}
-          >
-            Start New Session
+          <Button variant="outline" onClick={() => router.push('/lessons')}>
+            Browse Lessons
           </Button>
         </div>
       </div>
