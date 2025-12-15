@@ -6,7 +6,7 @@
  * All queries respect Row Level Security (RLS) policies.
  */
 
-import { eq, and, lte, desc, sql, gte } from 'drizzle-orm'
+import { eq, and, lte, desc, sql, gte, inArray } from 'drizzle-orm'
 
 import { db } from './client'
 import * as schema from './schema'
@@ -303,10 +303,7 @@ export async function getCharactersByIds(ids: number[]) {
     return []
   }
 
-  return await db
-    .select()
-    .from(schema.characters)
-    .where(sql`${schema.characters.id} = ANY(${sql.array(ids, 'int4')})`)
+  return await db.select().from(schema.characters).where(inArray(schema.characters.id, ids))
 }
 
 /**
@@ -317,10 +314,7 @@ export async function getVocabularyByIds(ids: number[]) {
     return []
   }
 
-  return await db
-    .select()
-    .from(schema.vocabulary)
-    .where(sql`${schema.vocabulary.id} = ANY(${sql.array(ids, 'int4')})`)
+  return await db.select().from(schema.vocabulary).where(inArray(schema.vocabulary.id, ids))
 }
 
 /**
@@ -340,12 +334,7 @@ export async function hasUserStartedLesson(userId: string, lessonId: number) {
   const userItems = await db
     .select()
     .from(schema.userItems)
-    .where(
-      and(
-        eq(schema.userItems.user_id, userId),
-        sql`${schema.userItems.item_id} = ANY(${sql.array(allItemIds, 'int4')})`
-      )
-    )
+    .where(and(eq(schema.userItems.user_id, userId), inArray(schema.userItems.item_id, allItemIds)))
     .limit(1)
 
   return userItems.length > 0
@@ -371,7 +360,7 @@ export async function hasUserCompletedLesson(userId: string, lessonId: number) {
     .where(
       and(
         eq(schema.userItems.user_id, userId),
-        sql`${schema.userItems.item_id} = ANY(${sql.array(allItemIds, 'int4')})`,
+        inArray(schema.userItems.item_id, allItemIds),
         sql`${schema.userItems.total_reviews} > 0`
       )
     )
