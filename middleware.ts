@@ -1,77 +1,55 @@
-/**
- * Next.js Middleware for authentication and route protection
- *
- * Runs before every request to:
- * 1. Refresh auth session
- * 2. Protect authenticated routes
- * 3. Redirect authenticated users from auth pages
- */
-
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-import { createClient } from '@/lib/supabase/middleware'
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-export async function middleware(request: NextRequest) {
-  const { supabase, response } = await createClient(request)
+  // Get the Supabase auth cookie - check both cookie existence AND value
+  const authCookie = request.cookies.get('sb-kunqvklwntfaovoxghxl-auth-token')
 
-  // Refresh session if needed - this ensures we have the latest session
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession()
+  // CRITICAL FIX: Check that cookie has a valid value, not just that it exists
+  const hasValidSession = !!(
+    authCookie &&
+    authCookie.value &&
+    authCookie.value.length > 10 // Auth tokens are always long
+  )
 
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    const cookies = request.cookies.getAll()
-    console.log('[Middleware] Path:', request.nextUrl.pathname)
-    console.log('[Middleware] Has session:', !!session)
-    console.log('[Middleware] Cookie count:', cookies.length)
-    // Log cookie names for debugging auth cookie propagation
-    console.log(
-      '[Middleware] Cookies:',
-      cookies.map((c) => `${c.name}=${c.value.slice(0, 12)}...`).join('; ')
-    )
-    if (sessionError) {
-      console.error('[Middleware] Session error:', sessionError)
-    }
+  // Enhanced logging for debugging
+  console.log('[Middleware] ========================================')
+  console.log('[Middleware] Path:', pathname)
+  console.log('[Middleware] Cookie exists:', !!authCookie)
+  console.log('[Middleware] Cookie value length:', authCookie?.value?.length || 0)
+  console.log('[Middleware] Has valid session:', hasValidSession)
+  console.log('[Middleware] ========================================')
+
+  // Define public routes that don't require authentication
+  const publicPaths = ['/login', '/signup', '/auth', '/']
+  const isPublicPath = publicPaths.some(
+    (path) => pathname === path || pathname.startsWith(path + '/')
+  )
+
+  // SCENARIO 1: Authenticated user trying to access login page
+  // Action: Redirect to dashboard (prevents authenticated users from seeing login)
+  if (hasValidSession && pathname === '/login') {
+    console.log('[Middleware] ✅ Authenticated user on login, redirecting to dashboard')
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/signup') ||
-    request.nextUrl.pathname.startsWith('/reset-password') ||
-    request.nextUrl.pathname.startsWith('/verify-email')
-
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/lessons') ||
-    request.nextUrl.pathname.startsWith('/reviews') ||
-    request.nextUrl.pathname.startsWith('/progress') ||
-    request.nextUrl.pathname.startsWith('/settings')
-
-  // Redirect to login if accessing protected route without session
-  if (isProtectedRoute && !session) {
-    const redirectUrl = new URL('/login', request.url)
-    redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+  // SCENARIO 2: Unauthenticated user trying to access protected route
+  // Action: Redirect to login with return path
+  if (!hasValidSession && !isPublicPath) {
+    console.log('[Middleware] ❌ No valid session on protected route, redirecting to login')
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirectTo', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect to dashboard if accessing auth pages with active session
-  if (isAuthPage && session) {
-    // Check if there's a redirectTo parameter in the URL
-    const redirectTo = request.nextUrl.searchParams.get('redirectTo')
-    const destination = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
-
-    // Ensure destination is a valid path
-    const finalDestination = destination.startsWith('/') ? destination : '/dashboard'
-
-    return NextResponse.redirect(new URL(finalDestination, request.url))
-  }
-
-  return response
+  // SCENARIO 3: Valid request, allow it through
+  console.log('[Middleware] ✅ Allowing access to:', pathname)
+  return NextResponse.next()
 }
 
+// Configure which routes the middleware runs on
 export const config = {
   matcher: [
     /*
@@ -79,9 +57,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes (handle auth separately)
+     * - Public files (images, etc)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
