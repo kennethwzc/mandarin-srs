@@ -5,10 +5,18 @@ import dynamic from 'next/dynamic'
 
 import { Brain } from 'lucide-react'
 
-import { DashboardStats } from '@/components/features/dashboard-stats'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
+
+// Lazy load client components to avoid SSR issues in CI
+const DashboardStats = dynamic(
+  () =>
+    import('@/components/features/dashboard-stats').then((m) => ({
+      default: m.DashboardStats,
+    })),
+  { ssr: false }
+)
 
 // Lazy load heavy chart components for better performance
 const ReviewsChart = dynamic(

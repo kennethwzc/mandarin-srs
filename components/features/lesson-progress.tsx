@@ -50,7 +50,11 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
             <span className="text-muted-foreground">Overall Progress</span>
             <span className="font-medium">{progressPercentage}%</span>
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <Progress
+            value={progressPercentage}
+            className="h-2"
+            aria-label={`Lesson progress: ${progressPercentage}% complete`}
+          />
         </div>
 
         <div className="space-y-2">
