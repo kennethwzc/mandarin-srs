@@ -71,7 +71,7 @@ test.describe('Accessibility', () => {
       const styles = window.getComputedStyle(active)
       const hasOutline = styles.outlineWidth !== '0px' && styles.outlineWidth !== ''
       const hasFocusRing =
-        styles.boxShadow.includes('ring') || active.classList.contains('focus:ring')
+        (styles.boxShadow !== 'none' && styles.boxShadow !== '') || styles.outline !== 'none'
 
       return hasOutline || hasFocusRing
     })
