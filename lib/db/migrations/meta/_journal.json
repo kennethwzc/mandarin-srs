@@ -14,6 +14,12 @@
       "version": "7",
       "when": 1765765200000,
       "tag": "0001_add_current_step_to_user_items"
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765860000000,
+      "tag": "0002_add_performance_indexes"
     }
   ]
 }
