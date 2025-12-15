@@ -9,6 +9,10 @@ import { test as setup } from '@playwright/test'
 const authFile = 'playwright/.auth/user.json'
 
 setup('authenticate', async ({ page }) => {
+  // Increase timeout to 60 seconds for auth setup
+  // This accounts for login, session verification, and dashboard data loading
+  setup.setTimeout(60000)
+
   // Navigate to login
   await page.goto('/login')
   await page.waitForLoadState('networkidle')
@@ -57,6 +61,13 @@ setup('authenticate', async ({ page }) => {
 
   console.log('[Auth Setup] Successfully redirected to dashboard')
 
+  // Wait for dashboard to fully load before saving storage state
+  // This ensures all async operations (data fetching) complete
+  await page.waitForLoadState('networkidle', { timeout: 20000 })
+
+  // Give the page a moment to stabilize after network idle
+  await page.waitForTimeout(1000)
+
   // Check for authentication-specific errors only
   // Note: We ignore general app errors like "Failed to load dashboard data"
   // since those don't indicate authentication failure
@@ -69,6 +80,10 @@ setup('authenticate', async ({ page }) => {
     throw new Error(`Authentication failed: ${authErrorMessage}`)
   }
 
+  console.log('[Auth Setup] Saving authentication state...')
+
   // Save authentication state
   await page.context().storageState({ path: authFile })
+
+  console.log('[Auth Setup] Authentication state saved successfully')
 })
