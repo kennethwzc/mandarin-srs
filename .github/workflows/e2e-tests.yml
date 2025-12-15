@@ -41,7 +41,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: 🧪 Run Playwright tests
-        run: pnpm test:e2e
+        run: pnpm test:e2e --project=chromium
         env:
           # Test environment variables
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -93,11 +93,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: ♿ Run accessibility tests
-        run: npx playwright test e2e/accessibility.spec.ts
+        run: npx playwright test e2e/accessibility.spec.ts --project=chromium
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || 'test@example.com' }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || 'testpassword123' }}
 
       - name: 📊 Upload accessibility report
         uses: actions/upload-artifact@v4

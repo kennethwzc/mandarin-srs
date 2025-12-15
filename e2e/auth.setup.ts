@@ -13,8 +13,8 @@ setup('authenticate', async ({ page }) => {
   await page.goto('/login')
 
   // Fill in test credentials
-  await page.fill('input[name="email"]', process.env.E2E_TEST_EMAIL || 'test@example.com')
-  await page.fill('input[name="password"]', process.env.E2E_TEST_PASSWORD || 'testpassword123')
+  await page.fill('input[name="email"]', process.env.TEST_USER_EMAIL || 'test@example.com')
+  await page.fill('input[name="password"]', process.env.TEST_USER_PASSWORD || 'testpassword123')
 
   // Submit login form
   await page.click('button[type="submit"]')
