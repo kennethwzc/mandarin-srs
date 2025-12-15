@@ -23,7 +23,9 @@ For E2E and accessibility tests to pass in CI, **ALL** of the following secrets 
      2. Scroll to "Connection string" section
      3. Select "URI" tab
      4. Copy the string (it includes your password)
-     5. Use the **pooler** connection (port 6543) for better performance in CI
+     5. **⚠️ IMPORTANT: Change port from `:5432` to `:6543`** (use pooler, not direct connection)
+        - Direct connection (port 5432) is often firewalled in GitHub Actions
+        - Pooler connection (port 6543) is optimized for serverless/CI environments
    - ⚠️ **Without this, the login page will freeze with disabled inputs**
 
 4. **`TEST_USER_EMAIL`** (Defaults to `test@example.com` if not set)

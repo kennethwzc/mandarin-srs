@@ -50,25 +50,24 @@ setup('authenticate', async ({ page }) => {
   // Wait a moment for session to be established
   await page.waitForTimeout(2000)
 
-  // Check for error messages
-  const errorMessage = await page
-    .locator('text=/error|invalid|failed/i')
-    .first()
-    .textContent()
-    .catch(() => null)
-  if (errorMessage) {
-    throw new Error(`Login failed with error: ${errorMessage}`)
-  }
-
-  // Check current URL
-  const currentUrl = page.url()
-  console.log('[Auth Setup] Current URL after login:', currentUrl)
-
   // Wait for redirect to dashboard with longer timeout
   // The login page has complex session verification logic that may take time
+  // If login failed, we'd stay on /login page, so this check validates auth success
   await page.waitForURL('/dashboard', { timeout: 30000 })
 
   console.log('[Auth Setup] Successfully redirected to dashboard')
+
+  // Check for authentication-specific errors only
+  // Note: We ignore general app errors like "Failed to load dashboard data"
+  // since those don't indicate authentication failure
+  const authErrorMessage = await page
+    .locator('text=/invalid.*password|invalid.*email|authentication failed|login failed/i')
+    .first()
+    .textContent()
+    .catch(() => null)
+  if (authErrorMessage) {
+    throw new Error(`Authentication failed: ${authErrorMessage}`)
+  }
 
   // Save authentication state
   await page.context().storageState({ path: authFile })
