@@ -26,6 +26,27 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const email =
+      user.email ??
+      (typeof user.user_metadata?.email === 'string' ? user.user_metadata.email : undefined)
+
+    if (!email) {
+      console.error('[StartLesson] Missing email for user', { userId: user.id })
+      return NextResponse.json(
+        { error: 'User email missing; cannot create profile' },
+        { status: 400 }
+      )
+    }
+
+    // Ensure profile exists to satisfy FK on user_items.user_id
+    await db
+      .insert(schema.profiles)
+      .values({
+        id: user.id,
+        email,
+      })
+      .onConflictDoNothing({ target: schema.profiles.id })
+
     const lessonId = Number.parseInt(params.id, 10)
 
     if (Number.isNaN(lessonId)) {
