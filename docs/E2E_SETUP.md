@@ -14,11 +14,16 @@ For E2E and accessibility tests to pass in CI, the following secrets must be set
    - This is the public anon key, safe to use in CI
    - Used as `NEXT_PUBLIC_SUPABASE_ANON_KEY` in tests
 
-3. **`TEST_USER_EMAIL`** (optional) - Email for test user account
+3. **`DATABASE_URL`** - Your Supabase database connection string
+   - Example: `postgresql://postgres.[PROJECT]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres`
+   - Find in: Supabase Dashboard → Settings → Database → Connection string (URI - Transaction mode)
+   - Required for server-side database queries during E2E tests
+
+4. **`TEST_USER_EMAIL`** (optional) - Email for test user account
    - Default: `test@example.com`
    - Should be a real user in your Supabase database
 
-4. **`TEST_USER_PASSWORD`** (optional) - Password for test user
+5. **`TEST_USER_PASSWORD`** (optional) - Password for test user
    - Default: `testpassword123`
    - Should match the test user's password
 
