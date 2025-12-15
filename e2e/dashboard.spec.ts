@@ -11,8 +11,8 @@ test.describe('Dashboard', () => {
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Should see dashboard title
-    await expect(page.locator('h1')).toContainText(/dashboard/i)
+    // Should see dashboard title (use getByRole to be more specific)
+    await expect(page.getByRole('heading', { name: /dashboard/i, level: 1 })).toBeVisible()
   })
 
   test('displays stats cards', async ({ page }) => {
