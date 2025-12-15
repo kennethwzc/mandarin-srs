@@ -1,13 +1,12 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { LessonContentPreview } from '@/components/features/lesson-content-preview'
 import { StartLessonButton } from '@/components/features/start-lesson-button'
+import { BackToLessonsButton } from '@/components/ui/back-to-lessons-button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getCharactersByIds, getLessonById, getVocabularyByIds } from '@/lib/db/queries'
 import { createClient } from '@/lib/supabase/server'
-import { ArrowLeft } from 'lucide-react'
 
 interface LessonPageProps {
   params: {
@@ -65,13 +64,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
-      <Link
-        href="/lessons"
-        className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
-        Back to Lessons
-      </Link>
+      <BackToLessonsButton />
 
       <div className="mb-8">
         <div className="mb-4 flex items-start justify-between gap-4">

@@ -1,7 +1,4 @@
-import Link from 'next/link'
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { SettingsLinkCard } from '@/components/ui/settings-link-card'
 
 export default function SettingsPage() {
   return (
@@ -12,29 +9,19 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Update your profile information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/profile">Edit Profile</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <SettingsLinkCard
+          title="Profile"
+          description="Update your profile information"
+          href="/settings/profile"
+          buttonText="Edit Profile"
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferences</CardTitle>
-            <CardDescription>Customize your learning experience</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline">
-              <Link href="/settings/preferences">Edit Preferences</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <SettingsLinkCard
+          title="Preferences"
+          description="Customize your learning experience"
+          href="/settings/preferences"
+          buttonText="Edit Preferences"
+        />
       </div>
     </div>
   )

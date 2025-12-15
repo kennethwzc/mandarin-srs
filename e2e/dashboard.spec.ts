@@ -19,11 +19,17 @@ test.describe('Dashboard', () => {
     await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
-    // Should see key stats
-    await expect(page.locator('text=Items Learned')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('text=Reviews Due')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('text=Current Streak')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('text=Accuracy')).toBeVisible({ timeout: 10000 })
+    // Should see key stats (use getByRole heading to be specific)
+    await expect(page.getByRole('heading', { name: 'Items Learned' })).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(page.getByRole('heading', { name: 'Reviews Due' })).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(page.getByRole('heading', { name: 'Current Streak' })).toBeVisible({
+      timeout: 10000,
+    })
+    await expect(page.getByRole('heading', { name: 'Accuracy' })).toBeVisible({ timeout: 10000 })
   })
 
   test('displays charts', async ({ page }) => {
