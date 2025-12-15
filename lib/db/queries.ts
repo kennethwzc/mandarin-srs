@@ -275,3 +275,92 @@ export async function getCharactersByHSK(hskLevel: '1' | '2' | '3' | '4' | '5' |
 export async function getVocabularyByHSK(hskLevel: '1' | '2' | '3' | '4' | '5' | '6') {
   return await db.select().from(schema.vocabulary).where(eq(schema.vocabulary.hsk_level, hskLevel))
 }
+
+// ============================================================================
+// LESSON CONTENT HELPERS
+// ============================================================================
+
+/**
+ * Get characters by IDs
+ */
+export async function getCharactersByIds(ids: number[]) {
+  if (ids.length === 0) {
+    return []
+  }
+
+  return await db
+    .select()
+    .from(schema.characters)
+    .where(sql`${schema.characters.id} = ANY(${ids})`)
+}
+
+/**
+ * Get vocabulary by IDs
+ */
+export async function getVocabularyByIds(ids: number[]) {
+  if (ids.length === 0) {
+    return []
+  }
+
+  return await db
+    .select()
+    .from(schema.vocabulary)
+    .where(sql`${schema.vocabulary.id} = ANY(${ids})`)
+}
+
+/**
+ * Check if user has started a lesson
+ */
+export async function hasUserStartedLesson(userId: string, lessonId: number) {
+  const lesson = await getLessonById(lessonId)
+  if (!lesson) {
+    return false
+  }
+
+  const allItemIds = [...(lesson.character_ids || []), ...(lesson.vocabulary_ids || [])]
+  if (allItemIds.length === 0) {
+    return false
+  }
+
+  const userItems = await db
+    .select()
+    .from(schema.userItems)
+    .where(
+      and(
+        eq(schema.userItems.user_id, userId),
+        sql`${schema.userItems.item_id} = ANY(${allItemIds})`
+      )
+    )
+    .limit(1)
+
+  return userItems.length > 0
+}
+
+/**
+ * Check if user has completed a lesson (all items reviewed at least once)
+ */
+export async function hasUserCompletedLesson(userId: string, lessonId: number) {
+  const lesson = await getLessonById(lessonId)
+  if (!lesson) {
+    return false
+  }
+
+  const allItemIds = [...(lesson.character_ids || []), ...(lesson.vocabulary_ids || [])]
+  if (allItemIds.length === 0) {
+    return true
+  }
+
+  const reviewedItems = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.userItems)
+    .where(
+      and(
+        eq(schema.userItems.user_id, userId),
+        sql`${schema.userItems.item_id} = ANY(${allItemIds})`,
+        sql`${schema.userItems.total_reviews} > 0`
+      )
+    )
+
+  const reviewedCount = reviewedItems[0]?.count ?? 0
+  return reviewedCount >= allItemIds.length
+}

@@ -1,43 +1,122 @@
-'use client'
-
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-import { ReviewCard } from '@/components/features/review-card'
+import { LessonContentPreview } from '@/components/features/lesson-content-preview'
+import { StartLessonButton } from '@/components/features/start-lesson-button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { getCharactersByIds, getLessonById, getVocabularyByIds } from '@/lib/db/queries'
+import { createClient } from '@/lib/supabase/server'
+import { ArrowLeft } from 'lucide-react'
 
-export default function LessonDetailPage({ params }: { params: { id: string } }) {
-  // Placeholder - will be replaced with real data fetching
-  if (!params.id) {
+interface LessonPageProps {
+  params: {
+    id: string
+  }
+}
+
+export async function generateMetadata({ params }: LessonPageProps) {
+  const lesson = await getLessonById(Number.parseInt(params.id, 10))
+
+  if (!lesson) {
+    return {
+      title: 'Lesson Not Found',
+    }
+  }
+
+  return {
+    title: lesson.title,
+    description: lesson.description ?? undefined,
+  }
+}
+
+export default async function LessonPage({ params }: LessonPageProps) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
     notFound()
   }
 
-  // Placeholder data
-  const currentReview = {
-    character: '你',
-    meaning: 'you',
-    correctPinyin: 'nǐ',
-    itemType: 'character' as const,
+  const lessonId = Number.parseInt(params.id, 10)
+  const lesson = await getLessonById(lessonId)
+
+  if (!lesson) {
+    notFound()
   }
 
-  const handleSubmit = (result: {
-    userAnswer: string
-    isCorrect: boolean
-    grade: number
-    responseTimeMs: number
-  }) => {
-    // TODO: Implement answer handling with SRS
-    // eslint-disable-next-line no-console
-    console.log('Review result:', result)
-  }
+  const characters = lesson.character_ids ? await getCharactersByIds(lesson.character_ids) : []
+  const vocabulary = lesson.vocabulary_ids ? await getVocabularyByIds(lesson.vocabulary_ids) : []
+
+  const totalItems = characters.length + vocabulary.length
+
+  // TODO: replace with real user progress tracking
+  const isCompleted = false
+  const isStarted = false
 
   return (
-    <div className="flex min-h-[600px] items-center justify-center">
-      <ReviewCard
-        character={currentReview.character}
-        meaning={currentReview.meaning}
-        correctPinyin={currentReview.correctPinyin}
-        itemType={currentReview.itemType}
-        onSubmit={handleSubmit}
-      />
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      <Link
+        href="/lessons"
+        className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="mr-1 h-4 w-4" />
+        Back to Lessons
+      </Link>
+
+      <div className="mb-8">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-2">
+              <Badge variant="outline">Level {lesson.level}</Badge>
+              <Badge variant="secondary">HSK {lesson.level}</Badge>
+            </div>
+            <h1 className="mb-2 text-4xl font-bold">{lesson.title}</h1>
+            {lesson.description && (
+              <p className="text-lg text-muted-foreground">{lesson.description}</p>
+            )}
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-3xl font-bold text-primary">{characters.length}</div>
+                <div className="text-sm text-muted-foreground">Characters</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-primary">{vocabulary.length}</div>
+                <div className="text-sm text-muted-foreground">Vocabulary</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-primary">{totalItems}</div>
+                <div className="text-sm text-muted-foreground">Total Items</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="mb-4 text-2xl font-bold">What You&apos;ll Learn</h2>
+        <LessonContentPreview characters={characters} vocabulary={vocabulary} />
+      </div>
+
+      <div className="sticky bottom-4 z-10">
+        <Card className="shadow-lg">
+          <CardContent className="p-4">
+            <StartLessonButton
+              lessonId={lessonId}
+              itemCount={totalItems}
+              isCompleted={isCompleted}
+              isStarted={isStarted}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
