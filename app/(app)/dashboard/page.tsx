@@ -1,14 +1,14 @@
 import { Suspense } from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 
 import { Card } from '@/components/ui/card'
 import { StartReviewsButton } from '@/components/ui/start-reviews-button'
 import { createClient } from '@/lib/supabase/server'
 
 // Lazy load client components to avoid SSR issues in CI
-const DashboardStats = dynamic(
+const DashboardStats = dynamicImport(
   () =>
     import('@/components/features/dashboard-stats').then((m) => ({
       default: m.DashboardStats,
@@ -18,7 +18,7 @@ const DashboardStats = dynamic(
 
 // Lazy load heavy chart components for better performance
 // All charts use recharts which has SSR issues, so disable SSR
-const ReviewsChart = dynamic(
+const ReviewsChart = dynamicImport(
   () =>
     import('@/components/features/reviews-chart').then((m) => ({
       default: m.ReviewsChart,
@@ -26,7 +26,7 @@ const ReviewsChart = dynamic(
   { ssr: false, loading: () => <ChartSkeleton /> }
 )
 
-const AccuracyChart = dynamic(
+const AccuracyChart = dynamicImport(
   () =>
     import('@/components/features/accuracy-chart').then((m) => ({
       default: m.AccuracyChart,
@@ -34,7 +34,7 @@ const AccuracyChart = dynamic(
   { ssr: false, loading: () => <ChartSkeleton /> }
 )
 
-const ActivityCalendar = dynamic(
+const ActivityCalendar = dynamicImport(
   () =>
     import('@/components/features/activity-calendar').then((m) => ({
       default: m.ActivityCalendar,
@@ -42,7 +42,7 @@ const ActivityCalendar = dynamic(
   { ssr: false, loading: () => <CalendarSkeleton /> }
 )
 
-const LessonProgress = dynamic(
+const LessonProgress = dynamicImport(
   () =>
     import('@/components/features/lesson-progress').then((m) => ({
       default: m.LessonProgress,
@@ -50,7 +50,7 @@ const LessonProgress = dynamic(
   { ssr: false, loading: () => <WidgetSkeleton /> }
 )
 
-const UpcomingReviews = dynamic(
+const UpcomingReviews = dynamicImport(
   () =>
     import('@/components/features/upcoming-reviews').then((m) => ({
       default: m.UpcomingReviews,
