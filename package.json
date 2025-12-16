@@ -29,7 +29,7 @@
     "db:verify": "tsx scripts/verify-database.ts",
     "debug:lessons": "pnpm db:verify && pnpm dev",
     "fix:seed": "pnpm db:push && pnpm db:seed",
-    "prepare": "husky install",
+    "prepare": "husky install || true",
     "import:content": "tsx scripts/import-content.ts",
     "generate:mnemonics": "tsx scripts/generate-mnemonics.ts",
     "validate:content": "tsx scripts/validate-content.ts",
