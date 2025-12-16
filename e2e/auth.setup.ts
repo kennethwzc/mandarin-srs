@@ -17,6 +17,24 @@ setup('authenticate', async ({ page }) => {
   await page.goto('/login')
   await page.waitForLoadState('networkidle')
 
+  // Dismiss cookie banner if it appears (blocks login button)
+  try {
+    const cookieBanner = page.locator('[role="region"]').filter({ hasText: 'Cookie Preferences' })
+    const isVisible = await cookieBanner.isVisible().catch(() => false)
+    if (isVisible) {
+      console.log('[Auth Setup] Dismissing cookie banner...')
+      // Click "Accept All" or close button
+      await page.getByRole('button', { name: /accept all|accept/i }).click().catch(async () => {
+        // Try close button if Accept All doesn't exist
+        await page.getByRole('button', { name: /close|dismiss/i }).click().catch(() => {})
+      })
+      await page.waitForTimeout(500) // Wait for banner to disappear
+    }
+  } catch (e) {
+    // Cookie banner might not appear, continue
+    console.log('[Auth Setup] No cookie banner to dismiss')
+  }
+
   // Wait for login form to be ready - both visible AND enabled
   // The inputs might be initially disabled while auth state initializes
   await page.waitForSelector('#email', { state: 'visible' })
