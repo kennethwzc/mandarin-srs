@@ -83,6 +83,9 @@ dependencies:
   posthog-js:
     specifier: ^1.306.2
     version: 1.306.2
+  prettier-plugin-tailwindcss:
+    specifier: ^0.6.1
+    version: 0.6.14(prettier@3.7.4)
   react:
     specifier: ^18.3.1
     version: 18.3.1
@@ -199,9 +202,6 @@ devDependencies:
   prettier:
     specifier: ^3.3.2
     version: 3.7.4
-  prettier-plugin-tailwindcss:
-    specifier: ^0.6.1
-    version: 0.6.14(prettier@3.7.4)
   tsx:
     specifier: ^4.15.4
     version: 4.21.0
@@ -8832,13 +8832,12 @@ packages:
         optional: true
     dependencies:
       prettier: 3.7.4
-    dev: true
+    dev: false
 
   /prettier@3.7.4:
     resolution: {integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==}
     engines: {node: '>=14'}
     hasBin: true
-    dev: true
 
   /pretty-format@27.5.1:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
