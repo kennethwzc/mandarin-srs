@@ -8,15 +8,18 @@
 ## 🎯 Summary of All Issues Fixed
 
 ### Issue 1: Husky Install Failure in Production ❌→✅
+
 **Commit:** `fa40906`
 
 **Error:**
+
 ```
 sh: line 1: husky: command not found
 ELIFECYCLE  Command failed.
 ```
 
 **Fix:**
+
 ```diff
 - "prepare": "husky install",
 + "prepare": "husky install || true",
@@ -27,9 +30,11 @@ ELIFECYCLE  Command failed.
 ---
 
 ### Issue 2: Prettier Plugin Not Available in Production ❌→✅
+
 **Commit:** `d6ae07e`
 
 **Error:**
+
 ```
 Module not found: Can't resolve 'prettier-plugin-tailwindcss'
 Build failed because of webpack errors
@@ -42,17 +47,20 @@ Build failed because of webpack errors
 ---
 
 ### Issue 3: Outdated Lockfile ❌→✅
+
 **Commits:** `46ba83b`, `1f5e9ac`
 
 **Error:**
+
 ```
-ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" 
+ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile"
 because pnpm-lock.yaml is not up to date with package.json
 ```
 
 **Root Cause:** Modified `package.json` without updating lockfile
 
 **Fix:**
+
 1. Regenerated lockfile: `npx pnpm@8 install --no-frozen-lockfile`
 2. Removed duplicate `prettier-plugin-tailwindcss` from devDependencies
 3. Fixed minor whitespace formatting
@@ -62,12 +70,14 @@ because pnpm-lock.yaml is not up to date with package.json
 ---
 
 ### Issue 4: Cookie Banner Blocking E2E Tests ❌→✅
+
 **Commit:** `65e9b22`
 
 **Error:**
+
 ```
 TimeoutError: page.click: Timeout 15000ms exceeded
-<div class="fixed inset-x-0 bottom-0 z-50">...</div> 
+<div class="fixed inset-x-0 bottom-0 z-50">...</div>
 subtree intercepts pointer events
 ```
 
@@ -75,8 +85,7 @@ subtree intercepts pointer events
 
 ```typescript
 // Old (broken)
-const cookieBanner = page.locator('[role="region"]')
-  .filter({ hasText: 'Cookie Preferences' })
+const cookieBanner = page.locator('[role="region"]').filter({ hasText: 'Cookie Preferences' })
 
 // New (working)
 const cookieBanner = page.getByText('Cookie Preferences')
@@ -89,31 +98,34 @@ await page.getByRole('button', { name: 'Accept All' }).click({ timeout: 5000 })
 
 ## 📊 Complete Fix Timeline
 
-| # | Commit | Issue | Status |
-|---|--------|-------|--------|
-| 1 | `fa40906` | Husky install fails | ✅ Fixed |
-| 2 | `d6ae07e` | Prettier plugin missing | ✅ Fixed |
-| 3 | `65e9b22` | Cookie banner blocking | ✅ Fixed |
-| 4 | `ea332b2` | Formatting issues | ✅ Fixed |
-| 5 | `efe587b` | Manual build trigger | ✅ Triggered |
-| 6 | `46ba83b` | Outdated lockfile | ✅ Fixed |
-| 7 | `1f5e9ac` | Cleanup & formatting | ✅ Fixed |
+| #   | Commit    | Issue                   | Status       |
+| --- | --------- | ----------------------- | ------------ |
+| 1   | `fa40906` | Husky install fails     | ✅ Fixed     |
+| 2   | `d6ae07e` | Prettier plugin missing | ✅ Fixed     |
+| 3   | `65e9b22` | Cookie banner blocking  | ✅ Fixed     |
+| 4   | `ea332b2` | Formatting issues       | ✅ Fixed     |
+| 5   | `efe587b` | Manual build trigger    | ✅ Triggered |
+| 6   | `46ba83b` | Outdated lockfile       | ✅ Fixed     |
+| 7   | `1f5e9ac` | Cleanup & formatting    | ✅ Fixed     |
 
 ---
 
 ## 🚀 Current Deployment Status
 
 ### GitHub Actions CI ✅
+
 - **Lint:** Should pass
 - **TypeScript:** Should pass
 - **Unit Tests:** Should pass
 - **Build:** Should pass
 
 ### E2E Tests ✅
+
 - **E2E Tests:** Should pass (cookie banner fixed)
 - **Accessibility:** Should pass (cookie banner fixed)
 
 ### Vercel Deployment ✅
+
 - **Install:** Should pass (lockfile synced)
 - **Build:** Should pass (prettier plugin available)
 - **Deploy:** Should succeed
@@ -123,9 +135,11 @@ await page.getByRole('button', { name: 'Accept All' }).click({ timeout: 5000 })
 ## 🔍 What Was Wrong (Root Causes)
 
 ### 1. Development vs Production Mismatch
+
 **Problem:** Code that works locally doesn't work in production
 
 **Why:**
+
 - Local: All dependencies installed (including devDependencies)
 - Production: Only production dependencies installed
 - Scripts/configs expecting devDeps fail in production
@@ -133,9 +147,11 @@ await page.getByRole('button', { name: 'Accept All' }).click({ timeout: 5000 })
 **Solution:** Make devDep references optional OR move to production deps
 
 ### 2. Lockfile Out of Sync
+
 **Problem:** CI enforces `--frozen-lockfile` (for reproducibility)
 
 **Why:**
+
 - Manual `package.json` edits without regenerating lockfile
 - Lockfile contains old dependency tree
 - CI rejects mismatched lockfile
@@ -143,9 +159,11 @@ await page.getByRole('button', { name: 'Accept All' }).click({ timeout: 5000 })
 **Solution:** Always regenerate lockfile after `package.json` changes
 
 ### 3. Test Environment Realism
+
 **Problem:** E2E tests didn't account for cookie banner
 
 **Why:**
+
 - Cookie banner added for GDPR compliance
 - Overlays the login button with high z-index
 - Playwright can't click through overlays
@@ -182,14 +200,15 @@ git commit -m "..."
 
 ```json
 {
-  "prepare": "husky install || true",  // ✅ Won't fail if husky missing
-  "postinstall": "command || exit 0"    // ✅ Won't fail if command fails
+  "prepare": "husky install || true", // ✅ Won't fail if husky missing
+  "postinstall": "command || exit 0" // ✅ Won't fail if command fails
 }
 ```
 
 ### 4. Config Files Can Import Packages
 
 Files loaded during build need their dependencies:
+
 - `.prettierrc` → `prettier-plugin-tailwindcss`
 - `tailwind.config.ts` → `tailwindcss` plugins
 - `postcss.config.js` → PostCSS plugins
@@ -213,6 +232,7 @@ await page.click('button[type="submit"]')
 After all fixes:
 
 ### CI/CD Pipeline
+
 - [ ] Lint job passes
 - [ ] TypeScript job passes
 - [ ] Unit test job passes
@@ -221,12 +241,14 @@ After all fixes:
 - [ ] Accessibility test job passes
 
 ### Vercel Deployment
+
 - [ ] Build completes successfully
 - [ ] No webpack errors
 - [ ] Deployment live at URL
 - [ ] Health endpoint responds: `/api/health`
 
 ### Application Functionality
+
 - [ ] Homepage loads
 - [ ] Cookie banner appears
 - [ ] Can dismiss cookie banner
@@ -241,6 +263,7 @@ After all fixes:
 ## 🔧 Commands Used
 
 ### Update Lockfile
+
 ```bash
 npx pnpm@8 install --no-frozen-lockfile
 git add pnpm-lock.yaml
@@ -248,16 +271,19 @@ git commit -m "fix: update lockfile"
 ```
 
 ### Test Production Build
+
 ```bash
 NODE_ENV=production pnpm build
 ```
 
 ### Format Code
+
 ```bash
 npx prettier --write "**/*.{ts,tsx,js,jsx,json,md}"
 ```
 
 ### Manual Deployment Trigger
+
 ```bash
 git commit --allow-empty -m "chore: trigger deployment"
 git push origin main
@@ -268,9 +294,11 @@ git push origin main
 ## 📈 Expected Results
 
 ### GitHub Actions
+
 **URL:** https://github.com/kennethwzc/mandarin-srs/actions
 
 **Expected:**
+
 - 🟢 All checks passing
 - ✅ Lint: Pass
 - ✅ TypeScript: Pass
@@ -280,9 +308,11 @@ git push origin main
 - ✅ Accessibility: Pass
 
 ### Vercel
+
 **Dashboard:** https://vercel.com/dashboard
 
 **Expected:**
+
 - 🟢 Deployment successful
 - ✅ Build completed
 - ✅ No errors in logs
@@ -292,15 +322,15 @@ git push origin main
 
 ## 🎉 Final Status
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| **Husky Issue** | ✅ Fixed | Non-fatal prepare script |
-| **Prettier Plugin** | ✅ Fixed | Moved to dependencies |
-| **Lockfile Sync** | ✅ Fixed | Regenerated and committed |
-| **Cookie Banner** | ✅ Fixed | Proper detection logic |
-| **CI Pipeline** | 🟡 Running | Should pass in ~5-10 min |
-| **Vercel Deploy** | 🟡 Running | Should complete in ~5 min |
-| **E2E Tests** | 🟡 Running | Should pass now |
+| Component           | Status     | Details                   |
+| ------------------- | ---------- | ------------------------- |
+| **Husky Issue**     | ✅ Fixed   | Non-fatal prepare script  |
+| **Prettier Plugin** | ✅ Fixed   | Moved to dependencies     |
+| **Lockfile Sync**   | ✅ Fixed   | Regenerated and committed |
+| **Cookie Banner**   | ✅ Fixed   | Proper detection logic    |
+| **CI Pipeline**     | 🟡 Running | Should pass in ~5-10 min  |
+| **Vercel Deploy**   | 🟡 Running | Should complete in ~5 min |
+| **E2E Tests**       | 🟡 Running | Should pass now           |
 
 ---
 
@@ -309,9 +339,11 @@ git push origin main
 ### 1. Monitor Deployments (Next 10 Minutes)
 
 **GitHub Actions:** https://github.com/kennethwzc/mandarin-srs/actions
+
 - Watch for all green checkmarks ✅
 
 **Vercel:** https://vercel.com/dashboard
+
 - Watch for "Deployment successful" 🎉
 
 ### 2. Update Supabase (After Deployment)
@@ -319,6 +351,7 @@ git push origin main
 **Go to:** https://app.supabase.com/project/mkcdbzxcqekzjnawllbu/auth/url-configuration
 
 **Add:**
+
 ```
 Redirect URLs: https://[your-vercel-url].vercel.app/auth/callback
 Site URL: https://[your-vercel-url].vercel.app
@@ -329,6 +362,7 @@ Site URL: https://[your-vercel-url].vercel.app
 **Visit:** Your Vercel URL
 
 **Test:**
+
 1. Homepage loads ✅
 2. Cookie banner works ✅
 3. Sign up/login works ✅
@@ -378,6 +412,7 @@ Update `NEXT_PUBLIC_APP_URL` to your actual Vercel URL
 **Status:** ✅ **ALL RESOLVED**
 
 **Your app should now:**
+
 - ✅ Build successfully in CI
 - ✅ Pass all tests (unit + E2E)
 - ✅ Deploy successfully to Vercel

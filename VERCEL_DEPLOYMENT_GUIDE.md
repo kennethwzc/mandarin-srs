@@ -31,7 +31,7 @@ Before deploying, make sure you have:
    - Click "Import"
 
 3. **Configure Project Settings:**
-   
+
    ```
    Framework Preset: Next.js (auto-detected)
    Root Directory: ./
@@ -93,6 +93,7 @@ NEXT_PUBLIC_ENABLE_AI_FEATURES=false
 ```
 
 **Important Notes:**
+
 - Set **ALL** variables to apply to: **Production, Preview, and Development**
 - Check the box for all three environments
 - Keep `SUPABASE_SERVICE_ROLE_KEY` **SECRET** - never expose it!
@@ -104,6 +105,7 @@ Before deploying, update Supabase auth settings:
 1. **Go to Supabase Dashboard:** https://app.supabase.com/project/[your-project]/auth/url-configuration
 
 2. **Add Redirect URLs:**
+
    ```
    https://your-app.vercel.app/auth/callback
    https://your-app.vercel.app/*
@@ -111,6 +113,7 @@ Before deploying, update Supabase auth settings:
    ```
 
 3. **Set Site URL:**
+
    ```
    https://your-app.vercel.app
    ```
@@ -124,6 +127,7 @@ Before deploying, update Supabase auth settings:
 3. **Watch the logs** for any errors
 
 **Expected output:**
+
 ```
 ✓ Building...
 ✓ Linting...
@@ -137,11 +141,13 @@ Before deploying, update Supabase auth settings:
 Once deployed, **immediately test these:**
 
 #### 1. Health Check
+
 ```bash
 curl https://your-app.vercel.app/api/health
 ```
 
 **Expected response:**
+
 ```json
 {
   "status": "healthy",
@@ -186,6 +192,7 @@ After initial setup, Vercel will **automatically deploy** when you:
 3. **Push to any branch** → Development preview
 
 **To deploy manually:**
+
 ```bash
 git add .
 git commit -m "feat: your changes"
@@ -193,6 +200,7 @@ git push origin main
 ```
 
 **Vercel will:**
+
 1. Detect the push
 2. Run tests (via GitHub Actions)
 3. Build the app
@@ -206,6 +214,7 @@ git push origin main
 ### ❌ Build Fails: "Invalid environment variables"
 
 **Solution:** Check that ALL required env vars are set in Vercel:
+
 1. Go to: Vercel Dashboard → Settings → Environment Variables
 2. Verify `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, etc. are set
 3. Click "Redeploy" after adding variables
@@ -215,6 +224,7 @@ git push origin main
 **Problem:** `DATABASE_URL` is wrong or database is paused
 
 **Solutions:**
+
 1. Check Supabase project is **not paused** (free tier pauses after 1 week inactivity)
 2. Verify connection string uses **port 5432** (or 6543 for pooling)
 3. Ensure database is in **same region** as Vercel deployment
@@ -225,6 +235,7 @@ git push origin main
 **Problem:** Redirect URLs not configured
 
 **Solution:**
+
 1. Go to Supabase → Authentication → URL Configuration
 2. Add your Vercel URL: `https://your-app.vercel.app/auth/callback`
 3. Save and redeploy
@@ -234,6 +245,7 @@ git push origin main
 **Problem:** Deployment failed or still building
 
 **Solutions:**
+
 1. Check Vercel dashboard for deployment status
 2. View logs: Vercel Dashboard → Deployments → [Latest] → View Logs
 3. If build failed, check the error logs and fix the issue
@@ -242,6 +254,7 @@ git push origin main
 ### ❌ Slow Performance
 
 **Solutions:**
+
 1. Enable **Supabase Connection Pooling** (Settings → Database → Connection Pooling)
 2. Use **Edge Functions** for frequently accessed data
 3. Check **Vercel Analytics** for slow pages
@@ -280,6 +293,7 @@ git push origin main
 Before announcing to users:
 
 ### Security
+
 - [ ] All secrets stored in Vercel environment variables
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` is SECRET (not in git, not in client)
 - [ ] HTTPS enforced (Vercel does this automatically)
@@ -287,24 +301,28 @@ Before announcing to users:
 - [ ] Rate limiting enabled
 
 ### Performance
+
 - [ ] Lighthouse score > 90
 - [ ] Response time < 200ms for API routes
 - [ ] Images optimized (using Next.js Image component)
 - [ ] Database queries optimized
 
 ### Legal & Compliance
+
 - [ ] Privacy Policy accessible at `/privacy`
 - [ ] Terms of Service accessible at `/terms`
 - [ ] Cookie consent banner working
 - [ ] GDPR compliant (for EU users)
 
 ### Monitoring
+
 - [ ] Health check endpoint working (`/api/health`)
 - [ ] Error tracking configured (Sentry)
 - [ ] Analytics configured (PostHog)
 - [ ] Uptime monitoring configured (UptimeRobot, Better Uptime, etc.)
 
 ### Testing
+
 - [ ] All unit tests passing
 - [ ] All E2E tests passing
 - [ ] Manual QA completed
@@ -389,11 +407,13 @@ git push origin main
 ### Environment-Specific Configs
 
 **Preview Deployments (PRs):**
+
 - Use a separate Supabase project for staging
 - Set environment variables specifically for "Preview"
 - Test risky changes in preview before merging to main
 
 **Development:**
+
 - Use `.env.local` for local development
 - Never commit this file to git
 - Keep separate test data from production
@@ -401,17 +421,20 @@ git push origin main
 ### Performance Optimization
 
 **Enable caching:**
+
 ```typescript
 // app/api/some-route/route.ts
 export const revalidate = 60 // Cache for 60 seconds
 ```
 
 **Use Vercel Edge Functions** for ultra-fast responses:
+
 ```typescript
 export const runtime = 'edge'
 ```
 
 **Database connection pooling:**
+
 ```
 DATABASE_URL=...?pgbouncer=true&connection_limit=1
 ```
@@ -434,6 +457,7 @@ git push origin main
 ```
 
 **Expected Timeline:**
+
 - Build time: 2-5 minutes
 - DNS propagation (custom domain): 24-48 hours
 - First real users: Whenever you're ready! 🚀

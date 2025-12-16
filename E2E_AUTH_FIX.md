@@ -11,6 +11,7 @@
 ### E2E Test Failure (logs_52330538512)
 
 **Error:**
+
 ```
 TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"
 
@@ -25,11 +26,13 @@ TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for e
 
 **Root Cause:**
 The authentication setup test (`e2e/auth.setup.ts`) was waiting for a POST request to an `/auth/` endpoint, but **the application uses Supabase client-side authentication** which:
+
 - Does NOT send requests to a local `/auth/` endpoint
 - Handles authentication through Supabase's hosted API
 - Uses client-side JavaScript for the auth flow
 
 **Impact:**
+
 - ❌ All 23 E2E tests failed (auth setup blocks all tests)
 - ❌ All 10 accessibility tests failed (auth setup blocks all tests)
 - ❌ 0 tests actually ran (auth setup must succeed first)
@@ -41,6 +44,7 @@ The authentication setup test (`e2e/auth.setup.ts`) was waiting for a POST reque
 ### Changes to `e2e/auth.setup.ts`
 
 #### Before (Broken) ❌
+
 ```typescript
 // This waits for an endpoint that doesn't exist in Supabase auth flow
 const [response] = await Promise.all([
@@ -53,12 +57,10 @@ const [response] = await Promise.all([
 ```
 
 #### After (Fixed) ✅
+
 ```typescript
 // Wait for navigation instead (works with Supabase client-side auth)
-await Promise.all([
-  page.waitForURL('**', { timeout: 30000 }),
-  page.click('button[type="submit"]'),
-])
+await Promise.all([page.waitForURL('**', { timeout: 30000 }), page.click('button[type="submit"]')])
 
 // Check if still on login page (auth failed)
 const currentUrl = page.url()
@@ -100,6 +102,7 @@ await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
 ### What Was Tested
 
 **Authentication Flow:**
+
 - ✅ Login form submission
 - ✅ URL navigation detection
 - ✅ Dashboard accessibility verification
@@ -108,6 +111,7 @@ await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
 **Expected CI Results:**
 
 After this fix, E2E tests should:
+
 1. ✅ Complete auth setup successfully
 2. ✅ Run all 23 Playwright E2E tests
 3. ✅ Run all 10 accessibility tests
@@ -118,12 +122,14 @@ After this fix, E2E tests should:
 ## 📊 Files Modified
 
 **Changed:** 1 file
+
 ```
 e2e/auth.setup.ts | 53 ++++++++++++++++++++++++++++++---------
 1 file changed, 30 insertions(+), 23 deletions(-)
 ```
 
 **Changes:**
+
 - Removed incorrect `waitForResponse` for `/auth/` endpoint
 - Added URL navigation waiting (works with Supabase)
 - Added login failure detection
@@ -135,6 +141,7 @@ e2e/auth.setup.ts | 53 ++++++++++++++++++++++++++++++---------
 ## 🚀 Deployment Impact
 
 **Changes are:**
+
 - ✅ **Test-Only** - No production code affected
 - ✅ **Backwards Compatible** - Works with existing auth flow
 - ✅ **CI Friendly** - More reliable in CI environment
@@ -152,6 +159,7 @@ e2e/auth.setup.ts | 53 ++++++++++++++++++++++++++++++---------
 **Previous Commit:** fc31197 (CI build failures fix)
 
 **Push Status:** ✅ Successful
+
 ```
 To github.com:kennethwzc/mandarin-srs.git
    fc31197..e8cfbac  HEAD -> main
@@ -173,6 +181,7 @@ To github.com:kennethwzc/mandarin-srs.git
 ### Supabase Authentication Flow
 
 **How Supabase Auth Works:**
+
 1. User fills login form on `/login` page
 2. Client-side JavaScript calls Supabase Auth API (hosted by Supabase)
 3. Supabase returns auth tokens via redirect/callback
@@ -182,11 +191,13 @@ To github.com:kennethwzc/mandarin-srs.git
 **Key Point:** No local `/auth/` endpoint exists
 
 **The Test Was Looking For:**
+
 - A POST request to a URL containing `/auth/`
 - This pattern is common in traditional server-side auth flows
 - But Supabase uses a different, client-side approach
 
 **Why It Failed:**
+
 - Test waited 10 seconds for a response that would never come
 - Timed out and failed
 - All subsequent tests couldn't run (auth setup is required)
@@ -198,10 +209,12 @@ To github.com:kennethwzc/mandarin-srs.git
 **Status:** ✅ **E2E AUTH SETUP FIXED**
 
 **What Was Fixed:**
+
 - ❌ Old: Waited for `/auth/` POST request (doesn't exist)
 - ✅ New: Waits for URL navigation (actual Supabase flow)
 
 **Expected Result:**
+
 - ✅ Auth setup completes in ~5-10 seconds
 - ✅ All E2E tests can run
 - ✅ Tests pass/fail on actual logic (not auth timeout)
@@ -212,7 +225,6 @@ To github.com:kennethwzc/mandarin-srs.git
 
 1. **Wait for CI** (~5-10 minutes)
    - Check: https://github.com/kennethwzc/mandarin-srs/actions
-   
 2. **Monitor E2E Tests**
    - Should see "Running 23 tests" (not "0 tests")
    - Auth setup should pass

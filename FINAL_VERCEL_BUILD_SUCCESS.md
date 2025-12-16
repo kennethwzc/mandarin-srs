@@ -8,25 +8,26 @@
 
 ## 📊 Complete Fix Timeline (Issues #1-15)
 
-| # | Issue | Package/Fix | Commit | Status |
-|---|-------|-------------|--------|--------|
-| 1 | Husky not found | Script fix: `husky install \|\| true` | `fa40906` | ✅ |
-| 2 | prettier-plugin-tailwindcss missing | Moved to dependencies | `d6ae07e` | ✅ |
-| 3 | autoprefixer missing | Moved to dependencies | `f361414` | ✅ |
-| 4 | TypeScript compiler missing | Moved to dependencies | `c18539d` | ✅ |
-| 5 | dotenv missing | Moved to dependencies | `2072878` | ✅ |
-| 6 | @types/node missing | Moved to dependencies | `f78d0e4` | ✅ |
-| 7 | @types/react missing | Moved to dependencies | `f78d0e4` | ✅ |
-| 8 | @types/react-dom missing | Moved to dependencies | `f78d0e4` | ✅ |
-| 9 | ESLint missing | Moved to dependencies | `2eada5f` | ✅ |
-| 10 | eslint-config-next missing | Moved to dependencies | `2eada5f` | ✅ |
-| 11 | drizzle-kit missing | Moved to dependencies | `2eada5f` | ✅ |
-| 12 | @typescript-eslint/eslint-plugin missing | Moved to dependencies | `884a112` | ✅ |
-| 13 | @typescript-eslint/parser missing | Moved to dependencies | `884a112` | ✅ |
-| 14 | eslint-plugin-react missing | Moved to dependencies | `884a112` | ✅ |
-| 15 | eslint-plugin-react-hooks missing | Moved to dependencies | `884a112` | ✅ |
+| #   | Issue                                    | Package/Fix                           | Commit    | Status |
+| --- | ---------------------------------------- | ------------------------------------- | --------- | ------ |
+| 1   | Husky not found                          | Script fix: `husky install \|\| true` | `fa40906` | ✅     |
+| 2   | prettier-plugin-tailwindcss missing      | Moved to dependencies                 | `d6ae07e` | ✅     |
+| 3   | autoprefixer missing                     | Moved to dependencies                 | `f361414` | ✅     |
+| 4   | TypeScript compiler missing              | Moved to dependencies                 | `c18539d` | ✅     |
+| 5   | dotenv missing                           | Moved to dependencies                 | `2072878` | ✅     |
+| 6   | @types/node missing                      | Moved to dependencies                 | `f78d0e4` | ✅     |
+| 7   | @types/react missing                     | Moved to dependencies                 | `f78d0e4` | ✅     |
+| 8   | @types/react-dom missing                 | Moved to dependencies                 | `f78d0e4` | ✅     |
+| 9   | ESLint missing                           | Moved to dependencies                 | `2eada5f` | ✅     |
+| 10  | eslint-config-next missing               | Moved to dependencies                 | `2eada5f` | ✅     |
+| 11  | drizzle-kit missing                      | Moved to dependencies                 | `2eada5f` | ✅     |
+| 12  | @typescript-eslint/eslint-plugin missing | Moved to dependencies                 | `884a112` | ✅     |
+| 13  | @typescript-eslint/parser missing        | Moved to dependencies                 | `884a112` | ✅     |
+| 14  | eslint-plugin-react missing              | Moved to dependencies                 | `884a112` | ✅     |
+| 15  | eslint-plugin-react-hooks missing        | Moved to dependencies                 | `884a112` | ✅     |
 
 **Additional Fixes:**
+
 - Excluded test config files from `tsconfig.json` to prevent type-checking test dependencies
 - Removed test types (`jest`, `@testing-library/jest-dom`) from `tsconfig.json` types array
 
@@ -35,8 +36,9 @@
 ## 🐛 The Final Errors (Commit `884a112`)
 
 ### Error 1: ESLint Plugin Not Found
+
 ```
-⨯ ESLint: Failed to load plugin '@typescript-eslint' declared in '.eslintrc.json': 
+⨯ ESLint: Failed to load plugin '@typescript-eslint' declared in '.eslintrc.json':
 Cannot find module '@typescript-eslint/eslint-plugin'
 ```
 
@@ -59,6 +61,7 @@ These plugins were in `devDependencies`, but Next.js build requires them in prod
 ---
 
 ### Error 2: Playwright Types Not Found
+
 ```
 Type error: Cannot find module '@playwright/test' or its corresponding type declarations.
   > 1 | import { test as setup } from '@playwright/test'
@@ -66,6 +69,7 @@ Type error: Cannot find module '@playwright/test' or its corresponding type decl
 
 **Root Cause:**  
 `tsconfig.json` had:
+
 ```json
 {
   "include": ["**/*.ts", "**/*.tsx"],
@@ -74,6 +78,7 @@ Type error: Cannot find module '@playwright/test' or its corresponding type decl
 ```
 
 This included ALL `.ts` files, including:
+
 - `e2e/auth.setup.ts` ← imports `@playwright/test`
 - `playwright.config.ts` ← imports `@playwright/test`
 - `jest.setup.js` ← imports `@testing-library/jest-dom`
@@ -83,6 +88,7 @@ This included ALL `.ts` files, including:
 ---
 
 ### Error 3: Jest DOM Types Not Found
+
 ```
 Type error: Cannot find type definition file for '@testing-library/jest-dom'.
   The file is in the program because:
@@ -91,6 +97,7 @@ Type error: Cannot find type definition file for '@testing-library/jest-dom'.
 
 **Root Cause:**  
 `tsconfig.json` had:
+
 ```json
 {
   "compilerOptions": {
@@ -135,10 +142,10 @@ These test libraries were referenced globally but only available in `devDependen
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
 -   "exclude": ["node_modules"]
 +   "exclude": [
-+     "node_modules", 
-+     ".next", 
-+     "out", 
-+     "dist", 
++     "node_modules",
++     ".next",
++     "out",
++     "dist",
 +     "build",
 +     "drizzle.config.ts",      // ← CLI tool config
 +     "playwright.config.ts",   // ← E2E test config
@@ -175,12 +182,14 @@ These test libraries were referenced globally but only available in `devDependen
 ### 1. Next.js Production Build ≠ Development Build
 
 **Development (`next dev`):**
+
 ```bash
 pnpm install              # Installs ALL packages (dev + prod)
 next dev                  # No type-checking, no linting
 ```
 
 **Production (`next build` on Vercel):**
+
 ```bash
 pnpm install              # NODE_ENV=production → Only prod packages!
 next build
@@ -218,22 +227,25 @@ $ pnpm install
 ### 3. `tsconfig.json` Include/Exclude Gotcha
 
 ❌ **What DIDN'T work:**
+
 ```json
 {
   "exclude": ["e2e", "playwright"]
 }
 ```
-*Still included `playwright.config.ts` at root!*
+
+_Still included `playwright.config.ts` at root!_
 
 ✅ **What DID work:**
+
 ```json
 {
   "exclude": [
-    "e2e",                  // ← Directory
-    "playwright",           // ← Directory
+    "e2e", // ← Directory
+    "playwright", // ← Directory
     "playwright.config.ts", // ← Root file!
-    "jest.config.js",       // ← Root file!
-    "jest.setup.js"         // ← Root file!
+    "jest.config.js", // ← Root file!
+    "jest.setup.js" // ← Root file!
   ]
 }
 ```
@@ -261,41 +273,45 @@ Requires: eslint + ALL plugins from .eslintrc.json
 ## 📦 Final Production Dependencies
 
 ### Build Tools
+
 ```json
 {
-  "autoprefixer": "^10.4.22",           // PostCSS plugin
+  "autoprefixer": "^10.4.22", // PostCSS plugin
   "prettier-plugin-tailwindcss": "^0.6.14", // Prettier plugin
-  "tailwindcss": "^3.4.19"              // CSS framework
+  "tailwindcss": "^3.4.19" // CSS framework
 }
 ```
 
 ### TypeScript Ecosystem
+
 ```json
 {
-  "typescript": "^5.9.3",               // Compiler
-  "@types/node": "^20.19.27",           // Node.js types
-  "@types/react": "^18.3.27",           // React types
-  "@types/react-dom": "^18.3.7"         // React DOM types
+  "typescript": "^5.9.3", // Compiler
+  "@types/node": "^20.19.27", // Node.js types
+  "@types/react": "^18.3.27", // React types
+  "@types/react-dom": "^18.3.7" // React DOM types
 }
 ```
 
 ### ESLint Ecosystem
+
 ```json
 {
-  "eslint": "^8.57.1",                  // Linter
-  "eslint-config-next": "14.2.3",       // Next.js config
+  "eslint": "^8.57.1", // Linter
+  "eslint-config-next": "14.2.3", // Next.js config
   "@typescript-eslint/eslint-plugin": "^7.13.0", // TS plugin
-  "@typescript-eslint/parser": "^7.13.0",        // TS parser
-  "eslint-plugin-react": "^7.34.2",              // React plugin
-  "eslint-plugin-react-hooks": "^4.6.2"          // React Hooks plugin
+  "@typescript-eslint/parser": "^7.13.0", // TS parser
+  "eslint-plugin-react": "^7.34.2", // React plugin
+  "eslint-plugin-react-hooks": "^4.6.2" // React Hooks plugin
 }
 ```
 
 ### Runtime & Tools
+
 ```json
 {
-  "dotenv": "^16.6.1",                  // Env vars in code
-  "drizzle-kit": "^0.22.8"              // Config file types
+  "dotenv": "^16.6.1", // Env vars in code
+  "drizzle-kit": "^0.22.8" // Config file types
 }
 ```
 
@@ -310,6 +326,7 @@ Requires: eslint + ALL plugins from .eslintrc.json
 ### 1. **Test Production Builds Locally**
 
 Add to `package.json`:
+
 ```json
 {
   "scripts": {
@@ -319,6 +336,7 @@ Add to `package.json`:
 ```
 
 Run before committing:
+
 ```bash
 pnpm test:build
 ```
@@ -329,6 +347,7 @@ pnpm test:build
 
 **Rule of Thumb:**  
 If it's imported/referenced by:
+
 - **Code files** → `dependencies`
 - **Config files** → `dependencies` (if config is type-checked)
 - **`package.json` scripts** → `dependencies`
@@ -343,19 +362,19 @@ If it's imported/referenced by:
 {
   "include": [
     "next-env.d.ts",
-    "app/**/*.ts",      // ← Explicit app directory
+    "app/**/*.ts", // ← Explicit app directory
     "components/**/*.ts",
     "lib/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next",
-    "**/*.test.ts",     // ← Exclude test files
-    "**/*.spec.ts",     // ← Exclude spec files
-    "e2e",              // ← Exclude E2E tests
-    "scripts",          // ← Exclude utility scripts
-    "*.config.ts",      // ← Exclude config files
-    "*.setup.ts"        // ← Exclude setup files
+    "**/*.test.ts", // ← Exclude test files
+    "**/*.spec.ts", // ← Exclude spec files
+    "e2e", // ← Exclude E2E tests
+    "scripts", // ← Exclude utility scripts
+    "*.config.ts", // ← Exclude config files
+    "*.setup.ts" // ← Exclude setup files
   ]
 }
 ```
@@ -372,15 +391,16 @@ If you want faster builds and handle type-checking separately:
 // next.config.js
 module.exports = {
   typescript: {
-    ignoreBuildErrors: true,  // Skip type-checking during build
+    ignoreBuildErrors: true, // Skip type-checking during build
   },
   eslint: {
-    ignoreDuringBuilds: true,  // Skip ESLint during build
+    ignoreDuringBuilds: true, // Skip ESLint during build
   },
 }
 ```
 
 Then run separately in CI:
+
 ```bash
 pnpm tsc --noEmit        # Type-check
 pnpm eslint .            # Lint
@@ -392,6 +412,7 @@ pnpm next build          # Build (faster!)
 ### 5. **Use Workspace/Monorepo Structure**
 
 For larger projects:
+
 ```
 my-project/
 ├── apps/
@@ -406,6 +427,7 @@ my-project/
 ```
 
 Benefits:
+
 - Clearer dependency boundaries
 - Test dependencies isolated from app
 - Config reuse across projects
@@ -449,12 +471,14 @@ Benefits:
 
 **The Problem:**  
 Vercel's production builds (`NODE_ENV=production`) skip `devDependencies`, but Next.js build process needs many packages that developers typically put in `devDependencies`:
+
 - ESLint + all plugins (for linting step)
 - TypeScript + type definitions (for type-checking step)
 - Build tools (PostCSS, Prettier plugins)
 - Config file type definitions (drizzle-kit)
 
-**The Solution:**  
+**The Solution:**
+
 1. Move all build-required packages to `dependencies`
 2. Exclude test/tool files from `tsconfig.json` to prevent type-checking test dependencies
 3. Remove test type definitions from `compilerOptions.types`
@@ -468,6 +492,7 @@ Vercel's production builds (`NODE_ENV=production`) skip `devDependencies`, but N
 ## 🎉 Celebrate!
 
 After 15 dependency fixes and numerous config tweaks, we've achieved:
+
 - ✅ Complete understanding of Next.js production build requirements
 - ✅ Proper separation of app code vs. test code
 - ✅ Correct `tsconfig.json` configuration

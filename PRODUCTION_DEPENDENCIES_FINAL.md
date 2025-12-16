@@ -18,17 +18,22 @@
 ## 🔍 All Issues Found & Fixed
 
 ### Issue 1: Husky Install Failure
+
 **Commit:** `fa40906`
+
 ```diff
 - "prepare": "husky install",
 + "prepare": "husky install || true",
 ```
+
 **Why:** Husky is a dev tool, but prepare script runs in production
 
 ---
 
 ### Issue 2: Prettier Plugin Missing
+
 **Commit:** `d6ae07e`
+
 ```diff
 "dependencies": {
 + "prettier-plugin-tailwindcss": "^0.6.1"
@@ -37,12 +42,15 @@
 - "prettier-plugin-tailwindcss": "^0.6.1"
 }
 ```
+
 **Why:** `.prettierrc` loads it during build
 
 ---
 
-### Issue 3: Autoprefixer Missing  
+### Issue 3: Autoprefixer Missing
+
 **Commit:** `f361414`
+
 ```diff
 "dependencies": {
 + "autoprefixer": "^10.4.22"
@@ -51,12 +59,15 @@
 - "autoprefixer": "^10.4.22"
 }
 ```
+
 **Why:** `postcss.config.js` loads it during build
 
 ---
 
 ### Issue 4: TypeScript Missing ⭐ **THE BIG ONE**
+
 **Commit:** `c18539d`
+
 ```diff
 "dependencies": {
 + "typescript": "^5.4.5"
@@ -65,9 +76,11 @@
 - "typescript": "^5.4.5"
 }
 ```
+
 **Why:** Next.js uses TypeScript compiler during build to compile `.tsx`/`.ts` files
 
 **Error it caused:**
+
 ```
 Module not found: Can't resolve '@/components/ui/button'
 Module not found: Can't resolve '@/components/ui/alert'
@@ -98,11 +111,11 @@ Module not found: Can't resolve '@/components/ui/input'
 
 ## 📊 Complete Dependency Movement Summary
 
-| Package | From | To | Reason |
-|---------|------|-----|--------|
-| `prettier-plugin-tailwindcss` | devDependencies | dependencies | Used by `.prettierrc` during build |
-| `autoprefixer` | devDependencies | dependencies | Used by `postcss.config.js` during build |
-| `typescript` | devDependencies | dependencies | Used by Next.js to compile `.ts`/`.tsx` files |
+| Package                       | From            | To           | Reason                                        |
+| ----------------------------- | --------------- | ------------ | --------------------------------------------- |
+| `prettier-plugin-tailwindcss` | devDependencies | dependencies | Used by `.prettierrc` during build            |
+| `autoprefixer`                | devDependencies | dependencies | Used by `postcss.config.js` during build      |
+| `typescript`                  | devDependencies | dependencies | Used by Next.js to compile `.ts`/`.tsx` files |
 
 ---
 
@@ -111,16 +124,18 @@ Module not found: Can't resolve '@/components/ui/input'
 ### Rule: If It Runs During Build → Production Dependency
 
 **Production Dependencies (dependencies):**
+
 - ✅ Code that runs in the app
 - ✅ **Build-time dependencies** (TypeScript, PostCSS plugins, etc.)
 - ✅ Anything imported in config files loaded during build
 - ✅ Compilers and transformers needed by Next.js
 
 **Development Dependencies (devDependencies):**
+
 - ✅ Testing tools (Jest, Playwright)
-- ✅ Linting tools (ESLint) - *only runs in lint step*
+- ✅ Linting tools (ESLint) - _only runs in lint step_
 - ✅ Dev-only tools (Husky, lint-staged)
-- ✅ Type definitions - *might need to move if causing issues*
+- ✅ Type definitions - _might need to move if causing issues_
 
 ---
 
@@ -148,8 +163,9 @@ pnpm build
 ### Before All Fixes:
 
 **Vercel:**
+
 - ❌ Can't find autoprefixer
-- ❌ Can't find prettier-plugin-tailwindcss  
+- ❌ Can't find prettier-plugin-tailwindcss
 - ❌ Can't compile TypeScript files
 - ❌ Module not found errors
 
@@ -158,6 +174,7 @@ pnpm build
 ### After All Fixes (Commit `c18539d`):
 
 **Vercel:**
+
 - ✅ autoprefixer available
 - ✅ prettier-plugin-tailwindcss available
 - ✅ TypeScript compiler available
@@ -187,6 +204,7 @@ NODE_ENV=production pnpm install  # Only production deps!
 ### The Solution:
 
 **Always test production builds locally:**
+
 ```bash
 NODE_ENV=production pnpm install
 pnpm build
@@ -205,13 +223,13 @@ pnpm build
     "next": "^14.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    
+
     // Build dependencies (THE KEY ONES!)
-    "typescript": "^5.4.5",              // ← Compiles TypeScript
-    "autoprefixer": "^10.4.22",          // ← PostCSS plugin
-    "tailwindcss": "^3.4.3",             // ← CSS framework
-    "prettier-plugin-tailwindcss": "^0.6.1",  // ← Prettier plugin
-    
+    "typescript": "^5.4.5", // ← Compiles TypeScript
+    "autoprefixer": "^10.4.22", // ← PostCSS plugin
+    "tailwindcss": "^3.4.3", // ← CSS framework
+    "prettier-plugin-tailwindcss": "^0.6.1", // ← Prettier plugin
+
     // Runtime dependencies
     "...": "..."
   }
@@ -226,15 +244,15 @@ pnpm build
     // Testing
     "@playwright/test": "^1.57.0",
     "jest": "^29.7.0",
-    
+
     // Linting (only runs in CI lint job)
     "eslint": "^8.57.0",
     "prettier": "^3.3.2",
-    
+
     // Dev tools
     "husky": "^9.0.11",
     "lint-staged": "^15.2.5",
-    
+
     // Type definitions
     "@types/node": "^20.14.2",
     "@types/react": "^18.3.3"
@@ -249,9 +267,10 @@ pnpm build
 ### After Commit `c18539d`:
 
 **GitHub Actions:** ✅ All checks pass  
-**Vercel:** ✅ Build succeeds  
+**Vercel:** ✅ Build succeeds
 
 **Timeline:**
+
 - +1 min: Vercel detects commit
 - +2 min: Build starts
 - +5 min: Build completes successfully
@@ -262,15 +281,19 @@ pnpm build
 ## 🚀 Monitoring
 
 ### Vercel:
+
 ```
 https://vercel.com/dashboard
 ```
+
 Watch for: 🎉 "Deployment successful"
 
 ### GitHub Actions:
+
 ```
-https://github.com/kennethwzc/mandarin-srs/actions  
+https://github.com/kennethwzc/mandarin-srs/actions
 ```
+
 Watch for: ✅ All green checkmarks
 
 ---
@@ -280,6 +303,7 @@ Watch for: ✅ All green checkmarks
 ### 1. **TypeScript is NOT Just a Dev Tool**
 
 In TypeScript projects, `typescript` is a **build dependency**, not just a dev tool:
+
 - Next.js uses it to compile `.ts`/`.tsx` files
 - Without it, Webpack can't process your components
 - Results in "Module not found" errors (misleading!)
@@ -287,6 +311,7 @@ In TypeScript projects, `typescript` is a **build dependency**, not just a dev t
 ### 2. **Config Files Matter**
 
 Any package imported in these files needs to be in dependencies:
+
 - `postcss.config.js` → `autoprefixer`, `tailwindcss`
 - `.prettierrc` → `prettier-plugin-tailwindcss`
 - `tailwind.config.ts` → Any plugins
@@ -306,6 +331,7 @@ pnpm build
 ### 4. **"Module Not Found" Can Be Misleading**
 
 When you see "Module not found" in production builds:
+
 1. ❌ Don't assume the file is missing
 2. ❌ Don't assume paths are wrong
 3. ✅ Check if a **compiler** or **transformer** is missing
@@ -321,6 +347,7 @@ When you see "Module not found" in production builds:
 **Final Solution:** Move build-time tools to production dependencies
 
 **Packages Moved:**
+
 1. ✅ `prettier-plugin-tailwindcss`
 2. ✅ `autoprefixer`
 3. ✅ `typescript`

@@ -11,9 +11,11 @@
 ### From logs_52325292603 (CI Pipeline)
 
 #### 1. ❌ Prettier Formatting Failed
+
 **Error:** Code style issues found in 14 files
 
 **Files affected:**
+
 - `app/(marketing)/privacy/page.tsx`
 - `app/(marketing)/terms/page.tsx`
 - `app/api/health/route.ts`
@@ -32,7 +34,9 @@
 **Fix:** ✅ Ran `prettier --write` on all files
 
 #### 2. ❌ Build Failed
+
 **Error:**
+
 ```
 Error: ❌ Invalid environment variables:
   - DATABASE_URL: Required
@@ -40,11 +44,13 @@ Error: ❌ Invalid environment variables:
 ```
 
 **Root Cause:**
+
 - Environment validation in `lib/utils/env.ts` required these variables
 - CI build didn't have these secrets configured
 - Server-side validation ran during build phase
 
 **Fix:** ✅ Made server-only env vars optional during build
+
 - Updated `lib/utils/env.ts` to make `DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` optional
 - These are still validated at runtime when actually used
 - Added placeholder values to CI workflows as fallbacks
@@ -52,18 +58,22 @@ Error: ❌ Invalid environment variables:
 ### From logs_52325292609 (E2E Tests)
 
 #### 3. ❌ E2E Tests Timeout
+
 **Error:**
+
 ```
 Error: Timed out waiting 120000ms from config.webServer.
 [WebServer]  ⨯ Error: ❌ Invalid environment variables:
 ```
 
 **Root Cause:**
+
 - Dev server couldn't start due to missing `DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 - Playwright waited 120 seconds but server never started
 - Same env validation issue as build
 
 **Fix:** ✅ Updated E2E workflow to include all required env vars
+
 - Added `SUPABASE_SERVICE_ROLE_KEY` to both E2E test workflows
 - Added placeholder fallbacks using `|| 'placeholder-key'`
 - Server can now start for E2E tests
@@ -73,15 +83,19 @@ Error: Timed out waiting 120000ms from config.webServer.
 ## ✅ Fixes Applied
 
 ### 1. Code Formatting ✅
+
 ```bash
 npx prettier --write "**/*.{ts,tsx,js,jsx,json,md,css}"
 ```
+
 **Result:** All 14 files formatted correctly
 
 ### 2. Environment Validation ✅
+
 **File:** `lib/utils/env.ts`
 
 **Changes:**
+
 ```typescript
 // Before (strict validation)
 DATABASE_URL: z.string().url().min(1, 'DATABASE_URL is required'),
@@ -93,14 +107,17 @@ SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 ```
 
 **Rationale:**
+
 - Allows builds without full production config
 - Runtime validation still works when variables are accessed
 - CI can build and test without exposing production secrets
 
 ### 3. CI Workflow Updates ✅
+
 **File:** `.github/workflows/ci.yml`
 
 **Added to build step:**
+
 ```yaml
 env:
   DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
@@ -108,9 +125,11 @@ env:
 ```
 
 ### 4. E2E Workflow Updates ✅
+
 **File:** `.github/workflows/e2e-tests.yml`
 
 **Added to both test steps:**
+
 ```yaml
 env:
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key' }}
@@ -121,6 +140,7 @@ env:
 ## 🧪 Verification
 
 ### Local Testing ✅
+
 ```bash
 # Build
 pnpm build
@@ -138,6 +158,7 @@ pnpm format:check
 ### Expected CI Results
 
 **After this push, CI should:**
+
 1. ✅ **Lint** - Pass (all files formatted)
 2. ✅ **Build** - Pass (env vars optional)
 3. ✅ **TypeScript** - Pass (no type errors)
@@ -152,6 +173,7 @@ pnpm format:check
 **Total:** 16 files changed (259 insertions, 355 deletions)
 
 **Categories:**
+
 - **Workflows:** 2 files (ci.yml, e2e-tests.yml)
 - **Source Code:** 10 files (formatting + env validation)
 - **Documentation:** 4 files (formatting)
@@ -161,12 +183,14 @@ pnpm format:check
 ## 🚀 Deployment Impact
 
 **Changes are:**
+
 - ✅ **Backwards Compatible** - No breaking changes
 - ✅ **Production Safe** - Runtime validation still enforced
 - ✅ **CI Friendly** - Builds work without all secrets
 - ✅ **Well Tested** - All checks pass locally
 
 **Next Deploy:**
+
 - Environment variables must still be set in Vercel for production
 - This only affects CI builds, not production runtime
 - Production deployment unaffected
@@ -181,6 +205,7 @@ pnpm format:check
 **Previous Commit:** 7a08551 (production deployment configuration)
 
 **Push Status:** ✅ Successful
+
 ```
 To github.com:kennethwzc/mandarin-srs.git
    7a08551..fc31197  HEAD -> main
@@ -212,6 +237,7 @@ To github.com:kennethwzc/mandarin-srs.git
 ---
 
 **Next:** Wait for CI to finish (~5-10 minutes), then check:
+
 - https://github.com/kennethwzc/mandarin-srs/actions
 
 All jobs should show green checkmarks ✅

@@ -88,6 +88,7 @@ curl https://your-app.vercel.app/api/health
 **Custom Domain:** Optional (can add later in Settings → Domains)
 
 **After deployment:**
+
 - Every push to `main` → Auto-deploys to production
 - Every PR → Creates preview deployment
 - Vercel emails you deployment status
@@ -97,12 +98,15 @@ curl https://your-app.vercel.app/api/health
 ## 🆘 Common Issues (Quick Fixes)
 
 ### ❌ Build fails: "Invalid environment variables"
+
 **Fix:** Go back to Step 3, make sure ALL variables are set
 
 ### ❌ Login doesn't work
+
 **Fix:** Go back to Step 4, add redirect URLs in Supabase
 
 ### ❌ Database error
+
 **Fix:** Check Supabase project isn't paused (Settings → General)
 
 ---
@@ -139,6 +143,6 @@ git push origin main
 
 ---
 
-**That's it!** Your app will be live on a global CDN with automatic HTTPS, DDoS protection, and edge caching. 
+**That's it!** Your app will be live on a global CDN with automatic HTTPS, DDoS protection, and edge caching.
 
 **Welcome to production!** 🎊

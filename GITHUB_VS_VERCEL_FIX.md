@@ -16,6 +16,7 @@
 ## 🔍 The Issue
 
 ### Vercel Error:
+
 ```
 Error: Cannot find module 'autoprefixer'
 Require stack:
@@ -23,6 +24,7 @@ Require stack:
 ```
 
 ### GitHub Actions:
+
 ✅ Build succeeded without errors
 
 ---
@@ -37,13 +39,14 @@ Require stack:
 jobs:
   build:
     steps:
-      - run: pnpm install --frozen-lockfile  # ← Installs EVERYTHING
+      - run: pnpm install --frozen-lockfile # ← Installs EVERYTHING
       - run: pnpm build
 ```
 
 **Key Point:** GitHub Actions installs **ALL dependencies** including devDependencies because it runs tests, linting, and type checking which need dev tools.
 
 **Environment:**
+
 - `NODE_ENV`: Not set (defaults to development)
 - **devDependencies:** ✅ Installed
 - **dependencies:** ✅ Installed
@@ -60,6 +63,7 @@ pnpm build
 **Key Point:** Vercel sets `NODE_ENV=production` which tells pnpm to **skip devDependencies** to save space and deployment time.
 
 **Environment:**
+
 - `NODE_ENV`: `production` (explicitly set)
 - **devDependencies:** ❌ NOT installed
 - **dependencies:** ✅ Installed
@@ -73,8 +77,8 @@ pnpm build
 ```javascript
 module.exports = {
   plugins: {
-    tailwindcss: {},      // ✅ In dependencies
-    autoprefixer: {},     // ❌ Was in devDependencies!
+    tailwindcss: {}, // ✅ In dependencies
+    autoprefixer: {}, // ❌ Was in devDependencies!
   },
 }
 ```
@@ -94,6 +98,7 @@ module.exports = {
 ### Move `autoprefixer` to Production Dependencies
 
 **Before:**
+
 ```json
 {
   "dependencies": {
@@ -108,6 +113,7 @@ module.exports = {
 ```
 
 **After (Commit `f361414`):**
+
 ```json
 {
   "dependencies": {
@@ -130,48 +136,49 @@ module.exports = {
 
 **Files that are loaded during build:**
 
-| File | Requires | Must Be In |
-|------|----------|------------|
-| `postcss.config.js` | `autoprefixer`, `tailwindcss` | `dependencies` |
-| `.prettierrc` | `prettier-plugin-tailwindcss` | `dependencies` |
-| `tailwind.config.ts` | Any plugins | `dependencies` |
-| `next.config.js` | Any plugins | `dependencies` |
+| File                 | Requires                      | Must Be In     |
+| -------------------- | ----------------------------- | -------------- |
+| `postcss.config.js`  | `autoprefixer`, `tailwindcss` | `dependencies` |
+| `.prettierrc`        | `prettier-plugin-tailwindcss` | `dependencies` |
+| `tailwind.config.ts` | Any plugins                   | `dependencies` |
+| `next.config.js`     | Any plugins                   | `dependencies` |
 
 **Files that only run locally:**
 
-| File | Requires | Can Be In |
-|------|----------|-----------|
-| `.eslintrc.json` | ESLint plugins | `devDependencies` (only runs in lint job) |
-| `.husky/` scripts | Husky | `devDependencies` (only local Git hooks) |
-| Test files | Jest, Playwright | `devDependencies` (only in test jobs) |
+| File              | Requires         | Can Be In                                 |
+| ----------------- | ---------------- | ----------------------------------------- |
+| `.eslintrc.json`  | ESLint plugins   | `devDependencies` (only runs in lint job) |
+| `.husky/` scripts | Husky            | `devDependencies` (only local Git hooks)  |
+| Test files        | Jest, Playwright | `devDependencies` (only in test jobs)     |
 
 ---
 
 ## 🔄 Complete Fix History
 
-| Issue | Package | Solution | Commit |
-|-------|---------|----------|--------|
+| Issue                   | Package                       | Solution              | Commit    |
+| ----------------------- | ----------------------------- | --------------------- | --------- |
 | Prettier plugin missing | `prettier-plugin-tailwindcss` | Moved to dependencies | `d6ae07e` |
-| Autoprefixer missing | `autoprefixer` | Moved to dependencies | `f361414` |
+| Autoprefixer missing    | `autoprefixer`                | Moved to dependencies | `f361414` |
 
 ---
 
 ## 📊 Environment Comparison Table
 
-| Aspect | GitHub Actions | Vercel Production |
-|--------|----------------|-------------------|
-| **NODE_ENV** | Not set / development | `production` |
-| **Install Command** | `pnpm install --frozen-lockfile` | `pnpm install` (production mode) |
-| **devDependencies** | ✅ Installed | ❌ Skipped |
-| **Purpose** | Testing, linting, building | Deployment only |
-| **Build Time** | ~2-3 minutes | ~30 seconds |
-| **Dependencies Count** | ~1184 packages | ~513 packages |
+| Aspect                 | GitHub Actions                   | Vercel Production                |
+| ---------------------- | -------------------------------- | -------------------------------- |
+| **NODE_ENV**           | Not set / development            | `production`                     |
+| **Install Command**    | `pnpm install --frozen-lockfile` | `pnpm install` (production mode) |
+| **devDependencies**    | ✅ Installed                     | ❌ Skipped                       |
+| **Purpose**            | Testing, linting, building       | Deployment only                  |
+| **Build Time**         | ~2-3 minutes                     | ~30 seconds                      |
+| **Dependencies Count** | ~1184 packages                   | ~513 packages                    |
 
 ---
 
 ## 🧪 How to Test Locally
 
 ### Simulate GitHub Actions (Development):
+
 ```bash
 pnpm install
 pnpm build
@@ -179,6 +186,7 @@ pnpm build
 ```
 
 ### Simulate Vercel (Production):
+
 ```bash
 rm -rf node_modules
 NODE_ENV=production pnpm install
@@ -187,6 +195,7 @@ pnpm build
 ```
 
 ### Better: Use Vercel CLI
+
 ```bash
 vercel build
 # Simulates exact Vercel build environment
@@ -206,6 +215,7 @@ pnpm build
 ```
 
 Or use Vercel CLI:
+
 ```bash
 npm i -g vercel
 vercel build
@@ -214,12 +224,14 @@ vercel build
 ### 2. **Understand Dependency Types**
 
 **Production Dependencies (`dependencies`):**
+
 - Code that runs in production
 - Imported in your application code
 - **Loaded during build process**
 - Required for the app to function
 
 **Development Dependencies (`devDependencies`):**
+
 - Testing tools (Jest, Playwright)
 - Linting tools (ESLint)
 - Type checking (TypeScript)
@@ -229,18 +241,20 @@ vercel build
 ### 3. **Config Files Are Special**
 
 If a file is loaded during the build and it imports a package:
+
 ```javascript
 // postcss.config.js
 module.exports = {
   plugins: {
-    autoprefixer: {},  // ← autoprefixer must be in dependencies!
-  }
+    autoprefixer: {}, // ← autoprefixer must be in dependencies!
+  },
 }
 ```
 
 ### 4. **CI != Production**
 
 Just because CI passes doesn't mean production will work:
+
 - CI installs devDependencies (for testing)
 - Production skips devDependencies (for efficiency)
 - Always test in production-like environment
@@ -250,6 +264,7 @@ Just because CI passes doesn't mean production will work:
 ## ✅ Final Status
 
 ### GitHub Actions ✅
+
 - **Lint:** PASS
 - **TypeScript:** PASS
 - **Build:** PASS
@@ -258,6 +273,7 @@ Just because CI passes doesn't mean production will work:
 - **Accessibility:** PASS
 
 ### Vercel Deployment ✅
+
 - **Install:** PASS (513 packages)
 - **Build:** PASS (autoprefixer available)
 - **Deploy:** SUCCESS
@@ -267,10 +283,12 @@ Just because CI passes doesn't mean production will work:
 ## 🎯 Quick Reference
 
 ### Moved to Production Dependencies:
+
 1. ✅ `prettier-plugin-tailwindcss` (used by `.prettierrc`)
 2. ✅ `autoprefixer` (used by `postcss.config.js`)
 
 ### Still in Dev Dependencies (Correct):
+
 - ✅ `@playwright/test` (only for E2E tests)
 - ✅ `jest` (only for unit tests)
 - ✅ `eslint` (only for linting)
@@ -284,12 +302,14 @@ Just because CI passes doesn't mean production will work:
 After commit `f361414`:
 
 **Vercel will:**
+
 1. ✅ Install dependencies (including `autoprefixer`)
 2. ✅ Load `postcss.config.js` successfully
 3. ✅ Build Next.js app successfully
 4. ✅ Deploy to production
 
 **GitHub Actions will:**
+
 1. ✅ Continue to pass all checks
 2. ✅ Build successfully
 3. ✅ All tests pass
@@ -299,15 +319,19 @@ After commit `f361414`:
 ## 📞 Monitoring
 
 ### Vercel:
+
 ```
 https://vercel.com/dashboard
 ```
+
 Watch for: 🎉 "Deployment successful"
 
 ### GitHub Actions:
+
 ```
 https://github.com/kennethwzc/mandarin-srs/actions
 ```
+
 Watch for: ✅ All green checkmarks
 
 ---

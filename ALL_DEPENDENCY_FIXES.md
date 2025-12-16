@@ -8,13 +8,13 @@
 
 ## 📊 Complete List of Fixes
 
-| # | Package | Why It Failed | Used By | Commit |
-|---|---------|---------------|---------|--------|
-| 1 | `husky` | Install script fails | `prepare` script | `fa40906` |
-| 2 | `prettier-plugin-tailwindcss` | Module not found | `.prettierrc` (build time) | `d6ae07e` |
-| 3 | `autoprefixer` | Module not found | `postcss.config.js` (build time) | `f361414` |
-| 4 | `typescript` | Can't compile `.ts`/`.tsx` | Next.js compiler (build time) | `c18539d` |
-| 5 | `dotenv` | Module not found | `lib/db/client.ts` (runtime) | `2072878` |
+| #   | Package                       | Why It Failed              | Used By                          | Commit    |
+| --- | ----------------------------- | -------------------------- | -------------------------------- | --------- |
+| 1   | `husky`                       | Install script fails       | `prepare` script                 | `fa40906` |
+| 2   | `prettier-plugin-tailwindcss` | Module not found           | `.prettierrc` (build time)       | `d6ae07e` |
+| 3   | `autoprefixer`                | Module not found           | `postcss.config.js` (build time) | `f361414` |
+| 4   | `typescript`                  | Can't compile `.ts`/`.tsx` | Next.js compiler (build time)    | `c18539d` |
+| 5   | `dotenv`                      | Module not found           | `lib/db/client.ts` (runtime)     | `2072878` |
 
 ---
 
@@ -26,13 +26,13 @@
 {
   "dependencies": {
     // Build-time dependencies
-    "typescript": "^5.4.5",              // Compiles TypeScript files
-    "autoprefixer": "^10.4.22",          // PostCSS plugin
-    "prettier-plugin-tailwindcss": "^0.6.1",  // Prettier plugin
-    
+    "typescript": "^5.4.5", // Compiles TypeScript files
+    "autoprefixer": "^10.4.22", // PostCSS plugin
+    "prettier-plugin-tailwindcss": "^0.6.1", // Prettier plugin
+
     // Runtime dependencies (used in app code)
-    "dotenv": "^16.4.5",                 // Environment variable loading
-    
+    "dotenv": "^16.4.5" // Environment variable loading
+
     // All other app dependencies...
   }
 }
@@ -43,13 +43,16 @@
 ## 📖 The Story
 
 ### Iteration 1: Husky (fa40906)
+
 **Error:**
+
 ```
 sh: line 1: husky: command not found
 ELIFECYCLE  Command failed.
 ```
 
 **Fix:** Made husky install non-fatal
+
 ```diff
 - "prepare": "husky install",
 + "prepare": "husky install || true",
@@ -58,7 +61,9 @@ ELIFECYCLE  Command failed.
 ---
 
 ### Iteration 2: Prettier Plugin (d6ae07e)
+
 **Error:**
+
 ```
 Module not found: Can't resolve 'prettier-plugin-tailwindcss'
 ```
@@ -70,7 +75,9 @@ Module not found: Can't resolve 'prettier-plugin-tailwindcss'
 ---
 
 ### Iteration 3: Autoprefixer (f361414)
+
 **Error:**
+
 ```
 Error: Cannot find module 'autoprefixer'
 ```
@@ -81,8 +88,10 @@ Error: Cannot find module 'autoprefixer'
 
 ---
 
-### Iteration 4: TypeScript (c18539d) 
+### Iteration 4: TypeScript (c18539d)
+
 **Error:** (This one was tricky!)
+
 ```
 Module not found: Can't resolve '@/components/ui/button'
 Module not found: Can't resolve '@/components/ui/alert'
@@ -90,6 +99,7 @@ Module not found: Can't resolve '@/components/ui/input'
 ```
 
 **Real Issue:** TypeScript compiler missing!
+
 - Files existed ✅
 - Paths were correct ✅
 - But Next.js couldn't compile `.tsx` files without TypeScript ❌
@@ -99,7 +109,9 @@ Module not found: Can't resolve '@/components/ui/input'
 ---
 
 ### Iteration 5: Dotenv (2072878)
+
 **Error:**
+
 ```
 Module not found: Can't resolve 'dotenv'
 Import trace: ./lib/db/client.ts
@@ -116,16 +128,19 @@ Import trace: ./lib/db/client.ts
 ### 1. **Not All "Dev" Tools Are DevDependencies**
 
 **Common Misconception:**
+
 - "TypeScript is for development" ❌
 - "dotenv is for local development" ❌
 
 **Reality:**
+
 - TypeScript **compiles** your code in production ✅
 - dotenv **loads** environment variables in production ✅
 
 ### 2. **Error Messages Can Be Misleading**
 
 **"Module not found: @/components/ui/button"**
+
 - Doesn't mean the file is missing
 - Doesn't mean paths are wrong
 - Could mean the **compiler** is missing
@@ -133,6 +148,7 @@ Import trace: ./lib/db/client.ts
 ### 3. **Config Files Import Packages**
 
 Any package imported in these files must be in `dependencies`:
+
 - `postcss.config.js` → `autoprefixer`, `tailwindcss`
 - `.prettierrc` → `prettier-plugin-tailwindcss`
 - `tsconfig.json` → Needs `typescript` to run
@@ -140,6 +156,7 @@ Any package imported in these files must be in `dependencies`:
 ### 4. **Test Like Production**
 
 Always test production builds locally:
+
 ```bash
 # Clean slate
 rm -rf node_modules .next
@@ -158,6 +175,7 @@ If it fails → A devDependency is needed → Move to dependencies
 ## ✅ Final Package.json Structure
 
 ### Production Dependencies (dependencies):
+
 ```json
 {
   "dependencies": {
@@ -165,18 +183,18 @@ If it fails → A devDependency is needed → Move to dependencies
     "next": "^14.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    
+
     // Build Dependencies (THE KEY ONES!)
     "typescript": "^5.4.5",
     "autoprefixer": "^10.4.22",
     "tailwindcss": "^3.4.3",
     "prettier-plugin-tailwindcss": "^0.6.1",
-    
+
     // Runtime Dependencies
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.31.2",
     "postgres": "^3.4.4",
-    
+
     // UI & Other Runtime Deps
     "...": "..."
   }
@@ -184,6 +202,7 @@ If it fails → A devDependency is needed → Move to dependencies
 ```
 
 ### Dev Dependencies (devDependencies):
+
 ```json
 {
   "devDependencies": {
@@ -191,19 +210,19 @@ If it fails → A devDependency is needed → Move to dependencies
     "@playwright/test": "^1.57.0",
     "jest": "^29.7.0",
     "@testing-library/react": "^15.0.7",
-    
+
     // Linting (only CI lint job)
     "eslint": "^8.57.0",
     "prettier": "^3.3.2",
-    
+
     // Dev Tools (only local)
     "husky": "^9.0.11",
     "lint-staged": "^15.2.5",
-    
+
     // Database Dev Tools
     "drizzle-kit": "^0.22.2",
     "tsx": "^4.15.4",
-    
+
     // Type Definitions
     "@types/node": "^20.14.2",
     "@types/react": "^18.3.3"
@@ -242,6 +261,7 @@ Is the package used in your code?
 ## 📈 Build Progression
 
 ### Before All Fixes:
+
 ```
 Vercel: ❌ Failed at 15s (husky install)
 ↓
@@ -255,6 +275,7 @@ Vercel: ❌ Failed at 35s (dotenv missing)
 ```
 
 ### After All Fixes (Commit 2072878):
+
 ```
 Vercel: ✅ Build starting...
 ↓
@@ -277,7 +298,7 @@ Vercel: ✅ Deployment successful! 🎉
 
 1. Fixed husky → Found prettier-plugin issue
 2. Fixed prettier-plugin → Found autoprefixer issue
-3. Fixed autoprefixer → Found typescript issue  
+3. Fixed autoprefixer → Found typescript issue
 4. Fixed typescript → Found dotenv issue
 5. Fixed dotenv → **All clear!** ✅
 
@@ -287,11 +308,11 @@ Each fix revealed the next issue because they failed at different stages of the 
 
 ## 🚀 Current Status
 
-| Platform | Status | Details |
-|----------|--------|---------|
-| **GitHub Actions** | ✅ All green | 6/6 checks passing |
-| **Vercel** | 🟡 Building | Should succeed after commit `2072878` |
-| **Local Build** | ✅ Works | Tested with `NODE_ENV=production` |
+| Platform           | Status       | Details                               |
+| ------------------ | ------------ | ------------------------------------- |
+| **GitHub Actions** | ✅ All green | 6/6 checks passing                    |
+| **Vercel**         | 🟡 Building  | Should succeed after commit `2072878` |
+| **Local Build**    | ✅ Works     | Tested with `NODE_ENV=production`     |
 
 ---
 
@@ -299,7 +320,7 @@ Each fix revealed the next issue because they failed at different stages of the 
 
 - **Now:** All fixes pushed ✅
 - **+1 min:** Vercel detects commit `2072878`
-- **+2 min:** Installing dependencies  
+- **+2 min:** Installing dependencies
 - **+4 min:** Compiling and building
 - **+5-6 min:** **Deployment successful!** 🎉
 
@@ -307,13 +328,13 @@ Each fix revealed the next issue because they failed at different stages of the 
 
 ## 📊 Final Statistics
 
-| Metric | Count |
-|--------|-------|
-| **Total Issues** | 5 dependency issues |
-| **Total Commits** | 9 commits |
-| **Packages Moved** | 4 packages (+ 1 script fix) |
-| **Time Spent** | ~3 hours debugging |
-| **Lessons Learned** | Priceless! 💎 |
+| Metric              | Count                       |
+| ------------------- | --------------------------- |
+| **Total Issues**    | 5 dependency issues         |
+| **Total Commits**   | 9 commits                   |
+| **Packages Moved**  | 4 packages (+ 1 script fix) |
+| **Time Spent**      | ~3 hours debugging          |
+| **Lessons Learned** | Priceless! 💎               |
 
 ---
 
@@ -325,6 +346,7 @@ Each fix revealed the next issue because they failed at different stages of the 
 **Status:** ✅ **FULLY RESOLVED**
 
 **Packages Moved:**
+
 1. ✅ `prettier-plugin-tailwindcss` (config file)
 2. ✅ `autoprefixer` (config file)
 3. ✅ `typescript` (compiler)
@@ -348,6 +370,7 @@ Each fix revealed the next issue because they failed at different stages of the 
 > **If Next.js or Webpack needs it during the build process, it goes in `dependencies`, not `devDependencies`.**
 
 This includes:
+
 - ✅ Compilers (typescript)
 - ✅ Transformers (babel plugins)
 - ✅ CSS processors (autoprefixer, postcss plugins)
@@ -359,16 +382,19 @@ This includes:
 ## ✨ Final Wisdom
 
 **TypeScript projects are special:**
+
 - `typescript` itself is NOT a devDependency
 - It's a **build dependency**
 - Treat it like `webpack` or `babel` - required for compilation
 
 **Environment loading is tricky:**
+
 - `dotenv` loads `.env` files
 - If your app code imports it → production dependency
 - If only scripts use it → devDependency
 
 **When in doubt:**
+
 - Test with `NODE_ENV=production pnpm install && pnpm build`
 - If it fails → move the package to dependencies
 - Simple as that!

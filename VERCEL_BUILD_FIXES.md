@@ -10,6 +10,7 @@
 ### Issue 1: Husky Install Failure ❌
 
 **Error:**
+
 ```
 sh: line 1: husky: command not found
 ELIFECYCLE  Command failed.
@@ -17,18 +18,21 @@ Error: Command "pnpm install" exited with 1
 ```
 
 **Root Cause:**
+
 - The `prepare` script in `package.json` runs `husky install`
 - Husky is a devDependency
 - Vercel doesn't install devDependencies in production
 - Build fails when it can't find husky
 
 **Fix Applied (Commit: `fa40906`):**
+
 ```diff
 - "prepare": "husky install",
 + "prepare": "husky install || true",
 ```
 
 **Why This Works:**
+
 - The `|| true` makes the command non-fatal
 - If husky is not available (production), it continues without error
 - Husky is only needed for local Git hooks, not for production builds
@@ -38,6 +42,7 @@ Error: Command "pnpm install" exited with 1
 ### Issue 2: Prettier Plugin Not Found ❌
 
 **Error:**
+
 ```
 Module not found: Can't resolve 'prettier-plugin-tailwindcss'
 > Build failed because of webpack errors
@@ -45,6 +50,7 @@ ELIFECYCLE  Command failed with exit code 1.
 ```
 
 **Root Cause:**
+
 - `.prettierrc` contains: `"plugins": ["prettier-plugin-tailwindcss"]`
 - This plugin was in devDependencies
 - Next.js/Webpack tries to load Prettier config during build
@@ -68,6 +74,7 @@ Moved `prettier-plugin-tailwindcss` from devDependencies to dependencies:
 ```
 
 **Why This Works:**
+
 - Plugin is now available during production build
 - Small package (~20KB), negligible impact on bundle size
 - Keeps Tailwind CSS class sorting working correctly
@@ -76,10 +83,10 @@ Moved `prettier-plugin-tailwindcss` from devDependencies to dependencies:
 
 ## 📊 Summary of Fixes
 
-| Issue | Commit | Solution | Impact |
-|-------|--------|----------|--------|
-| Husky install fails | `fa40906` | Made prepare script non-fatal | ✅ Build continues |
-| Prettier plugin missing | `d6ae07e` | Moved to production deps | ✅ Build succeeds |
+| Issue                   | Commit    | Solution                      | Impact             |
+| ----------------------- | --------- | ----------------------------- | ------------------ |
+| Husky install fails     | `fa40906` | Made prepare script non-fatal | ✅ Build continues |
+| Prettier plugin missing | `d6ae07e` | Moved to production deps      | ✅ Build succeeds  |
 
 ---
 
@@ -109,23 +116,27 @@ Moved `prettier-plugin-tailwindcss` from devDependencies to dependencies:
 Once Vercel deployment succeeds:
 
 ### 1. Verify Deployment
+
 - [ ] Check Vercel dashboard shows "Deployment successful"
 - [ ] Visit your app URL: `https://[your-project].vercel.app`
 - [ ] Test health endpoint: `https://[your-project].vercel.app/api/health`
 
 ### 2. Update Supabase Auth Redirects
+
 - [ ] Go to: https://app.supabase.com/project/mkcdbzxcqekzjnawllbu/auth/url-configuration
 - [ ] Add redirect URL: `https://[your-project].vercel.app/auth/callback`
 - [ ] Add site URL: `https://[your-project].vercel.app`
 - [ ] Click "Save"
 
 ### 3. Update Environment Variable
+
 - [ ] Go to Vercel Dashboard → Settings → Environment Variables
 - [ ] Update `NEXT_PUBLIC_APP_URL` to: `https://[your-project].vercel.app`
 - [ ] Click "Save"
 - [ ] Redeploy (optional, will take effect on next deploy)
 
 ### 4. Test Core Functionality
+
 - [ ] Homepage loads correctly
 - [ ] Sign up flow works
 - [ ] Email verification arrives
@@ -144,12 +155,14 @@ Once Vercel deployment succeeds:
 ### Context: Development vs Production
 
 **Development (Local):**
+
 - All dependencies installed (including devDependencies)
 - Husky sets up Git hooks
 - Prettier plugin available for formatting
 - ✅ Everything works
 
 **Production (Vercel):**
+
 - Only production dependencies installed (no devDependencies)
 - Saves space, faster deployments
 - But: Scripts/configs expecting devDeps will fail
@@ -158,6 +171,7 @@ Once Vercel deployment succeeds:
 ### The Lesson
 
 When deploying to production:
+
 1. **Scripts** that use devDependencies must be optional
 2. **Config files** loaded during build need their plugins in production deps
 3. **Build commands** must work without dev tooling
@@ -179,6 +193,7 @@ vercel build
 ### 2. Review package.json Scripts
 
 Look for scripts that run automatically:
+
 - `prepare` - Runs after every npm install
 - `postinstall` - Runs after install completes
 - `preinstall` - Runs before install starts
@@ -188,6 +203,7 @@ Make sure they work without devDependencies!
 ### 3. Check Config Files
 
 Files that might be loaded during build:
+
 - `.prettierrc` - If using plugins, move to dependencies
 - `tailwind.config.ts` - Should only use production packages
 - `postcss.config.js` - Plugins must be in dependencies
@@ -207,6 +223,7 @@ Files that might be loaded during build:
 ## ✅ Resolution
 
 Both issues have been fixed and committed:
+
 - ✅ Husky install made non-fatal
 - ✅ Prettier plugin moved to production dependencies
 - ✅ Pushed to main branch

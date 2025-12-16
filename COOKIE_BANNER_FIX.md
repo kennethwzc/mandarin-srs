@@ -11,9 +11,10 @@
 The E2E tests were **still failing** even after adding cookie banner dismissal code because the **selectors were wrong**.
 
 ### Error in CI (logs_52332425362):
+
 ```
 TimeoutError: page.click: Timeout 15000ms exceeded
-<div class="fixed inset-x-0 bottom-0 z-50">...</div> 
+<div class="fixed inset-x-0 bottom-0 z-50">...</div>
 subtree intercepts pointer events
 ```
 
@@ -24,14 +25,14 @@ The cookie banner was **still blocking** the login button.
 ## ❌ What Was Wrong
 
 ### Previous (Broken) Approach:
+
 ```typescript
-const cookieBanner = page
-  .locator('[role="region"]')
-  .filter({ hasText: 'Cookie Preferences' })
+const cookieBanner = page.locator('[role="region"]').filter({ hasText: 'Cookie Preferences' })
 await page.getByRole('button', { name: /accept all|accept/i }).click()
 ```
 
 ### Why It Failed:
+
 1. **❌ Wrong selector:** `[role="region"]` - Card component doesn't have this attribute
 2. **❌ Emoji in text:** Banner title is "🍪 Cookie Preferences" with emoji
 3. **❌ Broad button selector:** Regex `/accept all|accept/i` might match other buttons
@@ -42,6 +43,7 @@ await page.getByRole('button', { name: /accept all|accept/i }).click()
 ## ✅ The Fix
 
 ### New (Working) Approach:
+
 ```typescript
 // Look for the cookie banner by its text content
 const cookieBanner = page.getByText('Cookie Preferences')
@@ -59,6 +61,7 @@ if (isVisible) {
 ```
 
 ### Why This Works:
+
 1. **✅ Reliable selector:** `getByText('Cookie Preferences')` finds text regardless of parent element
 2. **✅ Handles emoji:** Text matching works even with emoji prefix
 3. **✅ Exact button match:** `name: 'Accept All'` (exact string, not regex)
@@ -76,22 +79,21 @@ From `components/ui/cookie-banner.tsx`:
 <div className="fixed inset-x-0 bottom-0 z-50 p-4 sm:p-6">
   <Card className="mx-auto max-w-3xl">
     <CardHeader>
-      <CardTitle>🍪 Cookie Preferences</CardTitle>  {/* Emoji included! */}
+      <CardTitle>🍪 Cookie Preferences</CardTitle> {/* Emoji included! */}
     </CardHeader>
     <CardContent>...</CardContent>
     <CardFooter>
       <Button variant="outline" onClick={handleDecline}>
         Decline Analytics
       </Button>
-      <Button onClick={handleAccept}>
-        Accept All  {/* Exact button text */}
-      </Button>
+      <Button onClick={handleAccept}>Accept All {/* Exact button text */}</Button>
     </CardFooter>
   </Card>
 </div>
 ```
 
 **Key Points:**
+
 - Title has emoji: "🍪 Cookie Preferences"
 - Card has no `role` attribute
 - Buttons are "Accept All" and "Decline Analytics"
@@ -102,11 +104,11 @@ From `components/ui/cookie-banner.tsx`:
 
 ## 🔄 Complete Fix History
 
-| Attempt | Approach | Result | Issue |
-|---------|----------|--------|-------|
-| 1 (5ddc2ce) | `[role="region"]` + regex button | ❌ FAILED | Wrong role attribute |
-| 2 (ea332b2) | Formatted code | ❌ FAILED | Same selector issues |
-| 3 (65e9b22) | `getByText()` + exact button name | ✅ SHOULD WORK | Correct selectors |
+| Attempt     | Approach                          | Result         | Issue                |
+| ----------- | --------------------------------- | -------------- | -------------------- |
+| 1 (5ddc2ce) | `[role="region"]` + regex button  | ❌ FAILED      | Wrong role attribute |
+| 2 (ea332b2) | Formatted code                    | ❌ FAILED      | Same selector issues |
+| 3 (65e9b22) | `getByText()` + exact button name | ✅ SHOULD WORK | Correct selectors    |
 
 ---
 
@@ -125,6 +127,7 @@ After commit `65e9b22`, E2E tests should:
 ## 🧪 Testing Approach
 
 ### What We Changed:
+
 ```diff
 - const cookieBanner = page.locator('[role="region"]')
 -   .filter({ hasText: 'Cookie Preferences' })
@@ -139,6 +142,7 @@ After commit `65e9b22`, E2E tests should:
 ```
 
 ### Key Improvements:
+
 1. More reliable element selection
 2. Explicit timeouts for each step
 3. Better error handling
@@ -161,15 +165,18 @@ After commit `65e9b22`, E2E tests should:
 ## 🎯 Root Cause Summary
 
 ### The Real Problem:
+
 The cookie banner component doesn't have the attributes we were looking for.
 
 **We assumed:**
+
 - Card would have `role="region"` ❌
-- Text filter would work with emoji prefix ❌  
+- Text filter would work with emoji prefix ❌
 - Regex button selector was safe ❌
 - 500ms was enough wait time ❌
 
 **Reality:**
+
 - Card has no role attribute ✅
 - Need direct text matching ✅
 - Exact button name is safer ✅
@@ -180,24 +187,30 @@ The cookie banner component doesn't have the attributes we were looking for.
 ## 📚 Lessons Learned
 
 ### 1. Always Check the Component
+
 Before writing selectors, **read the actual component code** to understand:
+
 - What attributes it has
 - What text it displays
 - What button names it uses
 
 ### 2. Use Playwright DevTools
+
 In future, use Playwright's `codegen` to generate selectors:
+
 ```bash
 npx playwright codegen http://localhost:3000/login
 ```
 
 ### 3. Prefer Specific Selectors
+
 - ✅ `getByText('exact text')` - Finds text anywhere
 - ✅ `getByRole('button', { name: 'Exact Name' })` - Finds specific button
 - ❌ `locator('[role="region"]')` - Assumes role exists
 - ❌ Regex selectors - Can match unexpected elements
 
 ### 4. Add Timeouts and Logging
+
 - Every async operation should have a timeout
 - Log each step for easier debugging in CI
 - Catch errors gracefully with fallbacks
