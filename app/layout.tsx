@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from 'sonner'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { AuthProvider } from '@/components/providers/auth-provider'
+import { AnalyticsProvider } from '@/components/providers/analytics-provider'
+import { CookieBanner } from '@/components/ui/cookie-banner'
 
 import './globals.css'
 
@@ -55,11 +57,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
-          <Toaster />
-          <SonnerToaster />
-        </QueryProvider>
+        <AnalyticsProvider>
+          <QueryProvider>
+            <AuthProvider>{children}</AuthProvider>
+            <Toaster />
+            <SonnerToaster />
+            <CookieBanner />
+          </QueryProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   )

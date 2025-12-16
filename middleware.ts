@@ -23,7 +23,17 @@ export function middleware(request: NextRequest) {
   console.log('[Middleware] ========================================')
 
   // Define public routes that don't require authentication
-  const publicPaths = ['/login', '/signup', '/auth', '/']
+  const publicPaths = [
+    '/login',
+    '/signup',
+    '/auth',
+    '/',
+    '/privacy',
+    '/terms',
+    '/about',
+    '/pricing',
+    '/api/health',
+  ]
   const isPublicPath = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')
   )
