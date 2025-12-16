@@ -40,36 +40,43 @@ setup('authenticate', async ({ page }) => {
   await page.fill('#email', email)
   await page.fill('#password', password)
 
-  // Submit login form and wait for navigation
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (resp) => resp.url().includes('/auth/') && resp.request().method() === 'POST',
-      { timeout: 10000 }
-    ),
+  // Submit login form
+  // Note: Supabase auth happens client-side, so we wait for navigation instead of API response
+  console.log('[Auth Setup] Submitting login form...')
+  
+  await Promise.all([
+    // Wait for navigation to complete (either to dashboard or error state)
+    page.waitForURL('**', { timeout: 30000 }),
     page.click('button[type="submit"]'),
   ])
 
-  console.log('[Auth Setup] Login response status:', response.status())
+  console.log('[Auth Setup] Navigation completed, current URL:', page.url())
 
-  // Check if login was successful (2xx response)
-  if (!response.ok()) {
-    throw new Error(`Login failed with status: ${response.status()}`)
+  // Wait for auth cookies to be set
+  await page.waitForTimeout(2000)
+
+  // Check if we successfully authenticated by trying to access dashboard
+  // If login failed, we'd still be on /login or see an error
+  const currentUrl = page.url()
+  
+  // If we're still on login page after clicking submit, auth failed
+  if (currentUrl.includes('/login')) {
+    console.error('[Auth Setup] Still on login page - authentication may have failed')
+    // Try to check for error messages
+    const errorMsg = await page.textContent('[role="alert"]').catch(() => null)
+    if (errorMsg) {
+      console.error('[Auth Setup] Error message:', errorMsg)
+    }
+    throw new Error('Authentication failed - still on login page')
   }
 
-  // Wait a short moment for cookies to be set
-  await page.waitForTimeout(1000)
+  console.log('[Auth Setup] Login appears successful')
 
-  console.log('[Auth Setup] Saving authentication state immediately after login...')
+  // Navigate to dashboard to ensure auth state is fully established
+  await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
+  console.log('[Auth Setup] Dashboard loaded successfully')
 
-  // Save authentication state RIGHT AFTER LOGIN, before any navigation
-  // The auth cookies are set in the response, we don't need to wait for redirect
-  // This avoids the browser context being in an unstable state during page navigation
+  // Save authentication state after successful navigation
   await page.context().storageState({ path: authFile })
-
   console.log('[Auth Setup] Authentication state saved successfully')
-
-  // Now verify the auth worked by checking we can navigate to dashboard
-  // We do this AFTER saving storage state to avoid blocking on page load
-  await page.goto('/dashboard', { waitUntil: 'commit', timeout: 10000 })
-  console.log('[Auth Setup] Verified dashboard is accessible')
 })
