@@ -19,26 +19,23 @@ setup('authenticate', async ({ page }) => {
 
   // Dismiss cookie banner if it appears (blocks login button)
   try {
-    const cookieBanner = page.locator('[role="region"]').filter({ hasText: 'Cookie Preferences' })
-    const isVisible = await cookieBanner.isVisible().catch(() => false)
+    // Look for the cookie banner by its text content
+    const cookieBanner = page.getByText('Cookie Preferences')
+    const isVisible = await cookieBanner.isVisible({ timeout: 2000 }).catch(() => false)
     if (isVisible) {
-      console.log('[Auth Setup] Dismissing cookie banner...')
-      // Click "Accept All" or close button
-      await page
-        .getByRole('button', { name: /accept all|accept/i })
-        .click()
-        .catch(async () => {
-          // Try close button if Accept All doesn't exist
-          await page
-            .getByRole('button', { name: /close|dismiss/i })
-            .click()
-            .catch(() => {})
-        })
-      await page.waitForTimeout(500) // Wait for banner to disappear
+      console.log('[Auth Setup] Cookie banner detected, dismissing...')
+      // Click "Accept All" button
+      await page.getByRole('button', { name: 'Accept All' }).click({ timeout: 5000 })
+      console.log('[Auth Setup] Clicked Accept All button')
+      // Wait for banner to disappear
+      await page.waitForTimeout(1000)
+      console.log('[Auth Setup] Cookie banner dismissed')
+    } else {
+      console.log('[Auth Setup] No cookie banner found')
     }
   } catch (e) {
     // Cookie banner might not appear, continue
-    console.log('[Auth Setup] No cookie banner to dismiss')
+    console.log('[Auth Setup] No cookie banner to dismiss or error:', e)
   }
 
   // Wait for login form to be ready - both visible AND enabled
