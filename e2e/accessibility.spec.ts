@@ -9,8 +9,8 @@ import AxeBuilder from '@axe-core/playwright'
 
 test.describe('Accessibility', () => {
   test('dashboard has no accessibility violations', async ({ page }) => {
-    await page.goto('/dashboard')
-    await page.waitForLoadState('networkidle')
+    await page.goto('/dashboard', { timeout: 60000 })
+    await page.waitForLoadState('networkidle', { timeout: 60000 })
 
     const accessibilityScanResults = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

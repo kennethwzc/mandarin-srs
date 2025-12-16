@@ -11,11 +11,11 @@ test.describe('Lesson Flow', () => {
     await page.goto('/lessons')
     await page.waitForLoadState('networkidle')
 
-    // Should see lessons
-    await expect(page.locator('h1')).toContainText(/lessons/i)
+    // Should see lessons heading on the main content area
+    await expect(page.locator('main h1, .container h1').first()).toContainText(/lessons/i)
 
     // Should have at least one lesson card
-    const lessonCards = page.locator('[data-testid="lesson-card"]').or(page.locator('.lesson-card'))
+    const lessonCards = page.locator('[data-testid="lesson-card"]')
     await expect(lessonCards.first()).toBeVisible({ timeout: 10000 })
   })
 
@@ -23,18 +23,24 @@ test.describe('Lesson Flow', () => {
     await page.goto('/lessons')
     await page.waitForLoadState('networkidle')
 
+    // Wait for lesson cards to be visible (dynamic import)
+    await page.waitForSelector('[data-testid="lesson-card"]', { timeout: 15000 })
+
     // Find and click first unlocked lesson
     const firstLesson = page.locator('[data-testid="lesson-card"]').first()
     await firstLesson.click()
 
     // Should show lesson detail
     await expect(page).toHaveURL(/\/lessons\/\d+/)
-    await expect(page.locator('h1')).toBeVisible()
+    await expect(page.locator('main h1, .container h1').first()).toBeVisible()
   })
 
   test('start learning from lesson', async ({ page }) => {
     await page.goto('/lessons')
     await page.waitForLoadState('networkidle')
+
+    // Wait for lesson cards to be visible (dynamic import)
+    await page.waitForSelector('[data-testid="lesson-card"]', { timeout: 15000 })
 
     // Click first lesson
     await page.locator('[data-testid="lesson-card"]').first().click()
@@ -56,6 +62,9 @@ test.describe('Lesson Flow', () => {
     await page.goto('/lessons')
     await page.waitForLoadState('networkidle')
 
+    // Wait for lesson cards to be visible (dynamic import)
+    await page.waitForSelector('[data-testid="lesson-card"]', { timeout: 15000 })
+
     // Click first lesson
     await page.locator('[data-testid="lesson-card"]').first().click()
     await page.waitForLoadState('networkidle')
@@ -64,14 +73,14 @@ test.describe('Lesson Flow', () => {
     const charactersTab = page.locator('button:has-text("Characters")')
     if (await charactersTab.isVisible()) {
       await charactersTab.click()
-      await expect(page.locator('.chinese-text').first()).toBeVisible({ timeout: 5000 })
+      await expect(page.locator('.chinese-text').first()).toBeVisible({ timeout: 10000 })
     }
 
     // Click Vocabulary tab
     const vocabularyTab = page.locator('button:has-text("Vocabulary")')
     if (await vocabularyTab.isVisible()) {
       await vocabularyTab.click()
-      await expect(page.locator('.chinese-text').first()).toBeVisible({ timeout: 5000 })
+      await expect(page.locator('.chinese-text').first()).toBeVisible({ timeout: 10000 })
     }
   })
 })

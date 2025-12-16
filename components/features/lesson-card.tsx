@@ -50,6 +50,7 @@ export function LessonCard({ lesson }: LessonCardProps) {
         'block transition-all duration-200',
         isUnlocked ? 'cursor-pointer hover:scale-[1.02]' : 'cursor-not-allowed'
       )}
+      data-testid="lesson-card"
     >
       <Card
         className={cn(
