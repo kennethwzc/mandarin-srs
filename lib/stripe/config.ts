@@ -138,12 +138,10 @@ export function checkPlanLimits(
   const messages: string[] = []
 
   const canStartLesson =
-    plan.limits.lessonsPerDay === null ||
-    usage.lessonsToday < plan.limits.lessonsPerDay
+    plan.limits.lessonsPerDay === null || usage.lessonsToday < plan.limits.lessonsPerDay
 
   const canReview =
-    plan.limits.reviewsPerDay === null ||
-    usage.reviewsToday < plan.limits.reviewsPerDay
+    plan.limits.reviewsPerDay === null || usage.reviewsToday < plan.limits.reviewsPerDay
 
   if (!canStartLesson) {
     messages.push(

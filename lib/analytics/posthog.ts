@@ -21,10 +21,7 @@ import posthog from 'posthog-js'
  */
 export function initPostHog() {
   // Only initialize if API key is configured and we're in the browser
-  if (
-    typeof window === 'undefined' ||
-    !process.env.NEXT_PUBLIC_POSTHOG_KEY
-  ) {
+  if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     return null
   }
 
@@ -35,8 +32,7 @@ export function initPostHog() {
 
   // Initialize PostHog
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
-    api_host:
-      process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
 
     // Privacy Settings
     respect_dnt: true, // Respect Do Not Track browser setting
@@ -166,15 +162,8 @@ export function setAnalyticsConsent(hasConsent: boolean) {
 /**
  * Track custom events (only if consent given)
  */
-export function trackEvent(
-  eventName: string,
-  properties?: Record<string, unknown>
-) {
-  if (
-    typeof window === 'undefined' ||
-    !posthog.__loaded ||
-    !hasAnalyticsConsent()
-  ) {
+export function trackEvent(eventName: string, properties?: Record<string, unknown>) {
+  if (typeof window === 'undefined' || !posthog.__loaded || !hasAnalyticsConsent()) {
     return
   }
 
@@ -188,11 +177,7 @@ export function trackEvent(
  * Track page views (only if consent given)
  */
 export function trackPageView(url?: string) {
-  if (
-    typeof window === 'undefined' ||
-    !posthog.__loaded ||
-    !hasAnalyticsConsent()
-  ) {
+  if (typeof window === 'undefined' || !posthog.__loaded || !hasAnalyticsConsent()) {
     return
   }
 
@@ -205,11 +190,7 @@ export function trackPageView(url?: string) {
  * Identify user (only non-PII data)
  */
 export function identifyUser(userId: string, properties?: Record<string, unknown>) {
-  if (
-    typeof window === 'undefined' ||
-    !posthog.__loaded ||
-    !hasAnalyticsConsent()
-  ) {
+  if (typeof window === 'undefined' || !posthog.__loaded || !hasAnalyticsConsent()) {
     return
   }
 
@@ -222,9 +203,7 @@ export function identifyUser(userId: string, properties?: Record<string, unknown
 /**
  * Remove PII from event data
  */
-function sanitizeEventData(
-  data?: Record<string, unknown>
-): Record<string, unknown> | undefined {
+function sanitizeEventData(data?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!data) {
     return undefined
   }

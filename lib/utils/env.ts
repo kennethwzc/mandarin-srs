@@ -29,17 +29,13 @@ import { z } from 'zod'
  */
 const serverSchema = z.object({
   // Node environment
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-  // Database
-  DATABASE_URL: z.string().url().min(1, 'DATABASE_URL is required'),
+  // Database - Optional during build, required at runtime
+  DATABASE_URL: z.string().min(1).optional(),
 
-  // Supabase
-  SUPABASE_SERVICE_ROLE_KEY: z
-    .string()
-    .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
+  // Supabase - Optional during build, required at runtime
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   // Sentry (optional)
   SENTRY_AUTH_TOKEN: z.string().optional(),
@@ -64,19 +60,11 @@ const serverSchema = z.object({
  */
 const clientSchema = z.object({
   // Supabase (public keys - safe to expose)
-  NEXT_PUBLIC_SUPABASE_URL: z
-    .string()
-    .url()
-    .min(1, 'NEXT_PUBLIC_SUPABASE_URL is required'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
-    .string()
-    .min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url().min(1, 'NEXT_PUBLIC_SUPABASE_URL is required'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
 
   // App configuration
-  NEXT_PUBLIC_APP_URL: z
-    .string()
-    .url()
-    .default('http://localhost:3000'),
+  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
 
   // Sentry (optional - public DSN)
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
@@ -115,19 +103,15 @@ function validateEnv() {
     // Always validate client variables
     const clientEnv = clientSchema.parse({
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY:
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
       NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
       NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
       NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-      NEXT_PUBLIC_ENABLE_ANALYTICS:
-        process.env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      NEXT_PUBLIC_ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS,
       NEXT_PUBLIC_ENABLE_STRIPE: process.env.NEXT_PUBLIC_ENABLE_STRIPE,
-      NEXT_PUBLIC_ENABLE_AI_FEATURES:
-        process.env.NEXT_PUBLIC_ENABLE_AI_FEATURES,
+      NEXT_PUBLIC_ENABLE_AI_FEATURES: process.env.NEXT_PUBLIC_ENABLE_AI_FEATURES,
     })
 
     // Only validate server variables on the server
@@ -185,8 +169,7 @@ export const isFeatureEnabled = {
   stripe: env.NEXT_PUBLIC_ENABLE_STRIPE,
   aiFeatures: env.NEXT_PUBLIC_ENABLE_AI_FEATURES,
   sentry: !!env.NEXT_PUBLIC_SENTRY_DSN,
-  posthog:
-    !!env.NEXT_PUBLIC_POSTHOG_KEY && !!env.NEXT_PUBLIC_POSTHOG_HOST,
+  posthog: !!env.NEXT_PUBLIC_POSTHOG_KEY && !!env.NEXT_PUBLIC_POSTHOG_HOST,
 }
 
 /**

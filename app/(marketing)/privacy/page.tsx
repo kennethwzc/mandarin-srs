@@ -9,8 +9,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Mandarin SRS',
-  description:
-    'Learn how we collect, use, and protect your data when you use Mandarin SRS.',
+  description: 'Learn how we collect, use, and protect your data when you use Mandarin SRS.',
 }
 
 export default function PrivacyPage() {
@@ -26,47 +25,38 @@ export default function PrivacyPage() {
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">1. Introduction</h2>
           <p>
-            Welcome to Mandarin SRS. We respect your privacy and are committed
-            to protecting your personal data. This privacy policy explains how
-            we collect, use, and safeguard your information when you use our
-            spaced repetition learning platform.
+            Welcome to Mandarin SRS. We respect your privacy and are committed to protecting your
+            personal data. This privacy policy explains how we collect, use, and safeguard your
+            information when you use our spaced repetition learning platform.
           </p>
         </section>
 
         <section className="mt-8">
-          <h2 className="text-2xl font-semibold">
-            2. Information We Collect
-          </h2>
+          <h2 className="text-2xl font-semibold">2. Information We Collect</h2>
 
-          <h3 className="mt-4 text-xl font-semibold">
-            2.1 Information You Provide
-          </h3>
+          <h3 className="mt-4 text-xl font-semibold">2.1 Information You Provide</h3>
           <ul>
             <li>
-              <strong>Account Information:</strong> Email address, password
-              (encrypted), and username
+              <strong>Account Information:</strong> Email address, password (encrypted), and
+              username
             </li>
             <li>
-              <strong>Learning Data:</strong> Your progress, review history,
-              lesson completions, and study statistics
+              <strong>Learning Data:</strong> Your progress, review history, lesson completions, and
+              study statistics
             </li>
             <li>
-              <strong>User Content:</strong> Any notes or custom content you
-              create
+              <strong>User Content:</strong> Any notes or custom content you create
             </li>
           </ul>
 
-          <h3 className="mt-4 text-xl font-semibold">
-            2.2 Automatically Collected Information
-          </h3>
+          <h3 className="mt-4 text-xl font-semibold">2.2 Automatically Collected Information</h3>
           <ul>
             <li>
-              <strong>Usage Data:</strong> Pages visited, features used, time
-              spent (only if you consent to analytics)
+              <strong>Usage Data:</strong> Pages visited, features used, time spent (only if you
+              consent to analytics)
             </li>
             <li>
-              <strong>Device Information:</strong> Browser type, operating
-              system, screen resolution
+              <strong>Device Information:</strong> Browser type, operating system, screen resolution
             </li>
             <li>
               <strong>Log Data:</strong> IP address, access times, error logs
@@ -75,19 +65,13 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-2xl font-semibold">
-            3. How We Use Your Information
-          </h2>
+          <h2 className="text-2xl font-semibold">3. How We Use Your Information</h2>
           <p>We use your data to:</p>
           <ul>
             <li>Provide and maintain our learning platform</li>
-            <li>
-              Personalize your learning experience with the SRS algorithm
-            </li>
+            <li>Personalize your learning experience with the SRS algorithm</li>
             <li>Send you important service updates and notifications</li>
-            <li>
-              Improve our platform through analytics (only with your consent)
-            </li>
+            <li>Improve our platform through analytics (only with your consent)</li>
             <li>Detect and prevent abuse or security issues</li>
             <li>Comply with legal obligations</li>
           </ul>
@@ -95,21 +79,17 @@ export default function PrivacyPage() {
 
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">4. Data Storage</h2>
-          <p>
-            Your data is stored securely using industry-standard encryption:
-          </p>
+          <p>Your data is stored securely using industry-standard encryption:</p>
           <ul>
             <li>
-              <strong>Database:</strong> Hosted on Supabase (AWS) with
-              encryption at rest and in transit
+              <strong>Database:</strong> Hosted on Supabase (AWS) with encryption at rest and in
+              transit
             </li>
             <li>
-              <strong>Authentication:</strong> Passwords are hashed and never
-              stored in plain text
+              <strong>Authentication:</strong> Passwords are hashed and never stored in plain text
             </li>
             <li>
-              <strong>Location:</strong> Data centers in [Your Region - e.g.,
-              US East Coast]
+              <strong>Location:</strong> Data centers in [Your Region - e.g., US East Coast]
             </li>
           </ul>
         </section>
@@ -117,21 +97,20 @@ export default function PrivacyPage() {
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">5. Data Sharing</h2>
           <p>
-            <strong>We do not sell your personal data.</strong> We only share
-            data in these limited circumstances:
+            <strong>We do not sell your personal data.</strong> We only share data in these limited
+            circumstances:
           </p>
           <ul>
             <li>
-              <strong>Service Providers:</strong> Supabase (database), Vercel
-              (hosting), PostHog (analytics - if consented)
+              <strong>Service Providers:</strong> Supabase (database), Vercel (hosting), PostHog
+              (analytics - if consented)
             </li>
             <li>
-              <strong>Legal Requirements:</strong> When required by law or to
-              protect our rights
+              <strong>Legal Requirements:</strong> When required by law or to protect our rights
             </li>
             <li>
-              <strong>Business Transfers:</strong> In case of merger or
-              acquisition (you would be notified)
+              <strong>Business Transfers:</strong> In case of merger or acquisition (you would be
+              notified)
             </li>
           </ul>
         </section>
@@ -141,17 +120,16 @@ export default function PrivacyPage() {
           <p>We use cookies for:</p>
           <ul>
             <li>
-              <strong>Essential Cookies:</strong> Authentication and session
-              management (required)
+              <strong>Essential Cookies:</strong> Authentication and session management (required)
             </li>
             <li>
-              <strong>Analytics Cookies:</strong> Understanding how you use our
-              platform (optional - requires consent)
+              <strong>Analytics Cookies:</strong> Understanding how you use our platform (optional -
+              requires consent)
             </li>
           </ul>
           <p>
-            You can manage your cookie preferences through the cookie banner or
-            in your browser settings.
+            You can manage your cookie preferences through the cookie banner or in your browser
+            settings.
           </p>
         </section>
 
@@ -166,12 +144,11 @@ export default function PrivacyPage() {
               <strong>Rectification:</strong> Correct inaccurate data
             </li>
             <li>
-              <strong>Erasure:</strong> Request deletion of your data
-              (&quot;right to be forgotten&quot;)
+              <strong>Erasure:</strong> Request deletion of your data (&quot;right to be
+              forgotten&quot;)
             </li>
             <li>
-              <strong>Portability:</strong> Export your data in a
-              machine-readable format
+              <strong>Portability:</strong> Export your data in a machine-readable format
             </li>
             <li>
               <strong>Restriction:</strong> Limit how we process your data
@@ -180,8 +157,7 @@ export default function PrivacyPage() {
               <strong>Objection:</strong> Object to certain data processing
             </li>
             <li>
-              <strong>Withdraw Consent:</strong> Opt out of analytics at any
-              time
+              <strong>Withdraw Consent:</strong> Opt out of analytics at any time
             </li>
           </ul>
           <p>
@@ -194,20 +170,17 @@ export default function PrivacyPage() {
           <h2 className="text-2xl font-semibold">8. Data Retention</h2>
           <ul>
             <li>
-              <strong>Active Accounts:</strong> We retain your data as long as
-              your account is active
+              <strong>Active Accounts:</strong> We retain your data as long as your account is
+              active
             </li>
             <li>
-              <strong>Deleted Accounts:</strong> Data is deleted within 30 days
-              of account deletion
+              <strong>Deleted Accounts:</strong> Data is deleted within 30 days of account deletion
             </li>
             <li>
-              <strong>Backups:</strong> Backup copies are retained for 90 days
-              for disaster recovery
+              <strong>Backups:</strong> Backup copies are retained for 90 days for disaster recovery
             </li>
             <li>
-              <strong>Legal Hold:</strong> Some data may be retained longer if
-              required by law
+              <strong>Legal Hold:</strong> Some data may be retained longer if required by law
             </li>
           </ul>
         </section>
@@ -215,19 +188,18 @@ export default function PrivacyPage() {
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">9. Children&apos;s Privacy</h2>
           <p>
-            Our service is not intended for children under 13 (or 16 in the EU).
-            We do not knowingly collect data from children. If you believe a
-            child has provided us with personal data, please contact us
-            immediately.
+            Our service is not intended for children under 13 (or 16 in the EU). We do not knowingly
+            collect data from children. If you believe a child has provided us with personal data,
+            please contact us immediately.
           </p>
         </section>
 
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">10. International Transfers</h2>
           <p>
-            Your data may be transferred to and processed in countries outside
-            your country of residence. We ensure appropriate safeguards are in
-            place (e.g., Standard Contractual Clauses for EU data).
+            Your data may be transferred to and processed in countries outside your country of
+            residence. We ensure appropriate safeguards are in place (e.g., Standard Contractual
+            Clauses for EU data).
           </p>
         </section>
 
@@ -242,19 +214,16 @@ export default function PrivacyPage() {
             <li>Secure password hashing (bcrypt)</li>
           </ul>
           <p>
-            However, no method is 100% secure. If you discover a security
-            vulnerability, please report it to{' '}
-            <a href="mailto:security@yourdomain.com">
-              security@yourdomain.com
-            </a>
+            However, no method is 100% secure. If you discover a security vulnerability, please
+            report it to <a href="mailto:security@yourdomain.com">security@yourdomain.com</a>
           </p>
         </section>
 
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">12. Changes to This Policy</h2>
           <p>
-            We may update this privacy policy from time to time. We will notify
-            you of significant changes by:
+            We may update this privacy policy from time to time. We will notify you of significant
+            changes by:
           </p>
           <ul>
             <li>Posting the new policy on this page</li>
@@ -262,16 +231,16 @@ export default function PrivacyPage() {
             <li>Sending you an email notification (for material changes)</li>
           </ul>
           <p>
-            Your continued use of our service after changes constitutes
-            acceptance of the updated policy.
+            Your continued use of our service after changes constitutes acceptance of the updated
+            policy.
           </p>
         </section>
 
         <section className="mt-8">
           <h2 className="text-2xl font-semibold">13. Contact Us</h2>
           <p>
-            If you have questions about this privacy policy or how we handle
-            your data, please contact us:
+            If you have questions about this privacy policy or how we handle your data, please
+            contact us:
           </p>
           <ul>
             <li>
@@ -285,13 +254,10 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mt-8">
-          <h2 className="text-2xl font-semibold">
-            14. Supervisory Authority (EU/EEA)
-          </h2>
+          <h2 className="text-2xl font-semibold">14. Supervisory Authority (EU/EEA)</h2>
           <p>
-            If you are in the EU/EEA and believe we have violated your privacy
-            rights, you have the right to lodge a complaint with your local data
-            protection authority.
+            If you are in the EU/EEA and believe we have violated your privacy rights, you have the
+            right to lodge a complaint with your local data protection authority.
           </p>
         </section>
       </div>

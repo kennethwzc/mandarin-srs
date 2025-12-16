@@ -38,7 +38,10 @@ export async function POST(req: Request) {
   // Verify Stripe is configured
   if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json(
-      { error: 'Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET environment variables.' },
+      {
+        error:
+          'Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET environment variables.',
+      },
       { status: 501 } // Not Implemented
     )
   }
@@ -47,37 +50,25 @@ export async function POST(req: Request) {
   const signature = headers().get('stripe-signature')
 
   if (!signature) {
-    return NextResponse.json(
-      { error: 'Missing stripe-signature header' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
   }
 
   let event: Stripe.Event
 
   try {
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    )
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('Webhook signature verification failed:', err)
-    return NextResponse.json(
-      { error: 'Invalid signature' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
   try {
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(
-          event.data.object as Stripe.Checkout.Session
-        )
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session)
         break
 
       case 'customer.subscription.created':
@@ -106,19 +97,14 @@ export async function POST(req: Request) {
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Error handling webhook:', error)
-    return NextResponse.json(
-      { error: 'Webhook handler failed' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }
 
 /**
  * Handle successful checkout session
  */
-async function handleCheckoutSessionCompleted(
-  session: Stripe.Checkout.Session
-) {
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   // eslint-disable-next-line no-console
   console.log('Checkout session completed:', session.id)
 
@@ -228,7 +214,5 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   // For now, just log
   // eslint-disable-next-line no-console
-  console.log(
-    `Payment failed (customer: ${invoice.customer}, amount: ${invoice.amount_due})`
-  )
+  console.log(`Payment failed (customer: ${invoice.customer}, amount: ${invoice.amount_due})`)
 }

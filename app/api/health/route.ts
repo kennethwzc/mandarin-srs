@@ -59,8 +59,7 @@ export async function GET() {
 
     // Determine overall status
     const isHealthy =
-      checks.server === 'ok' &&
-      (checks.database === 'ok' || checks.database === 'degraded')
+      checks.server === 'ok' && (checks.database === 'ok' || checks.database === 'degraded')
 
     const status = {
       status: isHealthy ? 'healthy' : 'unhealthy',

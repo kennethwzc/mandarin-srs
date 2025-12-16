@@ -260,20 +260,17 @@ Track these metrics post-deployment:
 If something goes wrong:
 
 1. **Assess severity:**
-
    - Critical: Site down, data loss, security breach → Rollback immediately
    - High: Major feature broken, performance degraded → Fix within 1 hour
    - Medium: Minor bug, UI issue → Fix within 24 hours
    - Low: Cosmetic issue, feature request → Schedule for next release
 
 2. **Communicate:**
-
    - Post status update (Twitter, status page, etc.)
    - Notify affected users (if applicable)
    - Keep team informed
 
 3. **Fix and verify:**
-
    - Implement fix
    - Test thoroughly
    - Deploy hotfix

@@ -42,12 +42,10 @@ Complete guide for monitoring your Mandarin SRS application in production.
 **Alerts to Configure:**
 
 1. **Critical Error Alert:**
-
    - Trigger: Any error affecting > 10 users in 5 minutes
    - Notify: Email + Slack (immediate)
 
 2. **Error Spike Alert:**
-
    - Trigger: Error rate > 1% for 10 minutes
    - Notify: Email + Slack (immediate)
 
@@ -113,14 +111,12 @@ trackEvent('milestone_reached', { milestone })
 **Dashboards to Create:**
 
 1. **User Engagement Dashboard:**
-
    - DAU/WAU/MAU trends
    - Session duration distribution
    - Most used features
    - User journey funnel
 
 2. **Learning Metrics Dashboard:**
-
    - Lessons started vs completed
    - Average cards per review session
    - Grade distribution (Again, Hard, Good, Easy)
@@ -167,7 +163,6 @@ trackEvent('milestone_reached', { milestone })
 **Key Metrics to Monitor:**
 
 1. **Database Performance:**
-
    - Query execution time
    - Slow queries (> 1 second)
    - Connection count
@@ -175,7 +170,6 @@ trackEvent('milestone_reached', { milestone })
    - Table sizes
 
 2. **Database Health:**
-
    - CPU usage (should be < 70%)
    - Memory usage (should be < 80%)
    - Disk usage (should be < 80%)
@@ -192,17 +186,14 @@ trackEvent('milestone_reached', { milestone })
 **Alerts to Configure:**
 
 1. **High CPU Alert:**
-
    - Trigger: CPU > 80% for 10 minutes
    - Action: Optimize queries or upgrade plan
 
 2. **High Memory Alert:**
-
    - Trigger: Memory > 90% for 10 minutes
    - Action: Check for memory leaks or upgrade plan
 
 3. **Slow Query Alert:**
-
    - Trigger: Query > 5 seconds
    - Action: Optimize query or add indexes
 
@@ -253,13 +244,11 @@ SELECT count(*) FROM pg_stat_activity;
 **Monitors to Create:**
 
 1. **Main Site Monitor:**
-
    - URL: `https://yourdomain.com`
    - Type: HTTPS
    - Keyword: Check for specific text on homepage
 
 2. **Health Endpoint Monitor:**
-
    - URL: `https://yourdomain.com/api/health`
    - Type: HTTPS
    - Expected response: 200 OK
@@ -424,39 +413,35 @@ Create a dashboard that shows:
 
 ## 🛠️ Monitoring Tools Summary
 
-| Tool         | Purpose            | Cost      | Setup Time |
-| ------------ | ------------------ | --------- | ---------- |
-| Sentry       | Error tracking     | Free tier | 15 min     |
-| PostHog      | Analytics          | Free tier | 30 min     |
-| Vercel       | Hosting monitoring | Included  | 0 min      |
-| Supabase     | Database           | Included  | 0 min      |
-| UptimeRobot  | Uptime monitoring  | Free tier | 10 min     |
-| Total        | -                  | $0-20/mo  | ~1 hour    |
+| Tool        | Purpose            | Cost      | Setup Time |
+| ----------- | ------------------ | --------- | ---------- |
+| Sentry      | Error tracking     | Free tier | 15 min     |
+| PostHog     | Analytics          | Free tier | 30 min     |
+| Vercel      | Hosting monitoring | Included  | 0 min      |
+| Supabase    | Database           | Included  | 0 min      |
+| UptimeRobot | Uptime monitoring  | Free tier | 10 min     |
+| Total       | -                  | $0-20/mo  | ~1 hour    |
 
 ---
 
 ## 🎯 Next Steps
 
 1. **Set up basic monitoring:**
-
    - Configure Sentry error tracking
    - Set up uptime monitoring
    - Enable Vercel Analytics
 
 2. **Configure alerts:**
-
    - Critical errors → Immediate notification
    - Downtime → Immediate notification
    - Performance degradation → Email
 
 3. **Create dashboards:**
-
    - Weekly health report
    - User engagement metrics
    - Error trends
 
 4. **Establish routines:**
-
    - Daily: Check error logs
    - Weekly: Review metrics and trends
    - Monthly: Security audit and dependency updates

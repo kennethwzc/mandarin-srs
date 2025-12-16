@@ -221,7 +221,6 @@ postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.co
 ### 7. Monitoring Setup
 
 - [ ] **Enable query logging** (for slow query analysis)
-
   - Go to: Settings → Database → Logging
   - Enable: Slow queries (> 1 second)
 
@@ -326,7 +325,6 @@ postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.co
   ```
 
 - [ ] **Check for errors in logs**
-
   - Go to: Supabase Dashboard → Logs
   - Filter: Errors only
   - Look for connection errors, query errors, RLS violations
@@ -343,17 +341,17 @@ postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.co
 
 Target performance metrics for production:
 
-| Metric                  | Target    | Acceptable | Action if Exceeded       |
-| ----------------------- | --------- | ---------- | ------------------------ |
-| Query response time     | < 50ms    | < 200ms    | Optimize query/add index |
-| Connection time         | < 10ms    | < 50ms     | Check network/pooling    |
-| Concurrent connections  | < 20      | < 50       | Check for leaks          |
-| CPU usage               | < 50%     | < 70%      | Optimize queries         |
-| Memory usage            | < 60%     | < 80%      | Check for leaks          |
-| Disk usage              | < 70%     | < 85%      | Archive old data         |
-| Backup time             | < 5 min   | < 15 min   | Consider table cleanup   |
-| Most queries            | < 10ms    | < 50ms     | Add indexes              |
-| Complex queries         | < 100ms   | < 500ms    | Optimize query           |
+| Metric                 | Target  | Acceptable | Action if Exceeded       |
+| ---------------------- | ------- | ---------- | ------------------------ |
+| Query response time    | < 50ms  | < 200ms    | Optimize query/add index |
+| Connection time        | < 10ms  | < 50ms     | Check network/pooling    |
+| Concurrent connections | < 20    | < 50       | Check for leaks          |
+| CPU usage              | < 50%   | < 70%      | Optimize queries         |
+| Memory usage           | < 60%   | < 80%      | Check for leaks          |
+| Disk usage             | < 70%   | < 85%      | Archive old data         |
+| Backup time            | < 5 min | < 15 min   | Consider table cleanup   |
+| Most queries           | < 10ms  | < 50ms     | Add indexes              |
+| Complex queries        | < 100ms | < 500ms    | Optimize query           |
 
 ---
 
@@ -370,7 +368,8 @@ Target performance metrics for production:
 const { data, error } = await supabase.from('users').select('*')
 
 // Use connection pooling URL (port 6543)
-DATABASE_URL="postgresql://...@....pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+DATABASE_URL =
+  'postgresql://...@....pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1'
 ```
 
 ### Issue: "Row-level security policy violated"

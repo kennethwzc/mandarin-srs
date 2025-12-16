@@ -24,11 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  disableAnalytics,
-  enableAnalytics,
-  setAnalyticsConsent,
-} from '@/lib/analytics/posthog'
+import { disableAnalytics, enableAnalytics, setAnalyticsConsent } from '@/lib/analytics/posthog'
 
 export function CookieBanner() {
   const [showBanner, setShowBanner] = useState(false)
@@ -69,22 +65,21 @@ export function CookieBanner() {
         <CardHeader>
           <CardTitle className="text-lg">🍪 Cookie Preferences</CardTitle>
           <CardDescription>
-            We use cookies to improve your experience and understand how you use
-            our app.
+            We use cookies to improve your experience and understand how you use our app.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            <strong>Essential cookies:</strong> Required for authentication and
-            core functionality (always enabled).
+            <strong>Essential cookies:</strong> Required for authentication and core functionality
+            (always enabled).
           </p>
           <p>
-            <strong>Analytics cookies:</strong> Help us understand how you use
-            the app so we can improve it. No personal information is collected.
+            <strong>Analytics cookies:</strong> Help us understand how you use the app so we can
+            improve it. No personal information is collected.
           </p>
           <p className="text-xs">
-            By clicking &quot;Accept&quot;, you consent to analytics cookies.
-            You can change your preferences anytime in Settings. See our{' '}
+            By clicking &quot;Accept&quot;, you consent to analytics cookies. You can change your
+            preferences anytime in Settings. See our{' '}
             <a
               href="/privacy"
               className="underline hover:text-foreground"
@@ -97,11 +92,7 @@ export function CookieBanner() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            variant="outline"
-            onClick={handleDecline}
-            className="w-full sm:w-auto"
-          >
+          <Button variant="outline" onClick={handleDecline} className="w-full sm:w-auto">
             Decline Analytics
           </Button>
           <Button onClick={handleAccept} className="w-full sm:w-auto">
