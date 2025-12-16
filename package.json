@@ -82,7 +82,8 @@
     "zustand": "^4.5.2",
     "prettier-plugin-tailwindcss": "^0.6.1",
     "autoprefixer": "^10.4.22",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
@@ -98,7 +99,6 @@
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.13.0",
     "@typescript-eslint/parser": "^7.13.0",
-    "dotenv": "^16.4.5",
     "drizzle-kit": "^0.22.2",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.3",

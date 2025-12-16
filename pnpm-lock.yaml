@@ -65,6 +65,9 @@ dependencies:
   date-fns:
     specifier: ^3.6.0
     version: 3.6.0
+  dotenv:
+    specifier: ^16.4.5
+    version: 16.6.1
   drizzle-orm:
     specifier: ^0.31.2
     version: 0.31.4(@opentelemetry/api@1.9.0)(@types/react@18.3.27)(postgres@3.4.7)(react@18.3.1)
@@ -169,9 +172,6 @@ devDependencies:
   '@typescript-eslint/parser':
     specifier: ^7.13.0
     version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
-  dotenv:
-    specifier: ^16.4.5
-    version: 16.6.1
   drizzle-kit:
     specifier: ^0.22.2
     version: 0.22.8
@@ -5537,6 +5537,7 @@ packages:
   /dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
+    dev: false
 
   /drizzle-kit@0.22.8:
     resolution: {integrity: sha512-VjI4wsJjk3hSqHSa3TwBf+uvH6M6pRHyxyoVbt935GUzP9tUR/BRZ+MhEJNgryqbzN2Za1KP0eJMTgKEPsalYQ==}
