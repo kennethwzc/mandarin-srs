@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
       // JWT format: header.payload.signature
       const cookieValue = authCookie.value
       const parts = cookieValue.split('.')
-      if (parts.length >= 2) {
+      if (parts.length >= 2 && parts[1]) {
         const payload = JSON.parse(atob(parts[1]))
         isEmailConfirmed = !!payload.email_confirmed_at
       }
@@ -72,7 +72,9 @@ export function middleware(request: NextRequest) {
   // SCENARIO 2: User has session but email not confirmed
   // Action: Redirect to confirmation page (except if already there)
   if (hasValidSession && !isEmailConfirmed && !isPublicPath && pathname !== '/confirm-email') {
-    console.log('[Middleware] ⚠️  Session exists but email not confirmed, redirecting to confirm-email')
+    console.log(
+      '[Middleware] ⚠️  Session exists but email not confirmed, redirecting to confirm-email'
+    )
     const confirmUrl = new URL('/confirm-email', request.url)
     return NextResponse.redirect(confirmUrl)
   }
