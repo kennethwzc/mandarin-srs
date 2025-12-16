@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Mail, CheckCircle } from 'lucide-react'
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
-export default function ConfirmEmailPage() {
+function ConfirmEmailContent() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
   const [isResending, setIsResending] = useState(false)
@@ -57,8 +57,7 @@ export default function ConfirmEmailPage() {
           </div>
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
-            We&apos;ve sent a confirmation link to{' '}
-            {email ? <strong>{email}</strong> : 'your email'}
+            We&apos;ve sent a confirmation link to {email ? <strong>{email}</strong> : 'your email'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -68,8 +67,7 @@ export default function ConfirmEmailPage() {
               <div className="space-y-1 text-sm">
                 <p className="font-medium">Click the link in the email to confirm your account</p>
                 <p className="text-muted-foreground">
-                  The link will expire in 24 hours. Check your spam folder if you don&apos;t see
-                  it.
+                  The link will expire in 24 hours. Check your spam folder if you don&apos;t see it.
                 </p>
               </div>
             </div>
@@ -98,3 +96,24 @@ export default function ConfirmEmailPage() {
   )
 }
 
+export default function ConfirmEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-8 w-8 animate-pulse text-primary" />
+              </div>
+              <CardTitle>Loading...</CardTitle>
+              <CardDescription>Please wait</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      }
+    >
+      <ConfirmEmailContent />
+    </Suspense>
+  )
+}

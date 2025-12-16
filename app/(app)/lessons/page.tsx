@@ -18,6 +18,8 @@ export const metadata = {
   description: 'Learn new Chinese characters and vocabulary',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function LessonsPage() {
   console.log('=== LESSONS PAGE: Starting render ===')
 

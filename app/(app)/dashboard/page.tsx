@@ -63,6 +63,8 @@ export const metadata = {
   description: 'View your learning progress and statistics',
 }
 
+export const dynamic = 'force-dynamic'
+
 async function DashboardContent() {
   const supabase = createClient()
   const {

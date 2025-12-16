@@ -15,6 +15,8 @@ import { getReviewQueue } from '@/lib/db/srs-operations'
  * - Array of items due for review
  */
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // 1. Authenticate user
