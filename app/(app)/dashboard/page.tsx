@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
 import { Card } from '@/components/ui/card'
@@ -69,11 +70,8 @@ async function DashboardContent() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return (
-      <div className="py-12 text-center">
-        <p className="text-muted-foreground">Please sign in to view your dashboard.</p>
-      </div>
-    )
+    // This should never happen due to middleware, but redirect just in case
+    redirect('/login')
   }
 
   const baseUrl =
@@ -91,9 +89,47 @@ async function DashboardContent() {
   })
 
   if (!response.ok) {
+    // Try to get error details
+    let errorMessage = 'Failed to load dashboard data'
+    let errorCode: string | null = null
+
+    try {
+      const errorData = await response.json()
+      errorCode = errorData.errorCode
+      errorMessage = errorData.error || errorMessage
+    } catch {
+      // Response might not be JSON
+    }
+
+    // Show specific error for profile not found
+    if (errorCode === 'PROFILE_NOT_FOUND') {
+      return (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4 px-4">
+          <div className="text-center">
+            <h2 className="mb-2 text-2xl font-bold">Account Setup Incomplete</h2>
+            <p className="mb-4 text-muted-foreground">
+              Your account was created but your profile needs to be set up.
+            </p>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Please try refreshing the page or contact support if this issue persists.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Refresh Page
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Generic error message
     return (
       <div className="py-12 text-center">
-        <p className="text-muted-foreground">Failed to load dashboard data</p>
+        <p className="text-muted-foreground">{errorMessage}</p>
       </div>
     )
   }

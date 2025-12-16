@@ -48,9 +48,20 @@ export default function SignupPage() {
       const { error } = await signUp(email, password)
 
       if (error) {
-        toast.error('Signup failed', {
-          description: error,
-        })
+        // Check for duplicate email errors
+        if (
+          error.includes('already registered') ||
+          error.includes('already exists') ||
+          error.includes('User already registered')
+        ) {
+          toast.error('Email already registered', {
+            description: 'This email is already in use. Please log in or use a different email.',
+          })
+        } else {
+          toast.error('Signup failed', {
+            description: error,
+          })
+        }
         return
       }
 
@@ -58,8 +69,8 @@ export default function SignupPage() {
         description: 'Please check your email to confirm your account.',
       })
 
-      // Redirect to login
-      router.push('/login')
+      // Redirect to email confirmation page
+      router.push(`/confirm-email?email=${encodeURIComponent(email)}`)
     } catch (error) {
       toast.error('An unexpected error occurred')
     } finally {

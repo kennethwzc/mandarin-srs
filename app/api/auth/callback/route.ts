@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Exchange code for session
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       if (exchangeError) {
         console.error('Error exchanging code for session:', exchangeError)
@@ -39,6 +39,30 @@ export async function GET(request: NextRequest) {
         const errorUrl = new URL('/login', request.url)
         errorUrl.searchParams.set('error', 'invalid_code')
         return NextResponse.redirect(errorUrl)
+      }
+
+      // Check if profile exists, create if not
+      if (data.user) {
+        const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
+
+        try {
+          const existingProfile = await getUserProfile(data.user.id)
+
+          if (!existingProfile) {
+            console.log('Profile not found for user, creating...', data.user.id)
+
+            await createUserProfile(
+              data.user.id,
+              data.user.email || '',
+              data.user.user_metadata?.username
+            )
+            console.log('Profile created successfully for user:', data.user.id)
+          }
+        } catch (profileError) {
+          console.error('Failed to create profile:', profileError)
+          // Continue anyway - profile might exist due to race condition
+          // or will be created on first dashboard visit
+        }
       }
 
       // Success - redirect to dashboard

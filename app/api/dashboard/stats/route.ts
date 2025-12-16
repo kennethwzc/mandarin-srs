@@ -34,6 +34,28 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Check if profile exists, create if not (safety net)
+    const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
+    const profile = await getUserProfile(user.id)
+
+    if (!profile) {
+      console.error('Profile not found for user:', user.id)
+
+      try {
+        await createUserProfile(user.id, user.email || '')
+        console.log('Created missing profile for user:', user.id)
+      } catch (createError) {
+        console.error('Failed to create profile:', createError)
+        return NextResponse.json(
+          {
+            error: 'User profile not found. Please contact support.',
+            errorCode: 'PROFILE_NOT_FOUND',
+          },
+          { status: 404 }
+        )
+      }
+    }
+
     // Try to get from cache (5 min TTL)
     const cacheKey = `dashboard:stats:${user.id}`
 
