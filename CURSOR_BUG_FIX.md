@@ -1,197 +1,440 @@
-# URGENT: User Registration & Data Loading Bug
+# CRITICAL BUG: User Profile Not Created After Registration
 
-## Bug Description
-After creating a new account, confirming email, and logging in, the dashboard fails to load user data. The error "Tenant or user not found" appears, indicating that the user/tenant record is not being properly created or associated during the registration flow.
+## Bug Summary
+After creating a new account, confirming email, and logging in, users see "Failed to load dashboard data" and "Tenant or user not found" errors. The root cause is that **user profiles are never created in the application database** during the signup flow.
 
 ## Environment
 - **Deployment**: Vercel Production
-- **URL**: [Your production Vercel URL]
-- **User Flow**: Registration → Email Confirmation → Login → Dashboard/Lessons
-- **Browser**: [All browsers affected]
-- **Database**: PostgreSQL (Neon)
+- **Database**: PostgreSQL (Neon) via Supabase
+- **Auth**: Supabase Auth
 
 ## Steps to Reproduce
-1. Navigate to registration page
-2. Enter email and password
-3. Click "Create Account"
-4. Check email and click confirmation link
-5. Log in with the same credentials
-6. Navigate to dashboard
-7. Observe "Failed to load dashboard data" error
-8. Navigate to lessons page
-9. Observe "Error Loading Lessons - Tenant or user not found"
+1. Go to `/signup` and create account with email/password
+2. Check email and click confirmation link
+3. Redirected to `/api/auth/callback` (email confirmation handler)
+4. Log in with the same credentials
+5. Navigate to `/dashboard` → See "Failed to load dashboard data"
+6. Navigate to `/lessons` → See "Error Loading Lessons - Tenant or user not found"
 
 ## Expected Behavior
 1. User creates account successfully
-2. User confirms email
-3. User logs in
-4. Dashboard loads with user data (even if empty/default state)
-5. Lessons page loads properly (even if no lessons yet)
-6. If email already exists, show clear error message: "This email is already registered"
+2. User confirms email via link
+3. **Profile record is created in `profiles` table**
+4. User logs in
+5. Dashboard and lessons load properly with user data
 
 ## Actual Behavior
-1. User registration appears successful
-2. Email confirmation works
-3. Login succeeds (authentication works)
-4. Dashboard shows: **"Failed to load dashboard data"**
-5. Lessons page shows: **"Error Loading Lessons - An error occurred while loading lessons. Error Details: Tenant or user not found"**
-
-## Error Messages/Console Logs
-```
-Error: Tenant or user not found
-Location: Lessons page, Dashboard page
-```
-
-## Root Cause Analysis Needed
-The error "Tenant or user not found" suggests:
-1. **User record is created in auth system but NOT in application database**
-2. **Tenant record is not being created during registration**
-3. **User-tenant association is missing**
-4. **Registration flow is incomplete** - it's only creating auth credentials but not the full user profile
-
-## Files to Investigate
-
-### Authentication & Registration
-- `src/app/api/auth/[...nextauth]/route.ts` - NextAuth configuration
-- `src/app/api/auth/register/route.ts` - Registration endpoint
-- `src/lib/auth.ts` - Auth utilities
-- Any email confirmation handler files
-
-### Database Schema
-- `src/db/schema.ts` - Check users, tenants, and userTenants tables
-- Migration files - Verify schema is correct
-
-### User/Tenant Creation Logic
-- Search for where users are created: `grep -r "INSERT INTO users" src/`
-- Search for where tenants are created: `grep -r "INSERT INTO tenants" src/`
-- Search for user-tenant associations
-- Check if there's a signup webhook or callback that should trigger user creation
-
-### Dashboard & Lessons Pages
-- `src/app/dashboard/page.tsx` - Dashboard component
-- `src/app/lessons/page.tsx` - Lessons component
-- API routes these pages call (likely `/api/dashboard` or `/api/lessons`)
-
-## Required Fixes
-
-### 1. Complete Registration Flow
-**Problem**: Registration only creates auth credentials, not application user/tenant records
-
-**Fix Needed**:
-```typescript
-// In registration endpoint (e.g., src/app/api/auth/register/route.ts)
-// After creating auth user, MUST also:
-
-1. Create tenant record in database
-2. Create user record in application database (not just auth)
-3. Associate user with tenant in userTenants table
-4. Set up default user preferences/settings
-5. Return appropriate success/error responses
-```
-
-### 2. Add Error Handling for Existing Emails
-**Problem**: No validation if email already exists
-
-**Fix Needed**:
-- Check if email exists BEFORE attempting to create account
-- Return clear error message: "This email is already registered. Please log in or use password reset."
-- HTTP status 409 (Conflict) for duplicate emails
-
-### 3. Fix Data Loading After Login
-**Problem**: Dashboard and lessons can't find user/tenant data
-
-**Fix Needed**:
-- Ensure API routes check for user existence properly
-- If user doesn't exist in app DB but exists in auth, trigger user creation
-- Add better error handling with specific error messages
-- Consider adding a "first login" flow that ensures user data exists
-
-### 4. Add Graceful Error Handling
-**Fix Needed in UI**:
-- Dashboard: Show helpful message if user data is missing
-- Lessons: Show helpful message with action button (e.g., "Contact Support" or retry)
-- Add logging to capture these errors for debugging
-
-## Database Schema Check
-Verify these tables exist and have proper relationships:
-```sql
--- Users table
-CREATE TABLE users (
-  id UUID PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  -- other fields
-);
-
--- Tenants table
-CREATE TABLE tenants (
-  id UUID PRIMARY KEY,
-  name TEXT NOT NULL,
-  -- other fields
-);
-
--- User-Tenant association
-CREATE TABLE user_tenants (
-  user_id UUID REFERENCES users(id),
-  tenant_id UUID REFERENCES tenants(id),
-  role TEXT,
-  PRIMARY KEY (user_id, tenant_id)
-);
-```
-
-## Vercel-Specific Checks
-- [ ] Check Vercel function logs for registration API route
-- [ ] Verify DATABASE_URL environment variable is set correctly
-- [ ] Check if database connection works in serverless functions
-- [ ] Verify email confirmation callback URL is correct for production domain
-- [ ] Check if any middleware is blocking requests
-
-## Testing Checklist After Fix
-- [ ] New user can register with email/password
-- [ ] User receives confirmation email
-- [ ] User can confirm email successfully
-- [ ] User can log in after confirmation
-- [ ] Dashboard loads without errors
-- [ ] Lessons page loads without errors
-- [ ] Attempting to register with existing email shows clear error
-- [ ] Error messages are user-friendly
-- [ ] All user data is properly created and associated
+- Auth user is created in Supabase Auth (`auth.users`)
+- Email confirmation works
+- **Profile is NEVER created in `profiles` table**
+- Login succeeds (auth works)
+- Dashboard/lessons fail because profile doesn't exist
 
 ---
 
-## Instructions for Cursor
+## Root Cause Analysis
 
-**PRIMARY OBJECTIVE**: Fix the incomplete user registration flow that's causing "Tenant or user not found" errors
+### The Problem
+The signup flow has **3 missing pieces**:
 
-**Steps to take**:
+1. **No profile creation after signup** — `lib/supabase/auth.ts:26-50`
+   - `signUp()` only creates auth user, not application profile
+   - There's a `createUserProfile()` function in `lib/db/queries.ts:93-104` but it's **never called**
 
-1. **Locate the registration endpoint** (`src/app/api/auth/register/route.ts` or similar)
-   - Examine what happens when a user registers
-   - Check if it creates BOTH auth credentials AND application database records
+2. **No profile creation in callback** — `app/api/auth/callback/route.ts:29-42`
+   - Callback only exchanges code for session
+   - Doesn't check if profile exists or create one
 
-2. **Identify the missing pieces**:
-   - Is a user record created in the users table?
-   - Is a tenant created for the new user?
-   - Is the user-tenant association created?
+3. **No duplicate email validation** — `app/(auth)/signup/page.tsx:30-68`
+   - No check if email already exists before signup
+   - Supabase Auth might allow duplicate signups
 
-3. **Implement complete registration flow**:
-   - Create tenant record (one per user or shared tenant logic)
-   - Create user record with proper fields
-   - Create user-tenant association
-   - Add transaction handling (rollback if any step fails)
-   - Add proper error handling
+### Why Dashboard/Lessons Fail
 
-4. **Add email validation**:
-   - Check if email exists before creating account
-   - Return 409 status with clear message if duplicate
+**Dashboard** (`app/api/dashboard/stats/route.ts:48-51`):
+```typescript
+const [overallStats, dailyStats, lessonProgress] = await Promise.all([
+  getDashboardStats(user.id),  // ← Calls getUserProfile(user.id)
+  getDailyStatsRange(user.id, startDate, endDate),
+  getUserLessonProgress(user.id),
+])
+```
 
-5. **Add safety checks in data loading**:
-   - In dashboard/lessons API routes, handle missing user gracefully
-   - Consider adding auto-repair logic (if auth user exists but app user doesn't, create it)
+**getDashboardStats** (`lib/db/queries.ts:135`):
+```typescript
+const profile = await getUserProfile(userId)  // ← Returns null!
+```
 
-6. **Test the complete flow**:
-   - Ensure new user registration creates all necessary records
-   - Verify login works and data loads properly
-   - Confirm error messages are clear and helpful
+When `profile` is null, all streak/stats data fails.
 
-**Focus on**: The registration/signup flow and ensuring all database records are created properly when a new user signs up.
+**Lessons** (`lib/db/queries.ts:422`):
+```typescript
+export async function getUserLessonProgress(userId: string) {
+  const lessons = await getAllLessons()
+  // Queries user_items table which has foreign key to profiles
+  // If profile doesn't exist, queries fail
+}
+```
+
+---
+
+## SOLUTION: Fix Registration Flow
+
+### Option 1: Create Profile in Callback (RECOMMENDED)
+
+**File**: `app/api/auth/callback/route.ts`
+
+**Current code** (lines 29-42):
+```typescript
+if (code) {
+  const supabase = await createClient()
+
+  try {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (exchangeError) {
+      // ... error handling
+    }
+
+    // Success - redirect to dashboard
+    return NextResponse.redirect(new URL(next, request.url))
+  }
+}
+```
+
+**Fix needed**:
+```typescript
+if (code) {
+  const supabase = await createClient()
+
+  try {
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (exchangeError) {
+      console.error('Error exchanging code for session:', exchangeError)
+      const errorUrl = new URL('/login', request.url)
+      errorUrl.searchParams.set('error', 'invalid_code')
+      return NextResponse.redirect(errorUrl)
+    }
+
+    // ✅ NEW: Check if profile exists, create if not
+    if (data.user) {
+      const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
+
+      const existingProfile = await getUserProfile(data.user.id)
+
+      if (!existingProfile) {
+        console.log('Profile not found for user, creating...', data.user.id)
+
+        try {
+          await createUserProfile(
+            data.user.id,
+            data.user.email || '',
+            data.user.user_metadata?.username
+          )
+          console.log('Profile created successfully')
+        } catch (profileError) {
+          console.error('Failed to create profile:', profileError)
+          // Continue anyway - profile might exist due to race condition
+        }
+      }
+    }
+
+    // Success - redirect to dashboard
+    return NextResponse.redirect(new URL(next, request.url))
+  } catch (err) {
+    console.error('Unexpected error in callback:', err)
+    const errorUrl = new URL('/login', request.url)
+    errorUrl.searchParams.set('error', 'callback_error')
+    return NextResponse.redirect(errorUrl)
+  }
+}
+```
+
+**Why this approach?**
+- Centralized: All signups (email, OAuth, etc.) go through callback
+- Idempotent: Safe to call multiple times
+- No database triggers needed
+
+---
+
+### Option 2: Create Database Trigger (ALTERNATIVE)
+
+If you have Supabase access, create this SQL trigger:
+
+```sql
+-- Create function to handle new auth users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, username)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'username'
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger that fires when new user is created in auth.users
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+```
+
+**Run in Supabase Dashboard:**
+1. Go to SQL Editor
+2. Paste and run the above SQL
+3. Trigger will auto-create profiles for all new signups
+
+---
+
+## SOLUTION: Add Duplicate Email Validation
+
+**File**: `app/(auth)/signup/page.tsx`
+
+**Current code** (lines 47-55):
+```typescript
+try {
+  const { error } = await signUp(email, password)
+
+  if (error) {
+    toast.error('Signup failed', {
+      description: error,
+    })
+    return
+  }
+```
+
+**Fix needed**:
+```typescript
+try {
+  const { error } = await signUp(email, password)
+
+  if (error) {
+    // ✅ NEW: Check for duplicate email error
+    if (error.includes('already registered') || error.includes('already exists')) {
+      toast.error('Email already registered', {
+        description: 'This email is already in use. Please log in or use a different email.',
+      })
+    } else {
+      toast.error('Signup failed', {
+        description: error,
+      })
+    }
+    return
+  }
+```
+
+**Better approach**: Add validation BEFORE calling `signUp()`:
+
+```typescript
+setIsLoading(true)
+
+try {
+  // ✅ NEW: Check if email exists first
+  const { createClient } = await import('@/lib/supabase/client')
+  const supabase = createClient()
+
+  const { data: existingUsers } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('email', email)
+    .limit(1)
+
+  if (existingUsers && existingUsers.length > 0) {
+    toast.error('Email already registered', {
+      description: 'This email is already in use. Please log in or reset your password.',
+    })
+    return
+  }
+
+  const { error } = await signUp(email, password)
+  // ... rest of code
+```
+
+---
+
+## SOLUTION: Add Graceful Error Handling
+
+### Fix Dashboard API
+
+**File**: `app/api/dashboard/stats/route.ts`
+
+**Add profile validation** (after line 35):
+```typescript
+if (authError || !user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+}
+
+// ✅ NEW: Check if profile exists
+const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
+const profile = await getUserProfile(user.id)
+
+if (!profile) {
+  console.error('Profile not found for user:', user.id)
+
+  // Try to create profile (safety net)
+  try {
+    await createUserProfile(user.id, user.email || '')
+    console.log('Created missing profile for user:', user.id)
+  } catch (createError) {
+    console.error('Failed to create profile:', createError)
+    return NextResponse.json(
+      {
+        error: 'User profile not found. Please contact support.',
+        errorCode: 'PROFILE_NOT_FOUND'
+      },
+      { status: 404 }
+    )
+  }
+}
+```
+
+### Fix Dashboard Page
+
+**File**: `app/(app)/dashboard/page.tsx`
+
+Find where data is loaded and add error handling:
+
+```typescript
+// Show helpful error message
+if (error?.errorCode === 'PROFILE_NOT_FOUND') {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <h2 className="text-xl font-bold mb-4">Account Setup Incomplete</h2>
+      <p className="text-muted-foreground mb-4">
+        Your account was created but needs to be set up. Please contact support.
+      </p>
+      <Button onClick={() => window.location.href = '/support'}>
+        Contact Support
+      </Button>
+    </div>
+  )
+}
+```
+
+---
+
+## Testing Checklist
+
+After implementing fixes, test:
+
+### 1. New User Signup Flow
+- [ ] Create account with new email
+- [ ] Receive confirmation email
+- [ ] Click confirmation link
+- [ ] **Verify profile is created** (check database or Supabase dashboard)
+- [ ] Log in
+- [ ] Dashboard loads without errors
+- [ ] Lessons page loads without errors
+
+### 2. Duplicate Email Handling
+- [ ] Try to sign up with existing email
+- [ ] See clear error message: "Email already registered"
+- [ ] Error suggests logging in instead
+
+### 3. Edge Cases
+- [ ] User signs up but doesn't confirm email → profile not created yet (expected)
+- [ ] User confirms email → profile created automatically
+- [ ] User signs up twice with same email → second signup rejected
+- [ ] Existing users (created before fix) can still log in
+
+### 4. Database Verification
+
+Check Supabase Dashboard → Database → Table Editor:
+
+```sql
+-- Check if profiles table has matching auth users
+SELECT
+  au.id as auth_user_id,
+  au.email as auth_email,
+  p.id as profile_id,
+  p.email as profile_email
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.id
+WHERE p.id IS NULL;
+```
+
+**Expected result**: No rows (all auth users have profiles)
+
+---
+
+## Files to Modify
+
+1. **`app/api/auth/callback/route.ts`** (PRIMARY FIX)
+   - Add profile creation after email confirmation
+   - Lines 29-45
+
+2. **`app/(auth)/signup/page.tsx`** (DUPLICATE EMAIL CHECK)
+   - Add email validation before signup
+   - Lines 30-68
+
+3. **`app/api/dashboard/stats/route.ts`** (ERROR HANDLING)
+   - Add profile existence check
+   - Add safety net profile creation
+   - Lines 25-36
+
+4. **`app/(app)/dashboard/page.tsx`** (UI ERROR HANDLING)
+   - Add user-friendly error message
+   - Search for where data is loaded/displayed
+
+5. **OPTIONAL: Create database trigger** (Supabase SQL)
+   - Run SQL in Supabase Dashboard
+
+---
+
+## Migration Plan for Existing Users
+
+If you already have users in production without profiles:
+
+### 1. Identify Affected Users
+
+```sql
+-- Find auth users without profiles
+SELECT
+  au.id,
+  au.email,
+  au.created_at
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.id
+WHERE p.id IS NULL
+  AND au.email_confirmed_at IS NOT NULL;
+```
+
+### 2. Create Missing Profiles
+
+```sql
+-- Create profiles for all confirmed auth users
+INSERT INTO public.profiles (id, email, username)
+SELECT
+  au.id,
+  au.email,
+  au.raw_user_meta_data->>'username'
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.id
+WHERE p.id IS NULL
+  AND au.email_confirmed_at IS NOT NULL
+ON CONFLICT (id) DO NOTHING;
+```
+
+---
+
+## Summary
+
+**Root Cause**: Profile creation is missing from signup flow
+
+**Primary Fix**: Add profile creation in `/app/api/auth/callback/route.ts`
+
+**Secondary Fixes**:
+- Duplicate email validation
+- Graceful error handling
+- Safety net profile creation
+
+**Best Approach**: Implement callback fix + database trigger for redundancy
+
+**Testing**: Verify new signups create profiles and dashboard loads properly
