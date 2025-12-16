@@ -24,10 +24,16 @@ setup('authenticate', async ({ page }) => {
     if (isVisible) {
       console.log('[Auth Setup] Dismissing cookie banner...')
       // Click "Accept All" or close button
-      await page.getByRole('button', { name: /accept all|accept/i }).click().catch(async () => {
-        // Try close button if Accept All doesn't exist
-        await page.getByRole('button', { name: /close|dismiss/i }).click().catch(() => {})
-      })
+      await page
+        .getByRole('button', { name: /accept all|accept/i })
+        .click()
+        .catch(async () => {
+          // Try close button if Accept All doesn't exist
+          await page
+            .getByRole('button', { name: /close|dismiss/i })
+            .click()
+            .catch(() => {})
+        })
       await page.waitForTimeout(500) // Wait for banner to disappear
     }
   } catch (e) {
@@ -61,7 +67,7 @@ setup('authenticate', async ({ page }) => {
   // Submit login form
   // Note: Supabase auth happens client-side, so we wait for navigation instead of API response
   console.log('[Auth Setup] Submitting login form...')
-  
+
   await Promise.all([
     // Wait for navigation to complete (either to dashboard or error state)
     page.waitForURL('**', { timeout: 30000 }),
@@ -76,7 +82,7 @@ setup('authenticate', async ({ page }) => {
   // Check if we successfully authenticated by trying to access dashboard
   // If login failed, we'd still be on /login or see an error
   const currentUrl = page.url()
-  
+
   // If we're still on login page after clicking submit, auth failed
   if (currentUrl.includes('/login')) {
     console.error('[Auth Setup] Still on login page - authentication may have failed')
