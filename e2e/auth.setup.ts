@@ -19,19 +19,25 @@ setup('authenticate', async ({ page }) => {
 
   console.log('[Auth Setup] Using email:', email)
 
-  // ✅ NEW: Ensure test user email is confirmed using Admin API
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  // ✅ Ensure test user email is confirmed using Admin API (if available)
+  // This step is optional - if admin API is not configured, we assume the user is already confirmed
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (
+    supabaseUrl &&
+    serviceRoleKey &&
+    serviceRoleKey !== 'placeholder-key' &&
+    serviceRoleKey.length > 20
+  ) {
+    console.log('[Auth Setup] Admin API available, checking email confirmation status...')
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        }
-      )
+      const supabase = createClient(supabaseUrl, serviceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      })
 
       // Get user by email
       const {
@@ -40,12 +46,13 @@ setup('authenticate', async ({ page }) => {
       } = await supabase.auth.admin.listUsers()
 
       if (listError) {
-        console.error('[Auth Setup] Error listing users:', listError)
+        console.warn('[Auth Setup] Could not access admin API:', listError.message)
+        console.log('[Auth Setup] Continuing without email confirmation check')
       } else {
         const testUser = users.find((u) => u.email === email)
 
         if (testUser) {
-          console.log('[Auth Setup] Found test user, checking email confirmation...')
+          console.log('[Auth Setup] Found test user')
 
           // Check if email is already confirmed
           if (!testUser.email_confirmed_at) {
@@ -57,21 +64,29 @@ setup('authenticate', async ({ page }) => {
             })
 
             if (updateError) {
-              console.error('[Auth Setup] Error confirming email:', updateError)
+              console.warn('[Auth Setup] Could not confirm email:', updateError.message)
+              console.log('[Auth Setup] Test may fail if email confirmation is required')
             } else {
-              console.log('[Auth Setup] Email confirmed successfully')
+              console.log('[Auth Setup] ✅ Email confirmed successfully')
             }
           } else {
-            console.log('[Auth Setup] Email already confirmed')
+            console.log('[Auth Setup] ✅ Email already confirmed')
           }
         } else {
-          console.log('[Auth Setup] Test user not found, will be created on first signup')
+          console.log('[Auth Setup] Test user not found in database')
+          console.log('[Auth Setup] User will be created on first signup or may already exist')
         }
       }
     } catch (e) {
-      console.error('[Auth Setup] Error during email confirmation:', e)
-      // Continue anyway - tests will create user if needed
+      console.warn('[Auth Setup] Admin API error:', e instanceof Error ? e.message : String(e))
+      console.log('[Auth Setup] Continuing without email confirmation - test may fail if required')
     }
+  } else {
+    console.log('[Auth Setup] ⚠️  Admin API not configured, skipping email confirmation check')
+    console.log('[Auth Setup] Assuming test user email is already confirmed')
+    console.log(
+      '[Auth Setup] If tests fail, set SUPABASE_SERVICE_ROLE_KEY in GitHub Secrets or .env.local'
+    )
   }
 
   // Navigate to login
@@ -138,7 +153,7 @@ setup('authenticate', async ({ page }) => {
 
   // If we're still on login page after clicking submit, auth failed
   if (currentUrl.includes('/login')) {
-    console.error('[Auth Setup] Still on login page - authentication may have failed')
+    console.error('[Auth Setup] ❌ Still on login page - authentication may have failed')
     // Try to check for error messages
     const errorMsg = await page.textContent('[role="alert"]').catch(() => null)
     if (errorMsg) {
@@ -147,7 +162,25 @@ setup('authenticate', async ({ page }) => {
     throw new Error('Authentication failed - still on login page')
   }
 
-  console.log('[Auth Setup] Login appears successful')
+  // If we're redirected to /confirm-email, the email isn't confirmed
+  // This means the Admin API wasn't able to confirm it (or wasn't available)
+  if (currentUrl.includes('/confirm-email')) {
+    console.error('[Auth Setup] ❌ Redirected to /confirm-email - email not confirmed')
+    console.error('[Auth Setup] This means:')
+    console.error('[Auth Setup]   1. SUPABASE_SERVICE_ROLE_KEY is not set or invalid')
+    console.error('[Auth Setup]   2. Test user email was not confirmed by Admin API')
+    console.error('[Auth Setup]   3. Middleware is blocking access to protected routes')
+    console.error('[Auth Setup]')
+    console.error('[Auth Setup] To fix this:')
+    console.error('[Auth Setup]   - Add SUPABASE_SERVICE_ROLE_KEY to GitHub Secrets (for CI)')
+    console.error('[Auth Setup]   - Add SUPABASE_SERVICE_ROLE_KEY to .env.local (for local tests)')
+    console.error('[Auth Setup]   - OR manually confirm the test user email in Supabase dashboard')
+    throw new Error(
+      'Test user email not confirmed - cannot access protected routes. See logs for details.'
+    )
+  }
+
+  console.log('[Auth Setup] ✅ Login successful')
 
   // Navigate to dashboard to ensure auth state is fully established
   await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
