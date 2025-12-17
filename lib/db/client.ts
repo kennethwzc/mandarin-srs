@@ -45,15 +45,19 @@ function getClient(): postgres.Sql {
   /**
    * Create postgres connection
    *
-   * Configuration:
-   * - max: 10 connections (sufficient for serverless)
-   * - idle_timeout: 20 seconds
-   * - connect_timeout: 10 seconds
+   * Configuration optimized for Vercel serverless:
+   * - max: 25 connections (handles concurrent serverless instances)
+   * - idle_timeout: 30 seconds (prevents mid-request connection closes)
+   * - connect_timeout: 15 seconds (accommodates slow network handshakes)
+   * - max_lifetime: 30 minutes (forces periodic connection refresh)
+   *
+   * These values prevent "Connection closed" errors under load.
    */
   _client = postgres(process.env.DATABASE_URL, {
-    max: 10,
-    idle_timeout: 20,
-    connect_timeout: 10,
+    max: 25, // Increased for production concurrency
+    idle_timeout: 30, // Longer timeout to avoid mid-request closes
+    connect_timeout: 15, // More time for slow networks
+    max_lifetime: 60 * 30, // 30 minutes max connection lifetime
   })
 
   return _client
