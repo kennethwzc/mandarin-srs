@@ -52,25 +52,33 @@ setup('authenticate', async ({ page }) => {
         const testUser = users.find((u) => u.email === email)
 
         if (testUser) {
-          console.log('[Auth Setup] Found test user')
+          console.log('[Auth Setup] Found test user, ID:', testUser.id)
+          console.log(
+            '[Auth Setup] Current email_confirmed_at:',
+            testUser.email_confirmed_at || 'NOT SET'
+          )
 
-          // Check if email is already confirmed
-          if (!testUser.email_confirmed_at) {
-            console.log('[Auth Setup] Email not confirmed, confirming now...')
+          // ALWAYS force email confirmation to ensure JWT will reflect it on next login
+          // Even if database shows it's confirmed, we need to ensure Supabase Auth service knows
+          console.log(
+            '[Auth Setup] Force-confirming email to ensure fresh JWT includes confirmation...'
+          )
 
-            // Update user to mark email as confirmed
-            const { error: updateError } = await supabase.auth.admin.updateUserById(testUser.id, {
-              email_confirm: true,
-            })
+          const { error: updateError } = await supabase.auth.admin.updateUserById(testUser.id, {
+            email_confirm: true,
+          })
 
-            if (updateError) {
-              console.warn('[Auth Setup] Could not confirm email:', updateError.message)
-              console.log('[Auth Setup] Test may fail if email confirmation is required')
-            } else {
-              console.log('[Auth Setup] ✅ Email confirmed successfully')
-            }
+          if (updateError) {
+            console.warn('[Auth Setup] Could not confirm email:', updateError.message)
+            console.log('[Auth Setup] Test may fail if email confirmation is required')
           } else {
-            console.log('[Auth Setup] ✅ Email already confirmed')
+            console.log('[Auth Setup] ✅ Email confirmation updated successfully')
+            // Wait a moment for Supabase to propagate the change
+            console.log(
+              '[Auth Setup] Waiting 2 seconds for Supabase to propagate email confirmation...'
+            )
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            console.log('[Auth Setup] Ready to proceed with login')
           }
         } else {
           console.log('[Auth Setup] Test user not found in database')
@@ -181,6 +189,35 @@ setup('authenticate', async ({ page }) => {
   }
 
   console.log('[Auth Setup] ✅ Login successful')
+
+  // Debug: Check what's in the auth cookie to verify email_confirmed_at
+  try {
+    const cookies = await page.context().cookies()
+    const authCookie = cookies.find((c) => c.name.includes('auth-token'))
+    if (authCookie && authCookie.value) {
+      const parts = authCookie.value.split('.')
+      if (parts.length >= 2 && parts[1]) {
+        // Decode base64url (JWT uses base64url encoding, not standard base64)
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        const decoded = Buffer.from(base64, 'base64').toString('utf-8')
+        const payload = JSON.parse(decoded)
+        console.log('[Auth Setup] JWT email_confirmed_at:', payload.email_confirmed_at || 'NOT SET')
+        console.log('[Auth Setup] JWT email:', payload.email)
+        if (!payload.email_confirmed_at) {
+          console.warn('[Auth Setup] ⚠️  WARNING: JWT does not contain email_confirmed_at!')
+          console.warn('[Auth Setup] This will cause middleware to block access')
+          console.warn('[Auth Setup] The email confirmation did not propagate to the JWT')
+        } else {
+          console.log('[Auth Setup] ✅ JWT contains valid email_confirmed_at timestamp')
+        }
+      }
+    }
+  } catch (e) {
+    console.log(
+      '[Auth Setup] Could not parse JWT for debugging:',
+      e instanceof Error ? e.message : e
+    )
+  }
 
   // Navigate to dashboard to ensure auth state is fully established
   await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
