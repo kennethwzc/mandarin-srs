@@ -155,6 +155,45 @@ setup('authenticate', async ({ page }) => {
   // Wait for auth cookies to be set
   await page.waitForTimeout(2000)
 
+  // CRITICAL: Debug JWT FIRST to see what Supabase actually gave us
+  console.log('[Auth Setup] 🔍 Inspecting JWT payload...')
+  try {
+    const cookies = await page.context().cookies()
+    const authCookie = cookies.find((c) => c.name.includes('auth-token'))
+    if (authCookie && authCookie.value) {
+      const parts = authCookie.value.split('.')
+      if (parts.length >= 2 && parts[1]) {
+        // Decode base64url (JWT uses base64url encoding, not standard base64)
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        const decoded = Buffer.from(base64, 'base64').toString('utf-8')
+        const payload = JSON.parse(decoded)
+        console.log('[Auth Setup] 📋 JWT payload:')
+        console.log('[Auth Setup]    - email:', payload.email)
+        console.log(
+          '[Auth Setup]    - email_confirmed_at:',
+          payload.email_confirmed_at || '❌ NOT SET'
+        )
+        console.log('[Auth Setup]    - user_id:', payload.sub)
+        console.log(
+          '[Auth Setup]    - iat (issued at):',
+          new Date(payload.iat * 1000).toISOString()
+        )
+        if (!payload.email_confirmed_at) {
+          console.error('[Auth Setup] ⚠️  CRITICAL: JWT does NOT contain email_confirmed_at!')
+          console.error('[Auth Setup] The Admin API confirmed the email, but Supabase login')
+          console.error('[Auth Setup] generated a JWT without email_confirmed_at.')
+          console.error('[Auth Setup] This is why middleware is blocking access.')
+        } else {
+          console.log('[Auth Setup] ✅ JWT contains email_confirmed_at')
+        }
+      }
+    } else {
+      console.warn('[Auth Setup] ⚠️  No auth cookie found!')
+    }
+  } catch (e) {
+    console.error('[Auth Setup] ❌ Failed to parse JWT:', e instanceof Error ? e.message : e)
+  }
+
   // Check if we successfully authenticated by trying to access dashboard
   // If login failed, we'd still be on /login or see an error
   const currentUrl = page.url()
@@ -188,36 +227,7 @@ setup('authenticate', async ({ page }) => {
     )
   }
 
-  console.log('[Auth Setup] ✅ Login successful')
-
-  // Debug: Check what's in the auth cookie to verify email_confirmed_at
-  try {
-    const cookies = await page.context().cookies()
-    const authCookie = cookies.find((c) => c.name.includes('auth-token'))
-    if (authCookie && authCookie.value) {
-      const parts = authCookie.value.split('.')
-      if (parts.length >= 2 && parts[1]) {
-        // Decode base64url (JWT uses base64url encoding, not standard base64)
-        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-        const decoded = Buffer.from(base64, 'base64').toString('utf-8')
-        const payload = JSON.parse(decoded)
-        console.log('[Auth Setup] JWT email_confirmed_at:', payload.email_confirmed_at || 'NOT SET')
-        console.log('[Auth Setup] JWT email:', payload.email)
-        if (!payload.email_confirmed_at) {
-          console.warn('[Auth Setup] ⚠️  WARNING: JWT does not contain email_confirmed_at!')
-          console.warn('[Auth Setup] This will cause middleware to block access')
-          console.warn('[Auth Setup] The email confirmation did not propagate to the JWT')
-        } else {
-          console.log('[Auth Setup] ✅ JWT contains valid email_confirmed_at timestamp')
-        }
-      }
-    }
-  } catch (e) {
-    console.log(
-      '[Auth Setup] Could not parse JWT for debugging:',
-      e instanceof Error ? e.message : e
-    )
-  }
+  console.log('[Auth Setup] ✅ Login successful - JWT already inspected above')
 
   // Navigate to dashboard to ensure auth state is fully established
   await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })
