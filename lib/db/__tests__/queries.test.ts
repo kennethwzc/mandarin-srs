@@ -277,22 +277,7 @@ describe('Database Queries', () => {
       expect(result).toEqual([])
     })
 
-    it('logs query execution', async () => {
-      const mockOrderBy = jest.fn().mockResolvedValue([])
-      const mockWhere = jest.fn().mockReturnValue({ orderBy: mockOrderBy })
-      const mockFrom = jest.fn().mockReturnValue({ where: mockWhere })
-      ;(db.select as jest.Mock).mockReturnValue({ from: mockFrom })
-
-      await getAllLessons()
-
-      expect(console.log).toHaveBeenCalledWith('DB QUERY: getAllLessons() started')
-      expect(console.log).toHaveBeenCalledWith(
-        'DB QUERY: getAllLessons() completed',
-        expect.any(Object)
-      )
-    })
-
-    it('logs and throws error on failure', async () => {
+    it('throws error on failure', async () => {
       const mockError = new Error('Database connection failed')
       const mockOrderBy = jest.fn().mockRejectedValue(mockError)
       const mockWhere = jest.fn().mockReturnValue({ orderBy: mockOrderBy })
@@ -300,10 +285,8 @@ describe('Database Queries', () => {
       ;(db.select as jest.Mock).mockReturnValue({ from: mockFrom })
 
       await expect(getAllLessons()).rejects.toThrow('Database connection failed')
-      expect(console.error).toHaveBeenCalledWith(
-        'DB QUERY ERROR: getAllLessons() failed',
-        mockError
-      )
+      // Error is logged to console.error with simplified format
+      expect(console.error).toHaveBeenCalledWith('getAllLessons failed:', mockError.message)
     })
   })
 

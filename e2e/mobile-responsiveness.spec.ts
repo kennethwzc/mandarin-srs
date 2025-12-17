@@ -137,10 +137,10 @@ test.describe('Mobile Content', () => {
     const heroTitle = page.locator('h1').first()
     await expect(heroTitle).toBeVisible()
 
-    // CTA buttons should be visible
-    const ctaButtons = page.locator('main button, main a[role="button"]')
-    const buttonCount = await ctaButtons.count()
-    expect(buttonCount).toBeGreaterThanOrEqual(1)
+    // CTA buttons should be visible (Button asChild renders as <a> tags with button styling)
+    const ctaLinks = page.locator('main a[href="/signup"], main a[href="/login"]')
+    const linkCount = await ctaLinks.count()
+    expect(linkCount).toBeGreaterThanOrEqual(1)
   })
 
   test('auth pages are mobile-friendly', async ({ page }) => {
