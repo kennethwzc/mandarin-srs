@@ -6,6 +6,7 @@ import dynamicImport from 'next/dynamic'
 import { Card } from '@/components/ui/card'
 import { StartReviewsButton } from '@/components/ui/start-reviews-button'
 import { createClient } from '@/lib/supabase/server'
+import { VerificationSuccess } from './_components/verification-success'
 
 // Lazy load client components to avoid SSR issues in CI
 const DashboardStats = dynamicImport(
@@ -173,6 +174,7 @@ async function DashboardContent() {
 export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
+      <VerificationSuccess />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
       </Suspense>

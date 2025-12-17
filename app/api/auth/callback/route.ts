@@ -41,6 +41,27 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(errorUrl)
       }
 
+      // Verify email was actually confirmed by Supabase
+      if (data.user && !data.user.email_confirmed_at) {
+        console.error('❌ Email confirmation failed - email_confirmed_at not set', {
+          userId: data.user.id,
+          email: data.user.email,
+        })
+        const errorUrl = new URL('/login', request.url)
+        errorUrl.searchParams.set('error', 'verification_failed')
+        errorUrl.searchParams.set(
+          'message',
+          'Email verification incomplete. Please try again or contact support.'
+        )
+        return NextResponse.redirect(errorUrl)
+      }
+
+      console.log('✅ Email verified successfully:', {
+        userId: data.user?.id,
+        email: data.user?.email,
+        confirmedAt: data.user?.email_confirmed_at,
+      })
+
       // Check if profile exists, create if not
       if (data.user) {
         const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
@@ -79,8 +100,10 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Success - redirect to dashboard
-      return NextResponse.redirect(new URL(next, request.url))
+      // Success - redirect to dashboard with verification success indicator
+      const successUrl = new URL(next, request.url)
+      successUrl.searchParams.set('verified', 'true')
+      return NextResponse.redirect(successUrl)
     } catch (err) {
       console.error('Unexpected error in callback:', err)
       const errorUrl = new URL('/login', request.url)

@@ -32,9 +32,23 @@ function LoginForm() {
   // Check for error query param
   useEffect(() => {
     const error = searchParams.get('error')
+    const message = searchParams.get('message')
+
     if (error === 'invalid_code') {
       toast.error('Invalid verification code', {
         description: 'Please try signing in again.',
+      })
+    }
+
+    if (error === 'verification_failed') {
+      toast.error('Email verification failed', {
+        description: message || 'Please try clicking the link again.',
+      })
+    }
+
+    if (error === 'profile_creation_failed') {
+      toast.error('Account setup failed', {
+        description: message || 'Unable to set up your account. Please contact support.',
       })
     }
   }, [searchParams])

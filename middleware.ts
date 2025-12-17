@@ -44,6 +44,16 @@ export async function middleware(request: NextRequest) {
   console.log('[Middleware] Has valid session:', hasValidSession)
   console.log('[Middleware] Email confirmed:', isEmailConfirmed)
   console.log('[Middleware] Email confirmed at:', user?.email_confirmed_at || 'not set')
+
+  // Log if user was recently verified (helpful for debugging)
+  if (user?.email_confirmed_at) {
+    const confirmedDate = new Date(user.email_confirmed_at)
+    const isRecentlyConfirmed = Date.now() - confirmedDate.getTime() < 60000 // Within last minute
+    if (isRecentlyConfirmed) {
+      console.log('[Middleware] 🎉 RECENTLY VERIFIED - User confirmed email within last minute')
+    }
+  }
+
   console.log('[Middleware] Fully authenticated:', isFullyAuthenticated)
   console.log('[Middleware] ========================================')
 
