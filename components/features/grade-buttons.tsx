@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 
 import { cn } from '@/lib/utils/cn'
 import { GRADES } from '@/lib/utils/srs-constants'
@@ -10,6 +10,11 @@ import { GRADES } from '@/lib/utils/srs-constants'
  *
  * Self-assessment buttons for rating how well you knew the answer.
  * This determines the next review interval.
+ *
+ * Performance optimizations:
+ * - Debounced keyboard handler to prevent double-presses
+ * - Memoized callbacks to prevent unnecessary re-renders
+ * - Leading-edge debounce for instant response
  *
  * Grades:
  * - Again (0): Complete failure - didn't know at all
@@ -55,8 +60,54 @@ const GRADE_INFO = [
   },
 ]
 
+// Debounce delay to prevent double-presses (ms)
+const DEBOUNCE_DELAY = 150
+
 export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
-  // Keyboard shortcuts
+  // Ref to track if a grade has been processed (prevents double-press)
+  const hasGradedRef = useRef(false)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Memoized grade handler with leading-edge debounce
+  const handleGrade = useCallback(
+    (grade: number) => {
+      // Prevent double-grading
+      if (hasGradedRef.current || disabled) {
+        return
+      }
+
+      // Mark as graded immediately (leading edge)
+      hasGradedRef.current = true
+
+      // Call the callback immediately for instant response
+      onGrade(grade)
+
+      // Reset after debounce delay
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        hasGradedRef.current = false
+      }, DEBOUNCE_DELAY)
+    },
+    [onGrade, disabled]
+  )
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Reset hasGraded when component mounts (new card)
+  useEffect(() => {
+    hasGradedRef.current = false
+  }, [])
+
+  // Keyboard shortcuts with debounce
   useEffect(() => {
     if (disabled) {
       return
@@ -65,14 +116,15 @@ export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key
       if (key >= '1' && key <= '4') {
+        e.preventDefault() // Prevent any default behavior
         const grade = parseInt(key, 10) - 1 // Convert to 0-3
-        onGrade(grade)
+        handleGrade(grade)
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [disabled, onGrade])
+  }, [disabled, handleGrade])
 
   return (
     <div className="space-y-3">
@@ -82,7 +134,7 @@ export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
         {GRADE_INFO.map(({ grade, label, shortcut, color, description }) => (
           <button
             key={grade}
-            onClick={() => onGrade(grade)}
+            onClick={() => handleGrade(grade)}
             disabled={disabled}
             className={cn(
               'relative rounded-lg p-4',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ReviewCard } from './review-card'
@@ -15,9 +15,14 @@ import { toast } from 'sonner'
  * Manages a review session:
  * - Fetches review queue from API
  * - Shows cards one by one
- * - Submits answers to API
+ * - Submits answers to API (optimistically - non-blocking)
  * - Tracks progress
  * - Shows completion screen
+ *
+ * Performance optimizations:
+ * - Optimistic UI: Card advances immediately, API submits in background
+ * - Memoized callbacks: Prevents unnecessary re-renders
+ * - Submission queue: Handles rapid keypresses without blocking
  */
 
 interface ReviewItem {
@@ -29,6 +34,16 @@ interface ReviewItem {
   correctPinyin: string
 }
 
+interface PendingSubmission {
+  itemId: number
+  itemType: 'radical' | 'character' | 'vocabulary'
+  userAnswer: string
+  correctAnswer: string
+  grade: number
+  responseTimeMs: number
+  isCorrect: boolean
+}
+
 export function ReviewSession() {
   const router = useRouter()
 
@@ -36,12 +51,16 @@ export function ReviewSession() {
   const [queue, setQueue] = useState<ReviewItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [sessionComplete, setSessionComplete] = useState(false)
 
   // Stats
   const [correctCount, setCorrectCount] = useState(0)
   const [totalReviewed, setTotalReviewed] = useState(0)
+
+  // Refs for optimistic UI
+  const pendingSubmissions = useRef<PendingSubmission[]>([])
+  const isProcessingQueue = useRef(false)
+  const hasAdvancedRef = useRef(false) // Prevent double-advance on rapid keypresses
 
   // Fetch review queue on mount
   useEffect(() => {
@@ -95,61 +114,113 @@ export function ReviewSession() {
   }
 
   /**
-   * Submit review result to API
+   * Process pending submissions in background
+   * Handles the queue of API submissions without blocking UI
    */
-  async function handleSubmitReview(result: ReviewResult) {
-    if (isSubmitting) {
+  const processSubmissionQueue = useCallback(async () => {
+    if (isProcessingQueue.current || pendingSubmissions.current.length === 0) {
       return
     }
 
-    setIsSubmitting(true)
+    isProcessingQueue.current = true
 
-    try {
+    while (pendingSubmissions.current.length > 0) {
+      const submission = pendingSubmissions.current[0]
+
+      // Safety check - should never be undefined given the while condition
+      if (!submission) {
+        pendingSubmissions.current.shift()
+        continue
+      }
+
+      try {
+        const response = await fetch('/api/reviews/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId: submission.itemId,
+            itemType: submission.itemType,
+            userAnswer: submission.userAnswer,
+            correctAnswer: submission.correctAnswer,
+            grade: submission.grade,
+            responseTimeMs: submission.responseTimeMs,
+          }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to submit review')
+        }
+
+        // Remove successfully processed submission
+        pendingSubmissions.current.shift()
+      } catch (error) {
+        console.error('Error submitting review:', error)
+        // Remove failed submission to prevent infinite loop
+        pendingSubmissions.current.shift()
+        // Show error but don't block - user already moved to next card
+        toast.error('Failed to save review (will not affect progress)')
+      }
+    }
+
+    isProcessingQueue.current = false
+  }, [])
+
+  /**
+   * Submit review result - OPTIMISTIC UI
+   * Advances to next card immediately, submits API in background
+   */
+  const handleSubmitReview = useCallback(
+    (result: ReviewResult) => {
+      // Prevent double-advance on rapid keypresses
+      if (hasAdvancedRef.current) {
+        return
+      }
+
       const currentItem = queue[currentIndex]
 
       if (!currentItem) {
         return
       }
 
-      const response = await fetch('/api/reviews/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: currentItem.itemId,
-          itemType: currentItem.itemType,
-          userAnswer: result.userAnswer,
-          correctAnswer: currentItem.correctPinyin,
-          grade: result.grade,
-          responseTimeMs: result.responseTimeMs,
-        }),
-      })
+      // Mark as advanced to prevent double-processing
+      hasAdvancedRef.current = true
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit review')
-      }
-
-      // Update stats
+      // OPTIMISTIC: Update stats immediately
       setTotalReviewed((prev) => prev + 1)
       if (result.isCorrect) {
         setCorrectCount((prev) => prev + 1)
       }
 
-      // Move to next card
+      // OPTIMISTIC: Move to next card immediately (before API call)
       const nextIndex = currentIndex + 1
       if (nextIndex >= queue.length) {
         setSessionComplete(true)
       } else {
         setCurrentIndex(nextIndex)
       }
-    } catch (error) {
-      console.error('Error submitting review:', error)
-      toast.error('Failed to submit review')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+
+      // Queue API submission for background processing
+      pendingSubmissions.current.push({
+        itemId: currentItem.itemId,
+        itemType: currentItem.itemType,
+        userAnswer: result.userAnswer,
+        correctAnswer: currentItem.correctPinyin,
+        grade: result.grade,
+        responseTimeMs: result.responseTimeMs,
+        isCorrect: result.isCorrect,
+      })
+
+      // Process queue in background (non-blocking)
+      processSubmissionQueue()
+
+      // Reset advance guard after a short delay (allows next card's grade)
+      setTimeout(() => {
+        hasAdvancedRef.current = false
+      }, 50)
+    },
+    [currentIndex, queue, processSubmissionQueue]
+  )
 
   /**
    * Handle skip (optional)
