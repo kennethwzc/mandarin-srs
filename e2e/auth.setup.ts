@@ -155,8 +155,60 @@ setup('authenticate', async ({ page }) => {
   // Wait for auth cookies to be set
   await page.waitForTimeout(2000)
 
-  // CRITICAL: Debug JWT FIRST to see what Supabase actually gave us
-  console.log('[Auth Setup] 🔍 Inspecting JWT payload...')
+  // Check initial login status
+  const currentUrl = page.url()
+
+  // If we're still on login page after clicking submit, auth failed
+  if (currentUrl.includes('/login')) {
+    console.error('[Auth Setup] ❌ Still on login page - authentication may have failed')
+    const errorMsg = await page.textContent('[role="alert"]').catch(() => null)
+    if (errorMsg) {
+      console.error('[Auth Setup] Error message:', errorMsg)
+    }
+    throw new Error('Authentication failed - still on login page')
+  }
+
+  console.log('[Auth Setup] ✅ Login complete. Now forcing session refresh to update JWT claims...')
+
+  // CRITICAL FIX: Force refresh the session to get new JWT with email_confirmed_at claim
+  // The Admin API confirmed the email in the database, but the initial login JWT
+  // doesn't reflect this change due to Supabase JWT claim caching.
+  // Refreshing the session forces Supabase to generate a new JWT with updated claims.
+  try {
+    await page.evaluate(
+      async ([supabaseUrl, supabaseKey]) => {
+        console.log('[Browser] Importing Supabase client...')
+        const { createBrowserClient } = await import('@supabase/ssr')
+
+        const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+
+        console.log('[Browser] Refreshing session to get updated JWT...')
+        const { error } = await supabase.auth.refreshSession()
+
+        if (error) {
+          console.error('[Browser] Session refresh error:', error.message)
+          throw new Error(`Session refresh failed: ${error.message}`)
+        }
+
+        console.log('[Browser] ✓ Session refreshed successfully')
+        return true
+      },
+      [process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!]
+    )
+
+    console.log('[Auth Setup] ✅ Session refresh complete')
+  } catch (e) {
+    console.error('[Auth Setup] ❌ Session refresh failed:', e instanceof Error ? e.message : e)
+    throw new Error(
+      `Failed to refresh session: ${e instanceof Error ? e.message : 'Unknown error'}`
+    )
+  }
+
+  // Wait for refresh to propagate
+  await page.waitForTimeout(1500)
+
+  // Debug: Verify the refreshed JWT now contains email_confirmed_at
+  console.log('[Auth Setup] 🔍 Inspecting JWT payload after refresh...')
   try {
     const cookies = await page.context().cookies()
     const authCookie = cookies.find((c) => c.name.includes('auth-token'))
@@ -167,7 +219,7 @@ setup('authenticate', async ({ page }) => {
         const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
         const decoded = Buffer.from(base64, 'base64').toString('utf-8')
         const payload = JSON.parse(decoded)
-        console.log('[Auth Setup] 📋 JWT payload:')
+        console.log('[Auth Setup] 📋 JWT payload after refresh:')
         console.log('[Auth Setup]    - email:', payload.email)
         console.log(
           '[Auth Setup]    - email_confirmed_at:',
@@ -178,56 +230,31 @@ setup('authenticate', async ({ page }) => {
           '[Auth Setup]    - iat (issued at):',
           new Date(payload.iat * 1000).toISOString()
         )
+
         if (!payload.email_confirmed_at) {
-          console.error('[Auth Setup] ⚠️  CRITICAL: JWT does NOT contain email_confirmed_at!')
-          console.error('[Auth Setup] The Admin API confirmed the email, but Supabase login')
-          console.error('[Auth Setup] generated a JWT without email_confirmed_at.')
-          console.error('[Auth Setup] This is why middleware is blocking access.')
+          console.error(
+            '[Auth Setup] ⚠️  CRITICAL: JWT STILL missing email_confirmed_at after refresh!'
+          )
+          console.error(
+            '[Auth Setup] This indicates a deeper issue with Supabase Auth configuration.'
+          )
+          throw new Error('JWT missing email_confirmed_at even after session refresh')
         } else {
-          console.log('[Auth Setup] ✅ JWT contains email_confirmed_at')
+          console.log(
+            '[Auth Setup] ✅ JWT now contains email_confirmed_at - middleware will allow access'
+          )
         }
       }
     } else {
-      console.warn('[Auth Setup] ⚠️  No auth cookie found!')
+      console.warn('[Auth Setup] ⚠️  No auth cookie found after refresh!')
+      throw new Error('No auth cookie found after session refresh')
     }
   } catch (e) {
     console.error('[Auth Setup] ❌ Failed to parse JWT:', e instanceof Error ? e.message : e)
+    throw e
   }
 
-  // Check if we successfully authenticated by trying to access dashboard
-  // If login failed, we'd still be on /login or see an error
-  const currentUrl = page.url()
-
-  // If we're still on login page after clicking submit, auth failed
-  if (currentUrl.includes('/login')) {
-    console.error('[Auth Setup] ❌ Still on login page - authentication may have failed')
-    // Try to check for error messages
-    const errorMsg = await page.textContent('[role="alert"]').catch(() => null)
-    if (errorMsg) {
-      console.error('[Auth Setup] Error message:', errorMsg)
-    }
-    throw new Error('Authentication failed - still on login page')
-  }
-
-  // If we're redirected to /confirm-email, the email isn't confirmed
-  // This means the Admin API wasn't able to confirm it (or wasn't available)
-  if (currentUrl.includes('/confirm-email')) {
-    console.error('[Auth Setup] ❌ Redirected to /confirm-email - email not confirmed')
-    console.error('[Auth Setup] This means:')
-    console.error('[Auth Setup]   1. SUPABASE_SERVICE_ROLE_KEY is not set or invalid')
-    console.error('[Auth Setup]   2. Test user email was not confirmed by Admin API')
-    console.error('[Auth Setup]   3. Middleware is blocking access to protected routes')
-    console.error('[Auth Setup]')
-    console.error('[Auth Setup] To fix this:')
-    console.error('[Auth Setup]   - Add SUPABASE_SERVICE_ROLE_KEY to GitHub Secrets (for CI)')
-    console.error('[Auth Setup]   - Add SUPABASE_SERVICE_ROLE_KEY to .env.local (for local tests)')
-    console.error('[Auth Setup]   - OR manually confirm the test user email in Supabase dashboard')
-    throw new Error(
-      'Test user email not confirmed - cannot access protected routes. See logs for details.'
-    )
-  }
-
-  console.log('[Auth Setup] ✅ Login successful - JWT already inspected above')
+  console.log('[Auth Setup] ✅ Authentication complete with confirmed email JWT')
 
   // Navigate to dashboard to ensure auth state is fully established
   await page.goto('/dashboard', { waitUntil: 'networkidle', timeout: 30000 })

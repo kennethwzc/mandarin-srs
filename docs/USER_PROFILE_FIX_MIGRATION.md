@@ -7,52 +7,62 @@ This document describes the fix for the critical bug where user profiles were no
 ## What Was Fixed
 
 ### 1. Profile Creation in Auth Callback (Primary Fix)
+
 **File**: `app/api/auth/callback/route.ts`
 
 The callback route now checks if a profile exists after email confirmation and creates one if missing.
 
 **Changes**:
+
 - Extracts user data from auth session
 - Checks if profile exists in database
 - Creates profile automatically if not found
 - Gracefully handles errors (race conditions, etc.)
 
 ### 2. Duplicate Email Validation
+
 **File**: `app/(auth)/signup/page.tsx`
 
 Improved error handling to detect duplicate email errors from Supabase.
 
 **Changes**:
+
 - Checks for "already registered" errors
 - Shows user-friendly message suggesting login
 - Prevents confusion about signup failures
 
 ### 3. Profile Safety Net in Dashboard API
+
 **File**: `app/api/dashboard/stats/route.ts`
 
 Added profile existence check before loading dashboard data.
 
 **Changes**:
+
 - Verifies profile exists before fetching stats
 - Attempts to create profile if missing (safety net)
 - Returns clear error code for client handling
 
 ### 4. User-Friendly Error Handling
+
 **File**: `app/(app)/dashboard/page.tsx`
 
 Enhanced error display for profile-related issues.
 
 **Changes**:
+
 - Detects `PROFILE_NOT_FOUND` error code
 - Shows helpful message with refresh button
 - Provides clear next steps for users
 
 ### 5. Database Trigger (Optional)
+
 **File**: `scripts/create-profile-trigger.sql`
 
 SQL trigger for automatic profile creation at database level.
 
 **Changes**:
+
 - Trigger fires when new user added to `auth.users`
 - Creates profile automatically
 - Provides redundancy for application-level logic
@@ -141,6 +151,7 @@ WHERE p.id IS NULL
 - [ ] Go to `/lessons` - loads without errors
 
 **Verification**:
+
 ```sql
 -- Check that profile was created
 SELECT * FROM public.profiles WHERE email = 'test@example.com';
@@ -161,16 +172,19 @@ SELECT * FROM public.profiles WHERE email = 'test@example.com';
 ### Test 4: Edge Cases
 
 **Scenario A: User signs up but doesn't confirm email**
+
 - [ ] Sign up with new email
 - [ ] Don't click confirmation link
 - [ ] Profile should NOT be created yet (expected behavior)
 
 **Scenario B: User confirms email after delay**
+
 - [ ] Confirm email from Scenario A
 - [ ] Profile created automatically
 - [ ] Login and dashboard work
 
 **Scenario C: Concurrent signups**
+
 - [ ] Two users sign up at same time
 - [ ] Both profiles created successfully
 - [ ] No database conflicts
@@ -180,6 +194,7 @@ SELECT * FROM public.profiles WHERE email = 'test@example.com';
 ### Database Queries
 
 **Check profile creation rate**:
+
 ```sql
 SELECT
   DATE(created_at) as signup_date,
@@ -191,6 +206,7 @@ ORDER BY signup_date DESC;
 ```
 
 **Find users without profiles** (should be 0):
+
 ```sql
 SELECT
   au.id,
@@ -207,17 +223,20 @@ WHERE p.id IS NULL
 Monitor for these log messages:
 
 ✅ **Success**:
+
 ```
 Profile not found for user, creating... [user_id]
 Profile created successfully for user: [user_id]
 ```
 
 ⚠️ **Warnings**:
+
 ```
 Failed to create profile: [error details]
 ```
 
 ❌ **Errors** (should investigate):
+
 ```
 Error creating profile for user [user_id]: [error]
 PROFILE_NOT_FOUND error in dashboard
@@ -228,6 +247,7 @@ PROFILE_NOT_FOUND error in dashboard
 If issues occur after deployment:
 
 ### 1. Rollback Code
+
 ```bash
 # Revert to previous commit
 git revert HEAD
@@ -235,12 +255,14 @@ git push origin main
 ```
 
 ### 2. Remove Trigger (if installed)
+
 ```sql
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 ```
 
 ### 3. Verify Old Behavior
+
 - Test signup flow
 - Check logs for errors
 
@@ -249,6 +271,7 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 ### User Reports: "Can't access dashboard after signup"
 
 **Steps**:
+
 1. Verify user account exists in Supabase Auth
 2. Check if profile exists:
    ```sql
@@ -265,6 +288,7 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 ### User Reports: "Email already registered" but can't log in
 
 **Steps**:
+
 1. Check if email is confirmed:
    ```sql
    SELECT email, email_confirmed_at
@@ -277,11 +301,13 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 ## Performance Impact
 
 **Profile Creation**:
+
 - Adds ~50-100ms to callback route
 - Minimal impact (only on signup/confirmation)
 - Database trigger is instantaneous
 
 **Dashboard Loading**:
+
 - Profile check adds ~10-20ms
 - Only runs once per session (cached)
 - Safety net rarely triggered
@@ -311,4 +337,3 @@ Contact: kenneth@example.com (replace with actual support contact)
 **Last Updated**: December 17, 2025
 **Version**: 1.0
 **Status**: Ready for Production
-

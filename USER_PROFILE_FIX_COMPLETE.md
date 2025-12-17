@@ -9,6 +9,7 @@
 ## 🐛 Problem Summary
 
 Users who signed up and confirmed their email could not access the dashboard or lessons pages. They saw errors:
+
 - "Failed to load dashboard data"
 - "Tenant or user not found"
 
@@ -23,11 +24,13 @@ Users who signed up and confirmed their email could not access the dashboard or 
 **File**: `app/api/auth/callback/route.ts`
 
 After email confirmation, the callback now:
+
 - Checks if profile exists
 - Creates profile if missing
 - Handles errors gracefully
 
 **Why This Works**:
+
 - All signup flows (email, OAuth) go through callback
 - Idempotent (safe to run multiple times)
 - Centralized solution
@@ -39,6 +42,7 @@ After email confirmation, the callback now:
 **File**: `app/(auth)/signup/page.tsx`
 
 Improved error handling for duplicate emails:
+
 - Detects "already registered" errors
 - Shows user-friendly message
 - Suggests login or password reset
@@ -50,11 +54,13 @@ Improved error handling for duplicate emails:
 **File**: `app/api/dashboard/stats/route.ts`
 
 Added redundant profile check:
+
 - Verifies profile exists before loading data
 - Attempts to create if missing
 - Returns clear error code for frontend
 
 **Why This Helps**:
+
 - Catches edge cases
 - Provides second layer of protection
 - Prevents cascading failures
@@ -66,6 +72,7 @@ Added redundant profile check:
 **File**: `app/(app)/dashboard/page.tsx`
 
 Enhanced error display:
+
 - Shows "Account Setup Incomplete" message
 - Provides refresh button
 - Clear guidance for users
@@ -77,6 +84,7 @@ Enhanced error display:
 **File**: `scripts/create-profile-trigger.sql`
 
 SQL trigger for automatic profile creation:
+
 - Fires when user added to `auth.users`
 - Database-level guarantee
 - Provides triple redundancy
@@ -85,20 +93,20 @@ SQL trigger for automatic profile creation:
 
 ## 📁 Files Modified
 
-| File | Changes | Lines |
-|------|---------|-------|
-| `app/api/auth/callback/route.ts` | Added profile creation logic | ~20 lines added |
-| `app/(auth)/signup/page.tsx` | Enhanced error handling | ~10 lines added |
-| `app/api/dashboard/stats/route.ts` | Added profile safety check | ~20 lines added |
-| `app/(app)/dashboard/page.tsx` | Improved error display | ~30 lines added |
+| File                               | Changes                      | Lines           |
+| ---------------------------------- | ---------------------------- | --------------- |
+| `app/api/auth/callback/route.ts`   | Added profile creation logic | ~20 lines added |
+| `app/(auth)/signup/page.tsx`       | Enhanced error handling      | ~10 lines added |
+| `app/api/dashboard/stats/route.ts` | Added profile safety check   | ~20 lines added |
+| `app/(app)/dashboard/page.tsx`     | Improved error display       | ~30 lines added |
 
 ## 📝 New Files Created
 
-| File | Purpose |
-|------|---------|
+| File                                 | Purpose                                    |
+| ------------------------------------ | ------------------------------------------ |
 | `scripts/create-profile-trigger.sql` | Database trigger for auto-profile creation |
-| `docs/USER_PROFILE_FIX_MIGRATION.md` | Comprehensive migration and testing guide |
-| `USER_PROFILE_FIX_COMPLETE.md` | This summary document |
+| `docs/USER_PROFILE_FIX_MIGRATION.md` | Comprehensive migration and testing guide  |
+| `USER_PROFILE_FIX_COMPLETE.md`       | This summary document                      |
 
 ---
 
@@ -114,6 +122,7 @@ git push origin main
 ```
 
 Vercel will automatically deploy. Monitor deployment at:
+
 - https://vercel.com/[your-project]/deployments
 
 ### **Step 2: Install Database Trigger (Recommended)**
@@ -141,6 +150,7 @@ If result > 0, run the backfill script from the migration guide.
 ## ✅ Testing Checklist
 
 ### Test 1: New User Signup ✅
+
 - [ ] Go to `/signup`
 - [ ] Create account with new email
 - [ ] Confirm email via link
@@ -149,15 +159,18 @@ If result > 0, run the backfill script from the migration guide.
 - [ ] Lessons page loads without errors
 
 ### Test 2: Duplicate Email ✅
+
 - [ ] Try signup with existing email
 - [ ] See: "Email already registered"
 - [ ] Message suggests login
 
 ### Test 3: Existing Users ✅
+
 - [ ] Existing users can still login
 - [ ] No regression in functionality
 
 ### Test 4: Profile Verification ✅
+
 ```sql
 -- All confirmed users should have profiles
 SELECT
@@ -167,6 +180,7 @@ FROM auth.users au
 LEFT JOIN public.profiles p ON au.id = p.id
 WHERE au.email_confirmed_at IS NOT NULL;
 ```
+
 Expected: `missing_profiles = 0`
 
 ---
@@ -178,6 +192,7 @@ Expected: `missing_profiles = 0`
 After deployment, look for these log messages in Vercel:
 
 ✅ **Success Logs**:
+
 ```
 Profile not found for user, creating... [user_id]
 Profile created successfully for user: [user_id]
@@ -199,6 +214,7 @@ ORDER BY date DESC;
 ### Method 3: Monitor Error Rate
 
 Dashboard API errors should drop to **zero**:
+
 ```
 Before fix: "PROFILE_NOT_FOUND" errors
 After fix: No profile-related errors
@@ -220,11 +236,11 @@ Even if one layer fails, the others catch it.
 
 ## 📊 Performance Impact
 
-| Operation | Added Latency | Frequency |
-|-----------|--------------|-----------|
-| Email confirmation | ~50-100ms | Once per user signup |
-| Dashboard load | ~10-20ms | Once per session (cached) |
-| Profile creation | ~20-50ms | Only if missing |
+| Operation          | Added Latency | Frequency                 |
+| ------------------ | ------------- | ------------------------- |
+| Email confirmation | ~50-100ms     | Once per user signup      |
+| Dashboard load     | ~10-20ms      | Once per session (cached) |
+| Profile creation   | ~20-50ms      | Only if missing           |
 
 **Verdict**: Negligible impact on user experience.
 
@@ -244,12 +260,12 @@ Even if one layer fails, the others catch it.
 
 Monitor these metrics after deployment:
 
-| Metric | Before Fix | After Fix (Expected) |
-|--------|------------|---------------------|
-| Dashboard load failures | High (100% for new users) | 0% |
-| PROFILE_NOT_FOUND errors | Many | 0 |
-| Signup completion rate | Low (blocked) | High (unblocked) |
-| Support tickets | "Can't access dashboard" | None |
+| Metric                   | Before Fix                | After Fix (Expected) |
+| ------------------------ | ------------------------- | -------------------- |
+| Dashboard load failures  | High (100% for new users) | 0%                   |
+| PROFILE_NOT_FOUND errors | Many                      | 0                    |
+| Signup completion rate   | Low (blocked)             | High (unblocked)     |
+| Support tickets          | "Can't access dashboard"  | None                 |
 
 ---
 
@@ -258,11 +274,13 @@ Monitor these metrics after deployment:
 ### Issue: "Profile not created after signup"
 
 **Check**:
+
 ```sql
 SELECT * FROM public.profiles WHERE email = '[user_email]';
 ```
 
 **Fix**:
+
 ```sql
 -- Get user ID from auth.users
 SELECT id FROM auth.users WHERE email = '[user_email]';
@@ -276,6 +294,7 @@ ON CONFLICT (id) DO NOTHING;
 ### Issue: "Email already registered but can't login"
 
 **Check if email confirmed**:
+
 ```sql
 SELECT email, email_confirmed_at, created_at
 FROM auth.users
@@ -363,6 +382,7 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 ## 📞 Support
 
 For questions or issues:
+
 - Check `docs/USER_PROFILE_FIX_MIGRATION.md`
 - Review application logs in Vercel
 - Check database state in Supabase
@@ -373,4 +393,3 @@ For questions or issues:
 **Status**: ✅ **READY FOR PRODUCTION DEPLOYMENT**
 
 All critical user profile creation issues have been resolved with multiple layers of redundancy. The fix is production-ready and thoroughly documented.
-

@@ -1,6 +1,7 @@
 # 🚀 Quick Deploy Guide - Profile Fix
 
 ## Prerequisites
+
 - [x] All code changes committed
 - [ ] Supabase dashboard access
 - [ ] Vercel deployment access
@@ -18,7 +19,7 @@ git add .
 git commit -m "fix: auto-create user profiles during signup
 
 - Add profile creation in auth callback route
-- Add duplicate email validation in signup page  
+- Add duplicate email validation in signup page
 - Add profile existence check in dashboard API
 - Add user-friendly error handling in dashboard page
 - Add database trigger for redundancy"
@@ -40,9 +41,11 @@ git push origin main
 5. Look for success message
 
 **Verify trigger installed**:
+
 ```sql
 SELECT * FROM pg_trigger WHERE tgname = 'on_auth_user_created';
 ```
+
 Should return 1 row.
 
 ---
@@ -84,6 +87,7 @@ ON CONFLICT (id) DO NOTHING;
 ```
 
 **Verify backfill**:
+
 ```sql
 -- Should return 0
 SELECT COUNT(*) FROM auth.users au
@@ -132,6 +136,7 @@ WHERE au.email = 'test-[timestamp]@example.com';
 ### Vercel Logs
 
 Watch for:
+
 - ✅ "Profile created successfully for user: [id]"
 - ⚠️ "Profile not found for user, creating..."
 - ❌ Any "Failed to create profile" errors
@@ -188,12 +193,12 @@ DROP FUNCTION IF EXISTS public.handle_new_user();
 
 Monitor for 24 hours:
 
-| Metric | Target |
-|--------|--------|
-| New user signups | All complete successfully |
-| Dashboard load errors | 0 |
-| PROFILE_NOT_FOUND errors | 0 |
-| Support tickets | No "can't access dashboard" |
+| Metric                   | Target                      |
+| ------------------------ | --------------------------- |
+| New user signups         | All complete successfully   |
+| Dashboard load errors    | 0                           |
+| PROFILE_NOT_FOUND errors | 0                           |
+| Support tickets          | No "can't access dashboard" |
 
 ---
 
@@ -228,4 +233,3 @@ Monitor for 24 hours:
 **Rollback Time**: < 2 minutes
 
 **Status**: Ready to Deploy ✅
-
