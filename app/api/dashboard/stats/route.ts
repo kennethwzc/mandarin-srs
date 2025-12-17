@@ -79,7 +79,33 @@ export async function GET(_request: NextRequest) {
       }
     }
 
-    // Try to get from cache (5 min TTL)
+    // Get basic stats first to check if user has any data
+    const overallStats = await getDashboardStats(user.id)
+
+    // For new users with no data, return simplified response quickly
+    if (overallStats.totalItemsLearned === 0) {
+      return NextResponse.json({
+        data: {
+          stats: {
+            totalItemsLearned: 0,
+            reviewsDueToday: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            accuracyPercentage: 0,
+            reviewsCompletedToday: 0,
+          },
+          charts: {
+            reviewsOverTime: [],
+            accuracyOverTime: [],
+            activityCalendar: [],
+            upcomingForecast: [],
+          },
+          lessons: [],
+        },
+      })
+    }
+
+    // For users with data, try to get from cache (5 min TTL)
     const cacheKey = `dashboard:stats:${user.id}`
 
     const cachedData = await withCache(
@@ -89,9 +115,8 @@ export async function GET(_request: NextRequest) {
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - 30)
 
-        // Fetch all data in parallel for better performance
-        const [overallStats, dailyStats, lessonProgress] = await Promise.all([
-          getDashboardStats(user.id),
+        // Fetch data in parallel but with reduced date range for activity calendar
+        const [dailyStats, lessonProgress] = await Promise.all([
           getDailyStatsRange(user.id, startDate, endDate),
           getUserLessonProgress(user.id),
         ])
@@ -107,8 +132,9 @@ export async function GET(_request: NextRequest) {
           accuracy: stat.accuracy_percentage,
         }))
 
+        // Reduce activity calendar to 90 days instead of 365 to avoid timeout
         const calendarStartDate = new Date()
-        calendarStartDate.setDate(calendarStartDate.getDate() - 365)
+        calendarStartDate.setDate(calendarStartDate.getDate() - 90)
         const yearlyStats = await getDailyStatsRange(user.id, calendarStartDate, endDate)
         const activityCalendar = yearlyStats.map((stat) => ({
           date: stat.stat_date.toISOString().split('T')[0],

@@ -86,10 +86,42 @@ async function DashboardContent() {
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join('; ')
 
-  const response = await fetch(`${baseUrl}/api/dashboard/stats`, {
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-    cache: 'no-store',
-  })
+  // Add timeout to prevent long waits
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+
+  let response
+  try {
+    response = await fetch(`${baseUrl}/api/dashboard/stats`, {
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      // Timeout occurred - show helpful message
+      return (
+        <div className="space-y-4 py-12 text-center">
+          <h2 className="text-xl font-semibold">Dashboard is Loading...</h2>
+          <p className="text-muted-foreground">
+            This is taking longer than expected. Your account is being set up.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Please refresh the page in a moment, or try the simplified view:
+          </p>
+          <a
+            href="/lessons"
+            className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Go to Lessons
+          </a>
+        </div>
+      )
+    }
+    throw error
+  }
+  clearTimeout(timeoutId)
 
   if (!response.ok) {
     // Try to get error details
