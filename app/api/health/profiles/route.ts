@@ -68,9 +68,7 @@ export async function GET() {
       const confirmedUsers = usersData?.users.filter((u) => u.email_confirmed_at) || []
 
       // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id')
+      const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id')
 
       if (profilesError) {
         throw new Error(`Failed to fetch profiles: ${profilesError.message}`)
@@ -129,4 +127,3 @@ export async function GET() {
     return NextResponse.json(response, { status: 500 })
   }
 }
-

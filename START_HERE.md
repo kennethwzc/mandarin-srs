@@ -5,6 +5,7 @@
 ## 🎯 What Happened?
 
 Production UAT revealed issues with user profile creation:
+
 - Users see no confirmation after email verification
 - Dashboard shows "Internal server error"
 - Lessons page shows "Tenant or user not found"
@@ -12,6 +13,7 @@ Production UAT revealed issues with user profile creation:
 ## ✅ What Was Done?
 
 All code fixes are **complete and ready for deployment**:
+
 - ✅ Created email verification success page
 - ✅ Added health check monitoring endpoint
 - ✅ Updated auth flow with better feedback
@@ -47,12 +49,14 @@ Read the executive summary:
 ## 🔧 TL;DR - The Fix in 4 Steps
 
 ### 1. Install Database Trigger (2 min)
+
 ```sql
 -- Supabase Dashboard → SQL Editor
 -- Copy and run: scripts/create-profile-trigger.sql
 ```
 
 ### 2. Backfill Users (1 min)
+
 ```sql
 -- Run in SQL Editor
 INSERT INTO public.profiles (id, email, username, created_at, updated_at)
@@ -64,6 +68,7 @@ ON CONFLICT (id) DO NOTHING;
 ```
 
 ### 3. Add Service Role Key (2 min)
+
 ```bash
 # Vercel → Settings → Environment Variables
 # Add: SUPABASE_SERVICE_ROLE_KEY
@@ -72,6 +77,7 @@ ON CONFLICT (id) DO NOTHING;
 ```
 
 ### 4. Deploy Code (5 min)
+
 ```bash
 git add .
 git commit -m "fix: add email verification feedback and improve error handling"
@@ -84,19 +90,23 @@ git push origin main
 ## 📊 Files You Need to Know About
 
 ### Quick Reference
+
 - **[START_HERE.md](START_HERE.md)** ← You are here
 - **[docs/PRODUCTION_FIX_CHECKLIST.md](docs/PRODUCTION_FIX_CHECKLIST.md)** ← Use this to fix production
 
 ### SQL Scripts
+
 - **[scripts/create-profile-trigger.sql](scripts/create-profile-trigger.sql)** ← Install this in Supabase
 - **[scripts/profile-fix-queries.sql](scripts/profile-fix-queries.sql)** ← Diagnostic queries
 
 ### Detailed Guides
+
 - **[docs/PRODUCTION_UAT_FIX_GUIDE.md](docs/PRODUCTION_UAT_FIX_GUIDE.md)** ← Investigation guide
 - **[PRODUCTION_UAT_FIX_SUMMARY.md](PRODUCTION_UAT_FIX_SUMMARY.md)** ← What was fixed
 
 ### New Features
-- **[app/(auth)/email-verified/page.tsx](app/(auth)/email-verified/page.tsx)** ← Success page
+
+- **[app/(auth)/email-verified/page.tsx](<app/(auth)/email-verified/page.tsx>)** ← Success page
 - **[app/api/health/profiles/route.ts](app/api/health/profiles/route.ts)** ← Health check
 
 ---
@@ -106,15 +116,18 @@ git push origin main
 After deploying, test these:
 
 ### 1. Health Check
+
 ```bash
 curl https://your-domain.com/api/health/profiles
 # Should return: "status": "healthy"
 ```
 
 ### 2. New User Flow
+
 - Create test account → Verify email → Should see success page → Sign in → Dashboard works
 
 ### 3. Existing User
+
 - Sign in with affected user → Dashboard works → Lessons page works
 
 ---
@@ -141,4 +154,3 @@ curl https://your-domain.com/api/health/profiles
 
 **Estimated Time**: 15 minutes  
 **Next Step**: Open [docs/PRODUCTION_FIX_CHECKLIST.md](docs/PRODUCTION_FIX_CHECKLIST.md)
-

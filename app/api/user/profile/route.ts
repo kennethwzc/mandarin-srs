@@ -37,7 +37,8 @@ export async function PATCH(request: NextRequest) {
     console.error('Error updating profile:', error)
     return NextResponse.json(
       {
-        error: 'Failed to update profile. Please try again or contact support if the issue persists.',
+        error:
+          'Failed to update profile. Please try again or contact support if the issue persists.',
       },
       { status: 500 }
     )

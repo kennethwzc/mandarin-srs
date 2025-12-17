@@ -36,9 +36,7 @@ function EmailVerifiedContent() {
 
     // Auto-redirect after 5 seconds
     const redirectTimer = setTimeout(() => {
-      const loginUrl = hasError
-        ? '/login?error=profile_setup_incomplete'
-        : '/login?verified=true'
+      const loginUrl = hasError ? '/login?error=profile_setup_incomplete' : '/login?verified=true'
       router.push(loginUrl)
     }, 5000)
 
@@ -77,10 +75,7 @@ function EmailVerifiedContent() {
               </p>
               <p className="text-center text-sm text-muted-foreground">
                 Please try signing in. If the issue persists, contact support at{' '}
-                <a
-                  href="mailto:support@mandarinsrs.com"
-                  className="text-primary hover:underline"
-                >
+                <a href="mailto:support@mandarinsrs.com" className="text-primary hover:underline">
                   support@mandarinsrs.com
                 </a>
               </p>
@@ -135,4 +130,3 @@ export default function EmailVerifiedPage() {
     </Suspense>
   )
 }
-

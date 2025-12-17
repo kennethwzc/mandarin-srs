@@ -15,6 +15,7 @@ After deploying to production, UAT revealed the following issues:
 ## 🔍 Root Cause Analysis
 
 The codebase has **triple-redundancy profile creation**:
+
 - **Layer 1**: Database trigger (auto-creates profile when user created)
 - **Layer 2**: Auth callback (creates profile after email verification)
 - **Layer 3**: Dashboard API (creates profile on first access)
@@ -101,7 +102,7 @@ WHERE p.id IS NULL
 ON CONFLICT (id) DO NOTHING;
 
 -- Verify success (should show 0 missing profiles)
-SELECT 
+SELECT
   COUNT(*) FILTER (WHERE p.id IS NULL) as missing_profiles,
   COUNT(*) FILTER (WHERE p.id IS NOT NULL) as profiles_exist
 FROM auth.users au
@@ -129,6 +130,7 @@ DATABASE_URL=[postgres-connection-string]
 **⚠️ IMPORTANT**: After adding `SUPABASE_SERVICE_ROLE_KEY`, you MUST redeploy!
 
 To find the service role key:
+
 1. Supabase Dashboard → Settings → API
 2. Copy `service_role` key (NOT anon key)
 3. Add to Vercel environment variables
@@ -188,10 +190,10 @@ CREATE POLICY "Users can create own profile"
 
 ```sql
 -- Check if trigger exists and is enabled
-SELECT 
+SELECT
   t.tgname AS trigger_name,
   p.proname AS function_name,
-  CASE 
+  CASE
     WHEN t.tgenabled = 'O' THEN '✅ Enabled'
     ELSE '❌ Disabled or Missing'
   END as status
@@ -234,12 +236,14 @@ ORDER BY au.created_at DESC;
 **Location**: Vercel Dashboard → Deployments → [Latest] → Functions
 
 **Search for**:
+
 - `CRITICAL: Failed to create profile`
 - `Profile not found for user`
 - `PROFILE_NOT_FOUND`
 - `profile_creation_failed`
 
 **Common error patterns**:
+
 - `Missing env.SUPABASE_SERVICE_ROLE_KEY` → Add environment variable
 - `new row violates row-level security` → Fix RLS policies (Step 4)
 - `relation does not exist` → Database schema issue
@@ -279,8 +283,8 @@ SELECT
   tc.trigger_exists as trigger_installed,
   policyc.policy_count as rls_policies,
   CASE
-    WHEN uc.total_users = pc.total_profiles 
-      AND tc.trigger_exists = 1 
+    WHEN uc.total_users = pc.total_profiles
+      AND tc.trigger_exists = 1
       AND policyc.policy_count >= 4
     THEN '✅ ALL CHECKS PASSED'
     ELSE '❌ ISSUES DETECTED'
@@ -292,6 +296,7 @@ CROSS JOIN policy_check policyc;
 ```
 
 **Expected output**:
+
 ```
 confirmed_users | total_profiles | trigger_installed | rls_policies | overall_status
 5               | 5              | 1                 | 4            | ✅ ALL CHECKS PASSED
@@ -343,8 +348,8 @@ export default function EmailVerifiedPage() {
           <div className="text-center text-sm text-muted-foreground">
             Redirecting to sign in page in 5 seconds...
           </div>
-          <Button 
-            onClick={() => router.push('/login')} 
+          <Button
+            onClick={() => router.push('/login')}
             className="w-full"
           >
             Sign In Now
@@ -382,12 +387,12 @@ return NextResponse.redirect(successUrl)
 // Handle profile creation failure with verified email
 if (error === 'profile_creation_failed') {
   const wasVerified = searchParams.get('verified')
-  
+
   toast.error('Account Setup Incomplete', {
-    description: wasVerified 
+    description: wasVerified
       ? 'Your email was verified successfully, but we encountered an error setting up your profile. Please contact support at support@example.com'
       : message || 'Unable to set up your account. Please contact support.',
-    duration: 10000
+    duration: 10000,
   })
 }
 
@@ -397,7 +402,7 @@ useEffect(() => {
   if (verified === 'true') {
     toast.success('Email Verified!', {
       description: 'Your email has been verified. Please sign in to continue.',
-      duration: 5000
+      duration: 5000,
     })
   }
 }, [searchParams])
@@ -425,32 +430,33 @@ export async function GET() {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!serviceKey) {
-      return NextResponse.json({
-        status: 'error',
-        message: 'Service role key not configured',
-        checks: {
-          serviceKey: false,
-          trigger: null,
-          usersWithoutProfiles: null
-        }
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          status: 'error',
+          message: 'Service role key not configured',
+          checks: {
+            serviceKey: false,
+            trigger: null,
+            usersWithoutProfiles: null,
+          },
+        },
+        { status: 500 }
+      )
     }
 
     const supabase = createClient(supabaseUrl, serviceKey)
 
     // Check 1: Verify trigger exists
     const { data: triggerData } = await supabase.rpc('check_trigger_status', {
-      trigger_name: 'on_auth_user_created'
+      trigger_name: 'on_auth_user_created',
     })
 
     // Check 2: Count users without profiles
     const { data: users } = await supabase.auth.admin.listUsers()
-    const confirmedUsers = users?.users.filter(u => u.email_confirmed_at) || []
-    
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id')
-    
+    const confirmedUsers = users?.users.filter((u) => u.email_confirmed_at) || []
+
+    const { data: profiles } = await supabase.from('profiles').select('id')
+
     const usersWithoutProfiles = confirmedUsers.length - (profiles?.length || 0)
 
     const isHealthy = usersWithoutProfiles === 0 && !!triggerData
@@ -463,18 +469,22 @@ export async function GET() {
         trigger: !!triggerData,
         confirmedUsers: confirmedUsers.length,
         profilesCount: profiles?.length || 0,
-        usersWithoutProfiles
+        usersWithoutProfiles,
       },
-      message: usersWithoutProfiles > 0 
-        ? `⚠️ ${usersWithoutProfiles} user(s) without profiles` 
-        : '✅ All users have profiles'
+      message:
+        usersWithoutProfiles > 0
+          ? `⚠️ ${usersWithoutProfiles} user(s) without profiles`
+          : '✅ All users have profiles',
     })
   } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    )
   }
 }
 ```
@@ -539,6 +549,7 @@ After applying fixes, verify:
    - Verify all required variables exist
 
 3. **Deploy Code Improvements** (Optional but recommended):
+
    ```bash
    # Apply code improvements from this guide
    git add .
@@ -585,4 +596,3 @@ If issues persist after following this guide:
 **Last Updated**: 2025-12-17  
 **Version**: 1.0  
 **Status**: Active - Production UAT Issues
-

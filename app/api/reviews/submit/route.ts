@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
     console.error('Error submitting review:', error)
     return NextResponse.json(
       {
-        error: 'Failed to submit review. Please try again or contact support if the issue persists.',
+        error:
+          'Failed to submit review. Please try again or contact support if the issue persists.',
       },
       { status: 500 }
     )

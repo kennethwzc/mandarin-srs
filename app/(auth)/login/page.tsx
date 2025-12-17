@@ -54,8 +54,7 @@ function LoginForm() {
     // Error: Email verification failed
     if (error === 'verification_failed') {
       toast.error('Email Verification Failed', {
-        description:
-          message || 'Unable to verify your email. Please try clicking the link again.',
+        description: message || 'Unable to verify your email. Please try clicking the link again.',
         duration: 8000,
       })
     }

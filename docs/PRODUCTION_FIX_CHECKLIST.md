@@ -18,6 +18,7 @@ Before starting, gather this information:
 ## ⚡ STEP 1: Install Database Trigger (5 min)
 
 ### Action
+
 Install the database trigger that auto-creates profiles for new users.
 
 ### Steps
@@ -35,10 +36,11 @@ Install the database trigger that auto-creates profiles for new users.
 
 3. **Verify Installation**
    - Paste and run this query:
+
    ```sql
-   SELECT 
+   SELECT
      t.tgname AS trigger_name,
-     CASE 
+     CASE
        WHEN t.tgenabled = 'O' THEN '✅ Enabled'
        ELSE '❌ Disabled'
      END as status
@@ -49,10 +51,12 @@ Install the database trigger that auto-creates profiles for new users.
      AND n.nspname = 'auth'
      AND t.tgname = 'on_auth_user_created';
    ```
+
    - **Expected**: 1 row with status "✅ Enabled"
    - **If no rows**: Trigger installation failed, re-run step 2
 
 ### Checkpoint
+
 - [ ] Trigger exists and is enabled
 
 ---
@@ -60,22 +64,26 @@ Install the database trigger that auto-creates profiles for new users.
 ## 💾 STEP 2: Backfill Affected Users (2 min)
 
 ### Action
+
 Create profiles for all existing users who don't have one.
 
 ### Steps
 
 1. **Check How Many Users Need Backfill**
+
    ```sql
-   SELECT 
+   SELECT
      COUNT(*) FILTER (WHERE p.id IS NULL) as missing_profiles,
      COUNT(*) FILTER (WHERE p.id IS NOT NULL) as have_profiles
    FROM auth.users au
    LEFT JOIN public.profiles p ON au.id = p.id
    WHERE au.email_confirmed_at IS NOT NULL;
    ```
+
    - Note the `missing_profiles` count: `____`
 
 2. **Run Backfill Script**
+
    ```sql
    INSERT INTO public.profiles (id, email, username, created_at, updated_at)
    SELECT
@@ -96,6 +104,7 @@ Create profiles for all existing users who don't have one.
    - **Expected**: `missing_profiles = 0`
 
 ### Checkpoint
+
 - [ ] All confirmed users now have profiles
 - [ ] `missing_profiles` count is 0
 
@@ -104,46 +113,50 @@ Create profiles for all existing users who don't have one.
 ## 🔐 STEP 3: Verify RLS Policies (3 min)
 
 ### Action
+
 Ensure Row Level Security policies allow profile creation.
 
 ### Steps
 
 1. **Check Existing Policies**
+
    ```sql
-   SELECT 
+   SELECT
      policyname,
      cmd
    FROM pg_policies
    WHERE tablename = 'profiles'
    ORDER BY policyname;
    ```
+
    - Count how many policies exist: `____`
    - **Expected**: At least 4 policies
 
 2. **Install Missing Policies** (if less than 4)
+
    ```sql
    -- Enable RLS
    ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-   
+
    -- Policy 1: Users can view own profile
    DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
    CREATE POLICY "Users can view own profile"
      ON public.profiles FOR SELECT
      USING (auth.uid() = id);
-   
+
    -- Policy 2: Users can update own profile
    DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
    CREATE POLICY "Users can update own profile"
      ON public.profiles FOR UPDATE
      USING (auth.uid() = id)
      WITH CHECK (auth.uid() = id);
-   
+
    -- Policy 3: Service role can insert profiles
    DROP POLICY IF EXISTS "Service role can insert profiles" ON public.profiles;
    CREATE POLICY "Service role can insert profiles"
      ON public.profiles FOR INSERT
      WITH CHECK (true);
-   
+
    -- Policy 4: Users can create own profile
    DROP POLICY IF EXISTS "Users can create own profile" ON public.profiles;
    CREATE POLICY "Users can create own profile"
@@ -156,6 +169,7 @@ Ensure Row Level Security policies allow profile creation.
    - **Expected**: 4 or more policies
 
 ### Checkpoint
+
 - [ ] RLS is enabled on profiles table
 - [ ] At least 4 policies exist
 
@@ -164,6 +178,7 @@ Ensure Row Level Security policies allow profile creation.
 ## 🔑 STEP 4: Configure Environment Variables (3 min)
 
 ### Action
+
 Ensure all required environment variables are set in production.
 
 ### Steps
@@ -190,6 +205,7 @@ Ensure all required environment variables are set in production.
    - **⚠️ IMPORTANT**: Click **Redeploy** after adding!
 
 ### Checkpoint
+
 - [ ] All 5 required environment variables are set
 - [ ] Service role key is present
 - [ ] Application redeployed (if env vars changed)
@@ -218,10 +234,12 @@ Ensure all required environment variables are set in production.
 
 4. **Check Profile Created**
    - In Supabase SQL Editor, run:
+
    ```sql
-   SELECT * FROM public.profiles 
+   SELECT * FROM public.profiles
    WHERE email = 'test+[your-timestamp]@example.com';
    ```
+
    - **Expected**: Profile exists
 
 ### Test 2: Existing Affected User
@@ -241,6 +259,7 @@ Ensure all required environment variables are set in production.
 ### Test 3: Health Check Endpoint
 
 1. **Call Health Endpoint**
+
    ```bash
    curl https://[your-domain.com]/api/health/profiles
    ```
@@ -260,6 +279,7 @@ Ensure all required environment variables are set in production.
    ```
 
 ### Checkpoint
+
 - [ ] New user can register, verify email, and sign in
 - [ ] Email verification shows success page
 - [ ] Dashboard loads without errors
@@ -305,8 +325,8 @@ SELECT
   tc.trigger_exists as trigger_installed,
   policyc.policy_count as rls_policies,
   CASE
-    WHEN uc.total_users = pc.total_profiles 
-      AND tc.trigger_exists = 1 
+    WHEN uc.total_users = pc.total_profiles
+      AND tc.trigger_exists = 1
       AND policyc.policy_count >= 4
     THEN '✅ ALL CHECKS PASSED'
     ELSE '❌ ISSUES DETECTED'
@@ -319,8 +339,8 @@ CROSS JOIN policy_check policyc;
 
 ### Expected Output
 
-| confirmed_users | total_profiles | trigger_installed | rls_policies | overall_status |
-|-----------------|----------------|-------------------|--------------|----------------|
+| confirmed_users | total_profiles | trigger_installed | rls_policies | overall_status       |
+| --------------- | -------------- | ----------------- | ------------ | -------------------- |
 | 5               | 5              | 1                 | 4            | ✅ ALL CHECKS PASSED |
 
 ### Final Checklist
@@ -345,7 +365,7 @@ Your production environment is fully fixed when:
 ✅ Existing users can sign in and access dashboard  
 ✅ Lessons page loads without "Tenant or user not found" error  
 ✅ Health check endpoint returns "healthy" status  
-✅ Comprehensive system check passes all criteria  
+✅ Comprehensive system check passes all criteria
 
 ---
 
@@ -356,6 +376,7 @@ Your production environment is fully fixed when:
 **Symptoms**: Query returns no rows when checking trigger status
 
 **Solutions**:
+
 1. Ensure you copied the ENTIRE SQL file (including comments)
 2. Check for syntax errors in SQL editor
 3. Verify you have admin permissions in Supabase
@@ -366,6 +387,7 @@ Your production environment is fully fixed when:
 **Symptoms**: `missing_profiles` count not decreasing
 
 **Solutions**:
+
 1. Check if RLS policies are blocking INSERT
 2. Verify users have `email_confirmed_at` set
 3. Check for database errors in Supabase logs
@@ -376,6 +398,7 @@ Your production environment is fully fixed when:
 **Symptoms**: "Service role key not configured" error
 
 **Solutions**:
+
 1. Verify you copied the `service_role` key (not `anon` key)
 2. Ensure key has no extra spaces or newlines
 3. Check environment variable name is exactly `SUPABASE_SERVICE_ROLE_KEY`
@@ -387,6 +410,7 @@ Your production environment is fully fixed when:
 **Symptoms**: Dashboard shows errors even after fixes
 
 **Solutions**:
+
 1. Check server logs for specific error messages
 2. Verify affected user has profile in database
 3. Clear browser cache and cookies
@@ -423,4 +447,3 @@ If you're still experiencing issues after following this checklist:
 
 **Last Updated**: 2025-12-17  
 **Version**: 1.0
-

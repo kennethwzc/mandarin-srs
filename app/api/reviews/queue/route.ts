@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching review queue:', error)
     return NextResponse.json(
       {
-        error: 'Failed to load review items. Please refresh the page or contact support if the issue persists.',
+        error:
+          'Failed to load review items. Please refresh the page or contact support if the issue persists.',
       },
       { status: 500 }
     )

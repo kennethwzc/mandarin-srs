@@ -153,7 +153,8 @@ export async function GET(_request: NextRequest) {
     console.error('Error fetching dashboard stats:', error)
     return NextResponse.json(
       {
-        error: 'Failed to load dashboard data. Please refresh the page or contact support if the issue persists.',
+        error:
+          'Failed to load dashboard data. Please refresh the page or contact support if the issue persists.',
       },
       { status: 500 }
     )
