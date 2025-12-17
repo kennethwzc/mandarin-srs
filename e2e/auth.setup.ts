@@ -1,4 +1,5 @@
 import { test as setup } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * Authentication setup for E2E tests
@@ -12,6 +13,66 @@ setup('authenticate', async ({ page }) => {
   // Set timeout to 45 seconds for auth setup
   // This accounts for login, session verification, and dashboard loading
   setup.setTimeout(45000)
+
+  const email = process.env.TEST_USER_EMAIL || 'test@example.com'
+  const password = process.env.TEST_USER_PASSWORD || 'testpassword123'
+
+  console.log('[Auth Setup] Using email:', email)
+
+  // ✅ NEW: Ensure test user email is confirmed using Admin API
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      )
+
+      // Get user by email
+      const {
+        data: { users },
+        error: listError,
+      } = await supabase.auth.admin.listUsers()
+
+      if (listError) {
+        console.error('[Auth Setup] Error listing users:', listError)
+      } else {
+        const testUser = users.find((u) => u.email === email)
+
+        if (testUser) {
+          console.log('[Auth Setup] Found test user, checking email confirmation...')
+
+          // Check if email is already confirmed
+          if (!testUser.email_confirmed_at) {
+            console.log('[Auth Setup] Email not confirmed, confirming now...')
+
+            // Update user to mark email as confirmed
+            const { error: updateError } = await supabase.auth.admin.updateUserById(testUser.id, {
+              email_confirm: true,
+            })
+
+            if (updateError) {
+              console.error('[Auth Setup] Error confirming email:', updateError)
+            } else {
+              console.log('[Auth Setup] Email confirmed successfully')
+            }
+          } else {
+            console.log('[Auth Setup] Email already confirmed')
+          }
+        } else {
+          console.log('[Auth Setup] Test user not found, will be created on first signup')
+        }
+      }
+    } catch (e) {
+      console.error('[Auth Setup] Error during email confirmation:', e)
+      // Continue anyway - tests will create user if needed
+    }
+  }
 
   // Navigate to login
   await page.goto('/login')
@@ -53,11 +114,6 @@ setup('authenticate', async ({ page }) => {
   )
 
   // Fill in test credentials
-  const email = process.env.TEST_USER_EMAIL || 'test@example.com'
-  const password = process.env.TEST_USER_PASSWORD || 'testpassword123'
-
-  console.log('[Auth Setup] Using email:', email)
-
   await page.fill('#email', email)
   await page.fill('#password', password)
 

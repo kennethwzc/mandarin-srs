@@ -24,7 +24,7 @@ const customJestConfig = {
     '!**/e2e/**',
     '!**/__tests__/**',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,
