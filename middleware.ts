@@ -63,6 +63,7 @@ export async function middleware(request: NextRequest) {
     '/signup',
     '/auth',
     '/confirm-email',
+    '/email-verified', // Allow users to see verification success page
     '/',
     '/privacy',
     '/terms',
