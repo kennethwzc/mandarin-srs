@@ -11,9 +11,22 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: '2rem',
+      // Responsive padding: smaller on mobile for more content space
+      padding: {
+        DEFAULT: '1rem', // 16px on mobile
+        sm: '1.5rem', // 24px on small tablets
+        md: '2rem', // 32px on tablets+
+        lg: '2rem',
+        xl: '2rem',
+        '2xl': '2rem',
+      },
+      // Explicit breakpoints for documentation and consistency
       screens: {
-        '2xl': '1400px',
+        sm: '640px', // Mobile landscape / small tablets
+        md: '768px', // Tablets
+        lg: '1024px', // Laptops
+        xl: '1280px', // Desktops
+        '2xl': '1400px', // Large screens (custom)
       },
     },
     extend: {
@@ -123,8 +136,10 @@ const config: Config = {
         'pulse-incorrect': 'pulse-incorrect 0.5s ease-in-out',
       },
       fontSize: {
+        // Character display sizes - responsive from very small phones to desktop
         character: ['6rem', { lineHeight: '1', fontWeight: '400' }],
         'character-sm': ['4rem', { lineHeight: '1', fontWeight: '400' }],
+        'character-xs': ['3rem', { lineHeight: '1', fontWeight: '400' }], // For very small phones (<375px)
       },
     },
   },

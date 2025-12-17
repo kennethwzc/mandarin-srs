@@ -128,16 +128,19 @@ export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-muted-foreground">How well did you know this?</p>
+      <p className="text-center text-xs text-muted-foreground sm:text-sm">
+        How well did you know this?
+      </p>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {/* Responsive grid: 1 col on very small, 2 cols on small, 4 cols on tablet+ */}
+      <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:gap-3 md:grid-cols-4">
         {GRADE_INFO.map(({ grade, label, shortcut, color, description }) => (
           <button
             key={grade}
             onClick={() => handleGrade(grade)}
             disabled={disabled}
             className={cn(
-              'relative rounded-lg p-4',
+              'relative min-h-[56px] rounded-lg p-3 sm:min-h-[48px] sm:p-4',
               'font-medium text-white',
               'transition-all duration-200',
               'hover:scale-105 active:scale-95',
@@ -147,16 +150,16 @@ export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
             )}
             aria-label={`Grade as ${label}: ${description}`}
           >
-            <div className="text-lg">{label}</div>
-            <div className="mt-1 text-xs opacity-80">{description}</div>
+            <div className="text-base sm:text-lg">{label}</div>
+            <div className="mt-0.5 text-xs opacity-80 sm:mt-1">{description}</div>
 
-            {/* Keyboard shortcut hint */}
+            {/* Keyboard shortcut hint - hidden on mobile */}
             <span
               className={cn(
                 'keyboard-hint absolute -right-2 -top-2',
                 'h-5 w-5 rounded-full',
                 'border border-white/30 bg-white/20',
-                'flex items-center justify-center text-xs',
+                'hidden items-center justify-center text-xs sm:flex',
                 'font-mono'
               )}
             >
@@ -166,7 +169,9 @@ export function GradeButtons({ onGrade, disabled = false }: GradeButtonsProps) {
         ))}
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">Press 1-4 to grade quickly</p>
+      <p className="hidden text-center text-xs text-muted-foreground sm:block">
+        Press 1-4 to grade quickly
+      </p>
     </div>
   )
 }

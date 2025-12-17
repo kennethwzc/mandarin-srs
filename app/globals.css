@@ -121,34 +121,48 @@
     transform: rotateY(180deg);
   }
 
-  /* Pinyin input styling */
-  .pinyin-input {
-    @apply text-center font-mono text-2xl tracking-wide;
-    min-height: 3rem;
-  }
-
   .pinyin-input::placeholder {
     @apply text-muted-foreground/50;
-  }
-
-  /* Tone selector buttons */
-  .tone-button {
-    @apply flex h-12 w-12 items-center justify-center rounded-lg border-2 transition-all hover:scale-110 active:scale-95;
   }
 
   .tone-button.active {
     @apply scale-110 border-primary bg-primary/10;
   }
 
-  /* Character display */
+  /* Character display - responsive sizing for all screen sizes */
   .character-display {
-    @apply chinese-display select-none text-character;
+    @apply chinese-display select-none text-character-xs;
   }
 
-  @media (max-width: 640px) {
+  /* Medium phones (400px+) */
+  @media (min-width: 400px) {
     .character-display {
       @apply text-character-sm;
     }
+  }
+
+  /* Tablets and desktops (768px+) */
+  @media (min-width: 768px) {
+    .character-display {
+      @apply text-character;
+    }
+  }
+
+  /* Pinyin input - responsive sizing */
+  .pinyin-input {
+    @apply text-center font-mono text-xl tracking-wide sm:text-2xl;
+    min-height: 2.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .pinyin-input {
+      min-height: 3rem;
+    }
+  }
+
+  /* Tone buttons - smaller on mobile for better fit */
+  .tone-button {
+    @apply flex h-10 w-10 items-center justify-center rounded-lg border-2 text-sm transition-all hover:scale-110 active:scale-95 sm:h-12 sm:w-12 sm:text-base;
   }
 }
 

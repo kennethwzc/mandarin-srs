@@ -75,10 +75,11 @@ export function ToneSelector({
   showLabels = true,
 }: ToneSelectorProps) {
   return (
-    <div className="space-y-3">
-      <p className="text-center text-sm text-muted-foreground">Select tone:</p>
+    <div className="space-y-2 sm:space-y-3">
+      <p className="text-center text-xs text-muted-foreground sm:text-sm">Select tone:</p>
 
-      <div className="flex flex-wrap justify-center gap-2">
+      {/* Responsive grid: wraps naturally on mobile, stays in row on larger screens */}
+      <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
         {TONE_INFO.map(({ tone, label, name, example, bgColor, borderColor, description }) => {
           const isSelected = selectedTone === tone
 
@@ -90,12 +91,13 @@ export function ToneSelector({
               className={cn(
                 'tone-button relative',
                 'flex flex-col items-center justify-center',
-                'min-w-[5rem] p-4',
+                // Responsive sizing: smaller on mobile
+                'min-w-[3.5rem] p-2 sm:min-w-[4rem] sm:p-3 md:min-w-[5rem] md:p-4',
                 'rounded-lg border-2',
                 'transition-all duration-200',
                 'hover:scale-105 active:scale-95',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                isSelected && cn('scale-110 shadow-lg', borderColor, bgColor),
+                isSelected && cn('scale-105 shadow-lg sm:scale-110', borderColor, bgColor),
                 !isSelected && 'border-muted hover:border-muted-foreground',
                 disabled && 'cursor-not-allowed opacity-50 hover:scale-100'
               )}
@@ -103,30 +105,34 @@ export function ToneSelector({
             >
               {/* Selected indicator */}
               {isSelected && (
-                <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                  <Check className="h-4 w-4 text-primary-foreground" />
+                <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary sm:-right-2 sm:-top-2 sm:h-6 sm:w-6">
+                  <Check className="h-3 w-3 text-primary-foreground sm:h-4 sm:w-4" />
                 </div>
               )}
 
-              {/* Example character with tone */}
-              <span className="pinyin-text mb-1 text-4xl font-bold">{example}</span>
+              {/* Example character with tone - responsive size */}
+              <span className="pinyin-text mb-0.5 text-2xl font-bold sm:mb-1 sm:text-3xl md:text-4xl">
+                {example}
+              </span>
 
-              {/* Tone labels */}
+              {/* Tone labels - hidden on very small screens */}
               {showLabels && (
-                <div className="space-y-0.5 text-center">
-                  <div className="text-xs font-medium">{label}</div>
-                  <div className="text-[10px] text-muted-foreground">{name}</div>
+                <div className="hidden space-y-0.5 text-center min-[400px]:block">
+                  <div className="text-[10px] font-medium sm:text-xs">{label}</div>
+                  <div className="hidden text-[9px] text-muted-foreground sm:block sm:text-[10px]">
+                    {name}
+                  </div>
                 </div>
               )}
 
-              {/* Keyboard hint */}
+              {/* Keyboard hint - hidden on mobile */}
               <div
                 className={cn(
-                  'keyboard-hint absolute -left-2 -top-2',
-                  'h-5 w-5 rounded-full',
+                  'keyboard-hint absolute -left-1.5 -top-1.5 sm:-left-2 sm:-top-2',
+                  'hidden h-4 w-4 rounded-full sm:flex sm:h-5 sm:w-5',
                   'border border-muted bg-background',
-                  'flex items-center justify-center',
-                  'text-[10px] font-medium',
+                  'items-center justify-center',
+                  'text-[9px] font-medium sm:text-[10px]',
                   isSelected && 'border-primary bg-primary text-primary-foreground'
                 )}
               >
@@ -137,10 +143,17 @@ export function ToneSelector({
         })}
       </div>
 
-      <div className="space-y-1 text-center">
-        <p className="text-xs text-muted-foreground">Click a tone or press the number key (1-5)</p>
+      <div className="space-y-0.5 text-center sm:space-y-1">
+        <p className="hidden text-xs text-muted-foreground sm:block">
+          Click a tone or press the number key (1-5)
+        </p>
+        <p className="text-[10px] text-muted-foreground sm:hidden">
+          Tap a tone or type: ni3 + Space
+        </p>
         {showLabels && (
-          <p className="text-[10px] text-muted-foreground">You can also type: ni3 → Space → nǐ</p>
+          <p className="hidden text-[10px] text-muted-foreground sm:block">
+            You can also type: ni3 → Space → nǐ
+          </p>
         )}
       </div>
     </div>

@@ -172,11 +172,13 @@ async function DashboardContent() {
   const { data } = await response.json()
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Track your Mandarin learning progress</p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Track your Mandarin learning progress
+          </p>
         </div>
         {data.stats.reviewsDueToday > 0 && (
           <StartReviewsButton reviewsCount={data.stats.reviewsDueToday} />
@@ -205,7 +207,7 @@ async function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-4 sm:py-6 md:py-8">
       <VerificationSuccess />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />

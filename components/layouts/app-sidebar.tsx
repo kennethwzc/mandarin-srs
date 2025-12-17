@@ -18,7 +18,8 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-background">
+    // Hidden on mobile (< md breakpoint), visible on tablet+ with flex layout
+    <div className="hidden h-full w-64 flex-col border-r bg-background md:flex">
       <div className="flex h-16 items-center border-b px-6">
         <div className="text-xl font-bold">Mandarin SRS</div>
       </div>

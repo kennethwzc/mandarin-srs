@@ -154,7 +154,7 @@ export const ReviewCard = memo(function ReviewCard({
         isAnswerSubmitted && 'shadow-lg'
       )}
     >
-      <CardContent className="space-y-6 p-8">
+      <CardContent className="space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8">
         {/* Character Display */}
         <CharacterDisplay
           character={character}
@@ -187,7 +187,7 @@ export const ReviewCard = memo(function ReviewCard({
                 onClick={handleSubmitAnswer}
                 disabled={!userInput.trim()}
                 className={cn(
-                  'rounded-lg px-8 py-3 font-medium',
+                  'min-h-[48px] w-full rounded-lg px-6 py-3 font-medium sm:w-auto sm:px-8',
                   'bg-primary text-primary-foreground',
                   'transition-colors hover:bg-primary/90',
                   'disabled:cursor-not-allowed disabled:opacity-50',
@@ -195,7 +195,7 @@ export const ReviewCard = memo(function ReviewCard({
                 )}
               >
                 Check Answer
-                <span className="ml-2 text-sm opacity-70">(Enter)</span>
+                <span className="ml-2 text-sm opacity-70 max-sm:hidden">(Enter)</span>
               </button>
             </div>
           </div>

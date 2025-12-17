@@ -252,37 +252,43 @@ export function ReviewSession() {
     const hasCompletedReviews = totalReviewed > 0
 
     return (
-      <div className="mx-auto max-w-2xl space-y-6 p-8 text-center">
-        <div className="mb-4 text-6xl">{hasCompletedReviews ? '🎉' : '📚'}</div>
-        <h1 className="text-3xl font-bold">
+      <div className="mx-auto max-w-2xl space-y-6 p-4 text-center sm:p-8">
+        <div className="mb-4 text-5xl sm:text-6xl">{hasCompletedReviews ? '🎉' : '📚'}</div>
+        <h1 className="text-2xl font-bold sm:text-3xl">
           {hasCompletedReviews ? 'Session Complete!' : 'No Reviews Due'}
         </h1>
 
         {hasCompletedReviews ? (
           <>
-            <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
+            <div className="mx-auto grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               <div className="rounded-lg bg-muted p-4">
-                <div className="text-3xl font-bold text-primary">{totalReviewed}</div>
+                <div className="text-2xl font-bold text-primary sm:text-3xl">{totalReviewed}</div>
                 <div className="text-sm text-muted-foreground">Reviews</div>
               </div>
               <div className="rounded-lg bg-muted p-4">
-                <div className="text-3xl font-bold text-green-600">{accuracy}%</div>
+                <div className="text-2xl font-bold text-green-600 sm:text-3xl">{accuracy}%</div>
                 <div className="text-sm text-muted-foreground">Accuracy</div>
               </div>
             </div>
-            <p className="text-muted-foreground">
+            <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
               Great work! Come back later for more reviews, or start a new lesson.
             </p>
           </>
         ) : (
-          <p className="text-muted-foreground">
+          <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
             You&apos;re all caught up! Start a new lesson to learn more items.
           </p>
         )}
 
-        <div className="flex justify-center gap-4">
-          <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
-          <Button variant="outline" onClick={() => router.push('/lessons')}>
+        <div className="flex flex-col justify-center gap-3 px-4 sm:flex-row sm:gap-4 sm:px-0">
+          <Button onClick={() => router.push('/dashboard')} className="w-full sm:w-auto">
+            Back to Dashboard
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/lessons')}
+            className="w-full sm:w-auto"
+          >
             Browse Lessons
           </Button>
         </div>
@@ -305,10 +311,10 @@ export function ReviewSession() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Progress bar */}
-      <div className="mx-auto max-w-2xl space-y-2">
-        <div className="flex justify-between text-sm text-muted-foreground">
+      <div className="mx-auto w-full max-w-2xl space-y-2 px-4 sm:px-0">
+        <div className="flex justify-between text-xs text-muted-foreground sm:text-sm">
           <span>Progress</span>
           <span>
             {currentIndex + 1} / {queue.length}
@@ -322,18 +328,20 @@ export function ReviewSession() {
       </div>
 
       {/* Review card */}
-      <ReviewCard
-        key={currentItem.id} // Force remount on each item change
-        character={currentItem.character}
-        meaning={currentItem.meaning}
-        correctPinyin={currentItem.correctPinyin}
-        itemType={currentItem.itemType}
-        onSubmit={handleSubmitReview}
-        onSkip={handleSkip}
-      />
+      <div className="px-4 sm:px-0">
+        <ReviewCard
+          key={currentItem.id} // Force remount on each item change
+          character={currentItem.character}
+          meaning={currentItem.meaning}
+          correctPinyin={currentItem.correctPinyin}
+          itemType={currentItem.itemType}
+          onSubmit={handleSubmitReview}
+          onSkip={handleSkip}
+        />
+      </div>
 
       {/* Session stats */}
-      <div className="mx-auto flex max-w-2xl justify-center gap-4 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2 px-4 text-xs text-muted-foreground sm:gap-4 sm:px-0 sm:text-sm">
         <span>✓ {correctCount} correct</span>
         <span>• {totalReviewed} total</span>
         {totalReviewed > 0 && (

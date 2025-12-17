@@ -138,9 +138,9 @@ export default async function LessonsPage() {
 
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-bold">Lessons</h1>
-          <p className="text-lg text-muted-foreground">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
+          <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
             Learn new characters and vocabulary through structured lessons
           </p>
         </div>
@@ -169,7 +169,7 @@ export default async function LessonsPage() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
           {lessonsWithProgress.map((lesson) => (
             <LessonCard key={lesson.id} lesson={lesson} />
           ))}

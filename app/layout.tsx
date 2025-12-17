@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 
 import { Toaster } from '@/components/ui/toaster'
@@ -14,6 +14,24 @@ import './globals.css'
 export { reportWebVitals } from '@/lib/monitoring/performance'
 
 const inter = Inter({ subsets: ['latin'] })
+
+/**
+ * Viewport configuration for mobile responsiveness
+ * - width: device-width ensures proper scaling on mobile devices
+ * - initialScale: 1 starts at 100% zoom
+ * - maximumScale: 5 allows users to zoom up to 5x (accessibility)
+ * - userScalable: true allows pinch-to-zoom (WCAG requirement)
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
+}
 
 export const metadata: Metadata = {
   title: {
