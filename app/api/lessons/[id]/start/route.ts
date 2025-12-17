@@ -148,7 +148,10 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     console.error('[StartLesson] Internal error', {
       error,
     })
-    const message = error instanceof Error ? error.message : 'Internal server error'
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Failed to start lesson. Please try again or contact support if the issue persists.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -29,26 +29,43 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Check for error query param
+  // Check for error and success query params
   useEffect(() => {
     const error = searchParams.get('error')
     const message = searchParams.get('message')
+    const verified = searchParams.get('verified')
 
+    // Show success message for newly verified users
+    if (verified === 'true') {
+      toast.success('Email Verified!', {
+        description: 'Your email has been verified successfully. Please sign in to continue.',
+        duration: 6000,
+      })
+    }
+
+    // Error: Invalid verification code
     if (error === 'invalid_code') {
-      toast.error('Invalid verification code', {
-        description: 'Please try signing in again.',
+      toast.error('Invalid Verification Code', {
+        description: 'The verification link is invalid or expired. Please try signing in again.',
+        duration: 8000,
       })
     }
 
+    // Error: Email verification failed
     if (error === 'verification_failed') {
-      toast.error('Email verification failed', {
-        description: message || 'Please try clicking the link again.',
+      toast.error('Email Verification Failed', {
+        description:
+          message || 'Unable to verify your email. Please try clicking the link again.',
+        duration: 8000,
       })
     }
 
-    if (error === 'profile_creation_failed') {
-      toast.error('Account setup failed', {
-        description: message || 'Unable to set up your account. Please contact support.',
+    // Error: Profile creation failed (after successful verification)
+    if (error === 'profile_creation_failed' || error === 'profile_setup_incomplete') {
+      toast.error('Account Setup Incomplete', {
+        description:
+          'Your email was verified, but we encountered an error setting up your profile. Please try signing in. If this issue persists, contact support at support@mandarinsrs.com',
+        duration: 12000,
       })
     }
   }, [searchParams])

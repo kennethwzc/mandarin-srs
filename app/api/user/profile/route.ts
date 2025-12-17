@@ -35,6 +35,11 @@ export async function PATCH(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error updating profile:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to update profile. Please try again or contact support if the issue persists.',
+      },
+      { status: 500 }
+    )
   }
 }

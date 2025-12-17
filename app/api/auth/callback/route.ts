@@ -88,21 +88,17 @@ export async function GET(request: NextRequest) {
             stack: profileError instanceof Error ? profileError.stack : undefined,
           })
 
-          // Don't continue silently - this is a critical error
-          // Redirect to error page so user knows something is wrong
-          const errorUrl = new URL('/login', request.url)
-          errorUrl.searchParams.set('error', 'profile_creation_failed')
-          errorUrl.searchParams.set(
-            'message',
-            'Unable to set up your account. Please contact support.'
-          )
-          return NextResponse.redirect(errorUrl)
+          // Redirect to email-verified page with error parameter
+          // This shows user that email verification succeeded but profile setup failed
+          const verifiedUrl = new URL('/email-verified', request.url)
+          verifiedUrl.searchParams.set('error', 'profile_setup_incomplete')
+          return NextResponse.redirect(verifiedUrl)
         }
       }
 
-      // Success - redirect to dashboard with verification success indicator
-      const successUrl = new URL(next, request.url)
-      successUrl.searchParams.set('verified', 'true')
+      // Success - redirect to email verification success page
+      // This provides clear feedback that verification was successful
+      const successUrl = new URL('/email-verified', request.url)
       return NextResponse.redirect(successUrl)
     } catch (err) {
       console.error('Unexpected error in callback:', err)

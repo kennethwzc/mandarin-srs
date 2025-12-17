@@ -151,7 +151,12 @@ export async function GET(_request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching dashboard stats:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to load dashboard data. Please refresh the page or contact support if the issue persists.',
+      },
+      { status: 500 }
+    )
   }
 }
 
