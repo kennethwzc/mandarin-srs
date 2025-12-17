@@ -59,9 +59,23 @@ export async function GET(request: NextRequest) {
             console.log('Profile created successfully for user:', data.user.id)
           }
         } catch (profileError) {
-          console.error('Failed to create profile:', profileError)
-          // Continue anyway - profile might exist due to race condition
-          // or will be created on first dashboard visit
+          // Enhanced error logging
+          console.error('❌ CRITICAL: Failed to create profile:', {
+            userId: data.user.id,
+            email: data.user.email,
+            error: profileError instanceof Error ? profileError.message : profileError,
+            stack: profileError instanceof Error ? profileError.stack : undefined,
+          })
+
+          // Don't continue silently - this is a critical error
+          // Redirect to error page so user knows something is wrong
+          const errorUrl = new URL('/login', request.url)
+          errorUrl.searchParams.set('error', 'profile_creation_failed')
+          errorUrl.searchParams.set(
+            'message',
+            'Unable to set up your account. Please contact support.'
+          )
+          return NextResponse.redirect(errorUrl)
         }
       }
 

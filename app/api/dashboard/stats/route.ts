@@ -39,17 +39,40 @@ export async function GET(_request: NextRequest) {
     const profile = await getUserProfile(user.id)
 
     if (!profile) {
-      console.error('Profile not found for user:', user.id)
+      console.error('⚠️  Profile not found for user:', {
+        userId: user.id,
+        email: user.email,
+      })
 
       try {
+        console.log('⚠️  Creating missing profile for user:', {
+          userId: user.id,
+          email: user.email,
+        })
+
         await createUserProfile(user.id, user.email || '')
-        console.log('Created missing profile for user:', user.id)
+
+        console.log('✅ Successfully created profile for user:', user.id)
       } catch (createError) {
-        console.error('Failed to create profile:', createError)
+        console.error('❌ CRITICAL: Profile creation failed:', {
+          userId: user.id,
+          email: user.email,
+          error: createError instanceof Error ? createError.message : createError,
+          stack: createError instanceof Error ? createError.stack : undefined,
+          errorType: createError?.constructor?.name,
+        })
+
         return NextResponse.json(
           {
-            error: 'User profile not found. Please contact support.',
+            error: 'User profile could not be created. Please contact support.',
             errorCode: 'PROFILE_NOT_FOUND',
+            details:
+              process.env.NODE_ENV === 'development'
+                ? {
+                    userId: user.id,
+                    error: createError instanceof Error ? createError.message : String(createError),
+                  }
+                : undefined,
           },
           { status: 404 }
         )
