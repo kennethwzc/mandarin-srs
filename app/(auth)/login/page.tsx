@@ -119,35 +119,21 @@ function LoginForm() {
 
         if (verifySession) {
           sessionVerified = true
-          console.log('[Login] Session verified, cookies should be set')
           break
         }
 
         attempts++
         if (attempts < maxAttempts) {
           const waitTime = 200 * attempts // 200ms, 400ms, 600ms, 800ms, 1000ms
-          console.log(
-            `[Login] Session not verified yet, waiting ${waitTime}ms (attempt ${attempts}/${maxAttempts})...`
-          )
           await new Promise((resolve) => setTimeout(resolve, waitTime))
         }
       }
 
-      // Check cookies are actually set
-      const cookies = document.cookie
-      const hasAuthCookies = cookies.includes('sb-') || cookies.includes('supabase.auth.token')
-      console.log('[Login] Cookies present:', hasAuthCookies)
-      console.log('[Login] All cookies:', cookies)
-
       if (!sessionVerified) {
-        console.error('[Login] Session not verified after all attempts')
         toast.error('Session verification failed. Please try again.')
         setIsLoading(false)
         return
       }
-
-      console.log('[Login] Session and cookies verified')
-      console.log('[Login] Redirecting to:', finalRedirect)
 
       // Build full URL
       const fullRedirectUrl = new URL(finalRedirect, window.location.origin).href
