@@ -174,29 +174,31 @@ setup('authenticate', async ({ page }) => {
   // The Admin API confirmed the email in the database, but the initial login JWT
   // doesn't reflect this change due to Supabase JWT claim caching.
   // Refreshing the session forces Supabase to generate a new JWT with updated claims.
+  //
+  // We use a test utility API endpoint to perform the refresh server-side,
+  // avoiding browser module resolution issues with page.evaluate()
   try {
-    await page.evaluate(
-      async ([supabaseUrl, supabaseKey]) => {
-        console.log('[Browser] Importing Supabase client...')
-        const { createBrowserClient } = await import('@supabase/ssr')
+    console.log('[Auth Setup] Calling test utility API to refresh session...')
 
-        const supabase = createBrowserClient(supabaseUrl, supabaseKey)
+    const response = await page.request.post('http://localhost:3000/api/test-utils/refresh-session')
 
-        console.log('[Browser] Refreshing session to get updated JWT...')
-        const { error } = await supabase.auth.refreshSession()
+    if (!response.ok()) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('[Auth Setup] Session refresh API error:', errorData)
+      throw new Error(`Session refresh failed: ${errorData.error || response.statusText()}`)
+    }
 
-        if (error) {
-          console.error('[Browser] Session refresh error:', error.message)
-          throw new Error(`Session refresh failed: ${error.message}`)
-        }
-
-        console.log('[Browser] ✓ Session refreshed successfully')
-        return true
-      },
-      [process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!]
+    const result = await response.json()
+    console.log('[Auth Setup] ✅ Session refresh successful')
+    console.log(
+      '[Auth Setup] User email_confirmed_at:',
+      result.session?.user?.email_confirmed_at || 'NOT SET'
     )
 
-    console.log('[Auth Setup] ✅ Session refresh complete')
+    if (!result.session?.user?.email_confirmed_at) {
+      console.warn('[Auth Setup] ⚠️  WARNING: email_confirmed_at still not set after refresh')
+      console.warn('[Auth Setup] This may indicate an issue with the Admin API confirmation')
+    }
   } catch (e) {
     console.error('[Auth Setup] ❌ Session refresh failed:', e instanceof Error ? e.message : e)
     throw new Error(
@@ -204,7 +206,7 @@ setup('authenticate', async ({ page }) => {
     )
   }
 
-  // Wait for refresh to propagate
+  // Wait for refresh to propagate to cookies
   await page.waitForTimeout(1500)
 
   // Debug: Verify the refreshed JWT now contains email_confirmed_at

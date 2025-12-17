@@ -57,6 +57,7 @@ export function middleware(request: NextRequest) {
     '/about',
     '/pricing',
     '/api/health',
+    '/api/test-utils', // Test utility endpoints for E2E tests
   ]
   const isPublicPath = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')
