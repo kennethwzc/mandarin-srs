@@ -1,47 +1,49 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Get the Supabase auth cookie - check both cookie existence AND value
-  const authCookie = request.cookies.get('sb-kunqvklwntfaovoxghxl-auth-token')
-
-  // CRITICAL FIX: Check that cookie has a valid value, not just that it exists
-  const hasValidSession = !!(
-    authCookie &&
-    authCookie.value &&
-    authCookie.value.length > 10 // Auth tokens are always long
+  // Create Supabase client for middleware
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set() {
+          // Middleware cannot set cookies, ignore
+        },
+        remove() {
+          // Middleware cannot remove cookies, ignore
+        },
+      },
+    }
   )
 
-  // Check if email is confirmed for authenticated users
-  let isEmailConfirmed = false
-  if (hasValidSession && authCookie) {
-    try {
-      // Parse the auth cookie to check email confirmation status
-      // JWT format: header.payload.signature
-      const cookieValue = authCookie.value
-      const parts = cookieValue.split('.')
-      if (parts.length >= 2 && parts[1]) {
-        const payload = JSON.parse(atob(parts[1]))
-        isEmailConfirmed = !!payload.email_confirmed_at
-      }
-    } catch (e) {
-      console.error('[Middleware] Failed to parse auth cookie:', e)
-      // If parsing fails, assume not confirmed for security
-      isEmailConfirmed = false
-    }
-  }
+  // Get authenticated user from Supabase (this includes ALL user fields)
+  // CRITICAL FIX: Use getUser() instead of parsing JWT
+  // Supabase JWTs don't include email_confirmed_at by default - we must get it from user object
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
+  const hasValidSession = !!user && !userError
+  const isEmailConfirmed = !!user?.email_confirmed_at
   const isFullyAuthenticated = hasValidSession && isEmailConfirmed
 
   // Enhanced logging for debugging
   console.log('[Middleware] ========================================')
   console.log('[Middleware] Path:', pathname)
-  console.log('[Middleware] Cookie exists:', !!authCookie)
-  console.log('[Middleware] Cookie value length:', authCookie?.value?.length || 0)
+  console.log('[Middleware] User ID:', user?.id || 'none')
+  console.log('[Middleware] User error:', userError?.message || 'none')
   console.log('[Middleware] Has valid session:', hasValidSession)
   console.log('[Middleware] Email confirmed:', isEmailConfirmed)
+  console.log('[Middleware] Email confirmed at:', user?.email_confirmed_at || 'not set')
   console.log('[Middleware] Fully authenticated:', isFullyAuthenticated)
   console.log('[Middleware] ========================================')
 
