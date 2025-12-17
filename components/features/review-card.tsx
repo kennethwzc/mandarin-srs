@@ -99,6 +99,11 @@ export const ReviewCard = memo(function ReviewCard({
     setIsCorrect(answeredCorrectly)
     setIsClose(answerIsClose)
     setIsAnswerSubmitted(true)
+
+    // Remove focus from input to allow keyboard shortcuts for grading (1-4 keys)
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   }, [userInput, correctPinyin])
 
   /**

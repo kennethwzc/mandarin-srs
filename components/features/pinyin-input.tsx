@@ -113,9 +113,9 @@ export function PinyinInput({
    */
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      let newValue = e.target.value.toLowerCase().trim()
+      let newValue = e.target.value.toLowerCase()
 
-      // Auto-correct common patterns
+      // Auto-correct common patterns (this will normalize spaces)
       newValue = autoCorrectPinyin(newValue)
 
       onChange(newValue)
@@ -129,6 +129,11 @@ export function PinyinInput({
    */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Don't handle keyboard events when disabled (allows grading shortcuts to work)
+      if (disabled) {
+        return
+      }
+
       // Numbers 1-5 select tones
       if (e.key >= '1' && e.key <= '5') {
         e.preventDefault()
@@ -197,7 +202,7 @@ export function PinyinInput({
         return
       }
     },
-    [value, suggestions, selectedSuggestionIndex, onChange, onToneChange, onSubmit]
+    [disabled, value, suggestions, selectedSuggestionIndex, onChange, onToneChange, onSubmit]
   )
 
   /**
@@ -350,8 +355,8 @@ function autoCorrectPinyin(input: string): string {
   // Convert u: to ü (alternative notation)
   corrected = corrected.replace(/u:/g, 'ü')
 
-  // Remove extra spaces
-  corrected = corrected.replace(/\s+/g, '')
+  // Normalize multiple spaces to single space (preserve spaces for multi-syllable vocabulary)
+  corrected = corrected.replace(/\s+/g, ' ')
 
   // Handle capitalization (shouldn't happen but just in case)
   corrected = corrected.toLowerCase()
