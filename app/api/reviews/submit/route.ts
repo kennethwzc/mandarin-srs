@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/api/auth-middleware'
 import { submitReview } from '@/lib/db/srs-operations'
+import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
 import { GRADES } from '@/lib/utils/srs-constants'
 
 /**
@@ -34,15 +35,11 @@ const reviewSubmissionSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate user
-    const supabase = await createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const auth = await requireAuth()
+    if (auth.error) {
+      return auth.error
     }
+    const { user } = auth
 
     // 2. Parse and validate request body
     const body = await request.json()
@@ -58,9 +55,8 @@ export async function POST(request: NextRequest) {
     const { itemId, itemType, userAnswer, correctAnswer, grade, responseTimeMs } =
       validationResult.data
 
-    // 3. Determine if answer is correct
-    // For pinyin, we compare normalized versions
-    const isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim()
+    // 3. Determine if answer is correct using centralized pinyin comparison
+    const isCorrect = comparePinyinExact(userAnswer, correctAnswer)
 
     // 4. Get user's timezone (from profile or default to UTC)
     // TODO: Fetch from user profile
