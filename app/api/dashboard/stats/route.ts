@@ -8,6 +8,8 @@ import {
   getDashboardStats,
   getUpcomingReviewsForecast,
   getUserLessonProgress,
+  getUserProfile,
+  createUserProfile,
 } from '@/lib/db/queries'
 import * as schema from '@/lib/db/schema'
 import { withCache } from '@/lib/cache/server'
@@ -15,10 +17,13 @@ import { withCache } from '@/lib/cache/server'
 type DailyStat = typeof schema.dailyStats.$inferSelect
 
 /**
- * GET /api/dashboard/stats (Optimized with caching)
+ * GET /api/dashboard/stats (Optimized with caching and parallel queries)
  *
- * Fetch comprehensive dashboard statistics for the current user.
- * Cached for 5 minutes to reduce database load.
+ * Performance optimizations:
+ * 1. All independent queries run in parallel using Promise.all
+ * 2. Single 90-day fetch for daily stats (sliced for 30-day charts)
+ * 3. Cached for 5 minutes to reduce database load
+ * 4. Fast path for new users with no data
  */
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -36,32 +41,18 @@ export async function GET(_request: NextRequest) {
     }
 
     // Check if profile exists, create if not (safety net)
-    const { getUserProfile, createUserProfile } = await import('@/lib/db/queries')
     const profile = await getUserProfile(user.id)
 
     if (!profile) {
-      console.error('⚠️  Profile not found for user:', {
-        userId: user.id,
-        email: user.email,
-      })
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Creating missing profile for user:', user.id)
+      }
 
       try {
-        console.log('⚠️  Creating missing profile for user:', {
-          userId: user.id,
-          email: user.email,
-        })
-
         await createUserProfile(user.id, user.email || '')
-
-        console.log('✅ Successfully created profile for user:', user.id)
       } catch (createError) {
-        console.error('❌ CRITICAL: Profile creation failed:', {
-          userId: user.id,
-          email: user.email,
-          error: createError instanceof Error ? createError.message : createError,
-          stack: createError instanceof Error ? createError.stack : undefined,
-          errorType: createError?.constructor?.name,
-        })
+        console.error('Profile creation failed:', user.id)
 
         return NextResponse.json(
           {
@@ -80,72 +71,71 @@ export async function GET(_request: NextRequest) {
       }
     }
 
-    // Get basic stats first to check if user has any data
-    const overallStats = await getDashboardStats(user.id)
-
-    // For new users with no data, return simplified response quickly
-    if (overallStats.totalItemsLearned === 0) {
-      return NextResponse.json({
-        data: {
-          stats: {
-            totalItemsLearned: 0,
-            reviewsDueToday: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            accuracyPercentage: 0,
-            reviewsCompletedToday: 0,
-          },
-          charts: {
-            reviewsOverTime: [],
-            accuracyOverTime: [],
-            activityCalendar: [],
-            upcomingForecast: [],
-          },
-          lessons: [],
-        },
-      })
-    }
-
-    // For users with data, try to get from cache (5 min TTL)
+    // Try to get from cache first (5 min TTL)
     const cacheKey = `dashboard:stats:${user.id}`
 
     const cachedData = await withCache(
       cacheKey,
       async () => {
+        // Calculate date ranges
         const endDate = new Date()
-        const startDate = new Date()
-        startDate.setDate(startDate.getDate() - 30)
+        const startDate90Days = new Date()
+        startDate90Days.setDate(startDate90Days.getDate() - 90)
 
-        // Fetch data in parallel but with reduced date range for activity calendar
-        const [dailyStats, lessonProgress] = await Promise.all([
-          getDailyStatsRange(user.id, startDate, endDate),
-          getUserLessonProgress(user.id),
-        ])
+        // PARALLEL EXECUTION: Run ALL independent queries at once
+        const [overallStats, dailyStats90d, lessonProgress, upcomingForecast, accuracyPercentage] =
+          await Promise.all([
+            getDashboardStats(user.id),
+            getDailyStatsRange(user.id, startDate90Days, endDate), // Single 90-day query
+            getUserLessonProgress(user.id),
+            getUpcomingReviewsForecast(user.id),
+            getAllTimeAccuracy(user.id),
+          ])
 
-        const reviewsOverTime = dailyStats.map((stat) => ({
+        // For new users with no data, return simplified response
+        if (overallStats.totalItemsLearned === 0) {
+          return {
+            stats: {
+              totalItemsLearned: 0,
+              reviewsDueToday: 0,
+              currentStreak: 0,
+              longestStreak: 0,
+              accuracyPercentage: 0,
+              reviewsCompletedToday: 0,
+            },
+            charts: {
+              reviewsOverTime: [],
+              accuracyOverTime: [],
+              activityCalendar: [],
+              upcomingForecast: [],
+            },
+            lessons: [],
+          }
+        }
+
+        // Slice 30-day data from 90-day result (no extra query needed)
+        const cutoffDate = new Date()
+        cutoffDate.setDate(cutoffDate.getDate() - 30)
+        const dailyStats30d = dailyStats90d.filter((stat) => stat.stat_date >= cutoffDate)
+
+        // Transform data for charts
+        const reviewsOverTime = dailyStats30d.map((stat) => ({
           date: stat.stat_date.toISOString().split('T')[0],
           reviews: stat.reviews_completed,
           newItems: stat.new_items_learned,
         }))
 
-        const accuracyOverTime = dailyStats.map((stat) => ({
+        const accuracyOverTime = dailyStats30d.map((stat) => ({
           date: stat.stat_date.toISOString().split('T')[0],
           accuracy: stat.accuracy_percentage,
         }))
 
-        // Reduce activity calendar to 90 days instead of 365 to avoid timeout
-        const calendarStartDate = new Date()
-        calendarStartDate.setDate(calendarStartDate.getDate() - 90)
-        const yearlyStats = await getDailyStatsRange(user.id, calendarStartDate, endDate)
-        const activityCalendar = yearlyStats.map((stat) => ({
+        const activityCalendar = dailyStats90d.map((stat) => ({
           date: stat.stat_date.toISOString().split('T')[0],
           count: stat.reviews_completed,
         }))
 
-        const upcomingForecast = await getUpcomingReviewsForecast(user.id)
-        // Use all-time accuracy from user_items for the stat card (more accurate than 30-day)
-        const accuracyPercentage = await getAllTimeAccuracy(user.id)
-        const reviewsCompletedToday = getTodayStats(dailyStats)?.reviews_completed ?? 0
+        const reviewsCompletedToday = getTodayStats(dailyStats30d)?.reviews_completed ?? 0
 
         return {
           stats: {

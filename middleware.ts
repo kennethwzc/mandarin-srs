@@ -36,26 +36,11 @@ export async function middleware(request: NextRequest) {
   const isEmailConfirmed = !!user?.email_confirmed_at
   const isFullyAuthenticated = hasValidSession && isEmailConfirmed
 
-  // Enhanced logging for debugging
-  console.log('[Middleware] ========================================')
-  console.log('[Middleware] Path:', pathname)
-  console.log('[Middleware] User ID:', user?.id || 'none')
-  console.log('[Middleware] User error:', userError?.message || 'none')
-  console.log('[Middleware] Has valid session:', hasValidSession)
-  console.log('[Middleware] Email confirmed:', isEmailConfirmed)
-  console.log('[Middleware] Email confirmed at:', user?.email_confirmed_at || 'not set')
-
-  // Log if user was recently verified (helpful for debugging)
-  if (user?.email_confirmed_at) {
-    const confirmedDate = new Date(user.email_confirmed_at)
-    const isRecentlyConfirmed = Date.now() - confirmedDate.getTime() < 60000 // Within last minute
-    if (isRecentlyConfirmed) {
-      console.log('[Middleware] 🎉 RECENTLY VERIFIED - User confirmed email within last minute')
-    }
+  // Only log in development mode to reduce production overhead
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) {
+    console.log('[Middleware] Path:', pathname, '| Auth:', isFullyAuthenticated ? '✅' : '❌')
   }
-
-  console.log('[Middleware] Fully authenticated:', isFullyAuthenticated)
-  console.log('[Middleware] ========================================')
 
   // Define public routes that don't require authentication
   const publicPaths = [
@@ -79,31 +64,24 @@ export async function middleware(request: NextRequest) {
   // SCENARIO 1: Fully authenticated user trying to access login page
   // Action: Redirect to dashboard (prevents authenticated users from seeing login)
   if (isFullyAuthenticated && pathname === '/login') {
-    console.log('[Middleware] ✅ Authenticated user on login, redirecting to dashboard')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // SCENARIO 2: User has session but email not confirmed
   // Action: Redirect to confirmation page (except if already there)
   if (hasValidSession && !isEmailConfirmed && !isPublicPath && pathname !== '/confirm-email') {
-    console.log(
-      '[Middleware] ⚠️  Session exists but email not confirmed, redirecting to confirm-email'
-    )
-    const confirmUrl = new URL('/confirm-email', request.url)
-    return NextResponse.redirect(confirmUrl)
+    return NextResponse.redirect(new URL('/confirm-email', request.url))
   }
 
   // SCENARIO 3: Unauthenticated user trying to access protected route
   // Action: Redirect to login with return path
   if (!isFullyAuthenticated && !isPublicPath) {
-    console.log('[Middleware] ❌ No valid session on protected route, redirecting to login')
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
   // SCENARIO 4: Valid request, allow it through
-  console.log('[Middleware] ✅ Allowing access to:', pathname)
   return NextResponse.next()
 }
 
