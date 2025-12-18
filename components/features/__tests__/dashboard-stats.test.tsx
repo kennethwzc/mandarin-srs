@@ -10,7 +10,7 @@ import { DashboardStats } from '../dashboard-stats'
 describe('DashboardStats', () => {
   const mockStats = {
     totalItemsLearned: 150,
-    reviewsDueToday: 25,
+    reviewsDue: 25,
     currentStreak: 7,
     longestStreak: 14,
     accuracyPercentage: 85,
@@ -60,7 +60,7 @@ describe('DashboardStats', () => {
   it('handles zero values gracefully', () => {
     const zeroStats = {
       totalItemsLearned: 0,
-      reviewsDueToday: 0,
+      reviewsDue: 0,
       currentStreak: 0,
       longestStreak: 0,
       accuracyPercentage: 0,
@@ -136,7 +136,7 @@ describe('DashboardStats', () => {
   it('handles large numbers correctly', () => {
     const largeStats = {
       totalItemsLearned: 9999,
-      reviewsDueToday: 999,
+      reviewsDue: 999,
       currentStreak: 365,
       longestStreak: 730,
       accuracyPercentage: 100,
