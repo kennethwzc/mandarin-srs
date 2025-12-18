@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { NextRequest, NextResponse } from 'next/server'
 
-import { requireAuth } from '@/lib/api/auth-middleware'
+import { createClient } from '@/lib/supabase/server'
 import {
   getAllTimeAccuracy,
   getDailyStatsRange,
@@ -30,11 +30,15 @@ export const revalidate = 0
 
 export async function GET(_request: NextRequest) {
   try {
-    const auth = await requireAuth()
-    if (auth.error) {
-      return auth.error
+    const supabase = createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { user } = auth
 
     // Check if profile exists, create if not (safety net)
     const profile = await getUserProfile(user.id)

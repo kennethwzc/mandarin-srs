@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from 'sonner'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { AuthProvider } from '@/components/providers/auth-provider'
 import { AnalyticsProvider } from '@/components/providers/analytics-provider'
+import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider'
 import { CookieBanner } from '@/components/ui/cookie-banner'
 
 import './globals.css'
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Toaster />
             <SonnerToaster />
             <CookieBanner />
+            <ServiceWorkerProvider />
           </QueryProvider>
         </AnalyticsProvider>
       </body>

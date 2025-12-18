@@ -12,6 +12,9 @@ ON user_items(user_id, srs_stage);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_items_user_type 
 ON user_items(user_id, item_type);
 
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_items_lesson_progress 
+ON user_items(user_id, item_id, item_type);
+
 -- Daily stats indexes
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_daily_stats_user_date 
 ON daily_stats(user_id, stat_date DESC);

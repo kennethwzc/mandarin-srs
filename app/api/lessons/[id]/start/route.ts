@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import * as schema from '@/lib/db/schema'
 import { getLessonById } from '@/lib/db/queries'
-import { requireAuthWithEmail } from '@/lib/api/auth-middleware'
+import { createClient } from '@/lib/supabase/server'
 import { deleteCached } from '@/lib/cache/server'
 import { and, eq, sql } from 'drizzle-orm'
 
@@ -16,11 +16,28 @@ import { and, eq, sql } from 'drizzle-orm'
  */
 export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const auth = await requireAuthWithEmail()
-    if (auth.error) {
-      return auth.error
+    const supabase = createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.error('[StartLesson] Unauthorized', { authError })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { user, email } = auth
+
+    const email =
+      user.email ??
+      (typeof user.user_metadata?.email === 'string' ? user.user_metadata.email : undefined)
+
+    if (!email) {
+      console.error('[StartLesson] Missing email for user', { userId: user.id })
+      return NextResponse.json(
+        { error: 'User email missing; cannot create profile' },
+        { status: 400 }
+      )
+    }
 
     // Ensure profile exists to satisfy FK on user_items.user_id
     await db

@@ -134,6 +134,19 @@ function LoginForm() {
         return
       }
 
+      // Prefetch dashboard data in background before redirect
+      // This makes the dashboard feel instant when it loads
+      if (finalRedirect === '/dashboard' || finalRedirect.startsWith('/dashboard')) {
+        fetch('/api/dashboard/stats', {
+          method: 'GET',
+          credentials: 'include',
+          // @ts-expect-error priority is a valid fetch option
+          priority: 'low',
+        }).catch(() => {
+          // Silently fail - prefetch is optional
+        })
+      }
+
       // Build full URL
       const fullRedirectUrl = new URL(finalRedirect, window.location.origin).href
 

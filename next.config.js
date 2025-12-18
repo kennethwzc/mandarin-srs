@@ -24,9 +24,13 @@ const nextConfig = {
   // Optimize fonts
   optimizeFonts: true,
 
-  // Reduce bundle size
+  // Reduce bundle size and enable performance features
   experimental: {
     optimizePackageImports: ['recharts', 'lucide-react', 'framer-motion'],
+    // Partial Prerendering for faster page loads
+    ppr: 'incremental',
+    // Don't bundle database driver (serverless optimization)
+    serverComponentsExternalPackages: ['postgres'],
   },
 
   // Webpack optimizations
@@ -79,9 +83,10 @@ const nextConfig = {
     return config
   },
 
-  // Security headers
+  // Security and caching headers
   async headers() {
     return [
+      // Security headers for all routes
       {
         source: '/:path*',
         headers: [
@@ -108,6 +113,44 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+      // Aggressive caching for static Next.js assets
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache API responses with stale-while-revalidate
+      {
+        source: '/api/dashboard/stats',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, s-maxage=60, stale-while-revalidate=300',
+          },
+        ],
+      },
+      {
+        source: '/api/lessons',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+      {
+        source: '/api/reviews/upcoming',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, s-maxage=120, stale-while-revalidate=240',
           },
         ],
       },

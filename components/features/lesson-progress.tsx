@@ -40,7 +40,9 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
             </CardDescription>
           </div>
           <Button asChild size="sm" variant="outline">
-            <Link href="/lessons">View All</Link>
+            <Link href="/lessons" prefetch={true}>
+              View All
+            </Link>
           </Button>
         </div>
       </CardHeader>
@@ -62,6 +64,7 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
             <Link
               key={lesson.id}
               href={lesson.isUnlocked ? `/lessons/${lesson.id}` : '#'}
+              prefetch={lesson.isUnlocked}
               className={cn(
                 'flex items-center gap-3 rounded-lg border p-3 transition-colors',
                 lesson.isUnlocked
@@ -110,7 +113,9 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
 
         {lessons.length > 5 && (
           <Button asChild className="w-full" variant="ghost">
-            <Link href="/lessons">View all {lessons.length} lessons</Link>
+            <Link href="/lessons" prefetch={true}>
+              View all {lessons.length} lessons
+            </Link>
           </Button>
         )}
       </CardContent>

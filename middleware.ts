@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import type { User } from '@supabase/supabase-js'
+
+// Auth cache: Reduces redundant getUser() calls within 30-second window
+// This significantly improves performance for rapid successive requests
+const authCache = new Map<
+  string,
+  { user: User | null; error: Error | null; expires: number; confirmed: boolean }
+>()
+
+// Cache TTL: 30 seconds (balance between performance and freshness)
+const AUTH_CACHE_TTL_MS = 30000
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -24,13 +35,43 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get authenticated user from Supabase (this includes ALL user fields)
-  // CRITICAL FIX: Use getUser() instead of parsing JWT
-  // Supabase JWTs don't include email_confirmed_at by default - we must get it from user object
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  // Extract session token for cache key
+  const sessionToken = request.cookies.get('sb-access-token')?.value || 'anonymous'
+  const cacheKey = `auth:${sessionToken}`
+
+  // Check cache first
+  const cached = authCache.get(cacheKey)
+  let user: User | null = null
+  let userError: Error | null = null
+
+  if (cached && cached.expires > Date.now()) {
+    // Cache hit - use cached auth result
+    user = cached.user
+    userError = cached.error
+  } else {
+    // Cache miss - fetch from Supabase
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+    userError = result.error
+
+    // Store in cache
+    authCache.set(cacheKey, {
+      user,
+      error: userError,
+      expires: Date.now() + AUTH_CACHE_TTL_MS,
+      confirmed: !!user?.email_confirmed_at,
+    })
+
+    // Cleanup old cache entries (prevent memory leak)
+    if (authCache.size > 1000) {
+      const now = Date.now()
+      for (const [key, value] of authCache.entries()) {
+        if (value.expires < now) {
+          authCache.delete(key)
+        }
+      }
+    }
+  }
 
   const hasValidSession = !!user && !userError
   const isEmailConfirmed = !!user?.email_confirmed_at
@@ -56,6 +97,8 @@ export async function middleware(request: NextRequest) {
     '/pricing',
     '/api/health',
     '/api/test-utils', // Test utility endpoints for E2E tests
+    '/api/lessons', // Static lesson data (cached)
+    '/api/reviews/upcoming', // Upcoming reviews (can be cached)
   ]
   const isPublicPath = publicPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')
