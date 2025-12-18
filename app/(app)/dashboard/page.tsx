@@ -66,6 +66,14 @@ const UpcomingReviews = dynamicImport(
   { ssr: false, loading: () => <WidgetSkeleton /> }
 )
 
+const StreakDisplay = dynamicImport(
+  () =>
+    import('@/components/features/streak-display').then((m) => ({
+      default: m.StreakDisplay,
+    })),
+  { ssr: false, loading: () => <StreakSkeleton /> }
+)
+
 export const metadata = {
   title: 'Dashboard',
   description: 'View your learning progress and statistics',
@@ -201,6 +209,11 @@ async function DashboardContent() {
 
       <DashboardStats stats={data.stats} />
 
+      <StreakDisplay
+        currentStreak={data.stats.currentStreak}
+        longestStreak={data.stats.longestStreak}
+      />
+
       <div className="grid gap-4 md:grid-cols-2">
         <ReviewsChart data={data.charts.reviewsOverTime} />
         <AccuracyChart data={data.charts.accuracyOverTime} />
@@ -242,6 +255,10 @@ function WidgetSkeleton() {
   return <div className="h-[200px] animate-pulse rounded-lg bg-muted" />
 }
 
+function StreakSkeleton() {
+  return <div className="h-[100px] animate-pulse rounded-lg bg-muted" />
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">
@@ -255,6 +272,8 @@ function DashboardSkeleton() {
           <div key={index} className="h-32 animate-pulse rounded-lg bg-muted" />
         ))}
       </div>
+
+      <StreakSkeleton />
 
       <div className="grid gap-4 md:grid-cols-2">
         <ChartSkeleton />

@@ -10,7 +10,6 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, prefetch: true },
   { name: 'Lessons', href: '/lessons', icon: BookOpen, prefetch: true },
   { name: 'Reviews', href: '/reviews', icon: TrendingUp, prefetch: false }, // Dynamic, don't prefetch
-  { name: 'Progress', href: '/progress', icon: TrendingUp, prefetch: true },
   { name: 'Settings', href: '/settings', icon: Settings, prefetch: false },
 ]
 

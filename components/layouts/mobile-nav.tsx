@@ -16,7 +16,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Home, Settings, TrendingUp, X, BarChart3 } from 'lucide-react'
+import { BookOpen, Home, Settings, TrendingUp, X } from 'lucide-react'
 import { Drawer } from 'vaul'
 
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,6 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, prefetch: true },
   { name: 'Lessons', href: '/lessons', icon: BookOpen, prefetch: true },
   { name: 'Reviews', href: '/reviews', icon: TrendingUp, prefetch: false },
-  { name: 'Progress', href: '/progress', icon: BarChart3, prefetch: true },
   { name: 'Settings', href: '/settings', icon: Settings, prefetch: false },
 ]
 
