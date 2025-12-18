@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { test as setup } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 
@@ -5,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
  * Authentication setup for E2E tests
  *
  * This runs before tests to establish authentication state
+ * Console logging is essential for debugging E2E test failures in CI
  */
 
 const authFile = 'playwright/.auth/user.json'
@@ -144,29 +146,29 @@ setup('authenticate', async ({ page }) => {
   // Note: Supabase auth happens client-side, so we wait for navigation instead of API response
   console.log('[Auth Setup] Submitting login form...')
 
-  await Promise.all([
-    // Wait for navigation to complete (either to dashboard or error state)
-    page.waitForURL('**', { timeout: 30000 }),
-    page.click('button[type="submit"]'),
-  ])
+  // Click submit button first
+  await page.click('button[type="submit"]')
 
-  console.log('[Auth Setup] Navigation completed, current URL:', page.url())
-
-  // Wait for auth cookies to be set
-  await page.waitForTimeout(2000)
-
-  // Check initial login status
-  const currentUrl = page.url()
-
-  // If we're still on login page after clicking submit, auth failed
-  if (currentUrl.includes('/login')) {
+  // Wait for navigation AWAY from login page
+  // The login flow (Supabase auth + session verification) takes 2-5 seconds
+  // Using a function predicate ensures we wait until URL actually changes
+  try {
+    await page.waitForURL((url) => !url.pathname.includes('/login'), {
+      timeout: 30000,
+    })
+    console.log('[Auth Setup] Navigation completed, current URL:', page.url())
+  } catch {
+    // If we timeout waiting for navigation, check for error messages
     console.error('[Auth Setup] ❌ Still on login page - authentication may have failed')
     const errorMsg = await page.textContent('[role="alert"]').catch(() => null)
     if (errorMsg) {
       console.error('[Auth Setup] Error message:', errorMsg)
     }
-    throw new Error('Authentication failed - still on login page')
+    throw new Error('Authentication failed - still on login page after 30 seconds')
   }
+
+  // Wait for auth cookies to be set
+  await page.waitForTimeout(2000)
 
   console.log(
     '[Auth Setup] ✅ Login complete. Now refreshing session to ensure auth state is current...'
