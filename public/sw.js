@@ -9,11 +9,12 @@
  * - Fallback for offline access
  */
 
-const CACHE_NAME = 'mandarin-srs-v1'
-const CACHE_VERSION = '1.0.0'
+const CACHE_NAME = 'mandarin-srs-v2'
+const CACHE_VERSION = '2.0.0'
 
-// Static assets to cache on install
-const STATIC_ASSETS = ['/', '/dashboard', '/lessons', '/reviews', '/offline']
+// Static assets to cache on install (only public pages that don't require auth)
+// Auth-required pages (/dashboard, /lessons, /reviews) are cached dynamically on visit
+const STATIC_ASSETS = ['/', '/login', '/signup']
 
 // API routes to cache (network-first strategy)
 const API_ROUTES = ['/api/dashboard/stats', '/api/lessons', '/api/user/profile']
