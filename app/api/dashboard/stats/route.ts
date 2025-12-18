@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
 import {
+  getAllTimeAccuracy,
   getDailyStatsRange,
   getDashboardStats,
   getUpcomingReviewsForecast,
@@ -142,7 +143,8 @@ export async function GET(_request: NextRequest) {
         }))
 
         const upcomingForecast = await getUpcomingReviewsForecast(user.id)
-        const accuracyPercentage = calculateOverallAccuracy(dailyStats)
+        // Use all-time accuracy from user_items for the stat card (more accurate than 30-day)
+        const accuracyPercentage = await getAllTimeAccuracy(user.id)
         const reviewsCompletedToday = getTodayStats(dailyStats)?.reviews_completed ?? 0
 
         return {
@@ -185,29 +187,6 @@ export async function GET(_request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function calculateOverallAccuracy(dailyStats: DailyStat[]): number {
-  if (dailyStats.length === 0) {
-    return 0
-  }
-
-  const totals = dailyStats.reduce(
-    (acc, stat) => {
-      const reviews = stat.reviews_completed ?? 0
-      const correct = (reviews * (stat.accuracy_percentage ?? 0)) / 100
-      return {
-        reviews: acc.reviews + reviews,
-        correct: acc.correct + correct,
-      }
-    },
-    { reviews: 0, correct: 0 }
-  )
-
-  if (totals.reviews === 0) {
-    return 0
-  }
-  return Math.round((totals.correct / totals.reviews) * 100)
 }
 
 function getTodayStats(dailyStats: DailyStat[]) {

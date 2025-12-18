@@ -148,12 +148,22 @@ export async function getDashboardStats(userId: string) {
       and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, endOfToday))
     )
 
+  // Get total items learned count from user_items table (source of truth)
+  // This is a fallback in case profiles.total_items_learned gets out of sync
+  const totalItemsCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.userItems)
+    .where(eq(schema.userItems.user_id, userId))
+
+  const actualItemsLearned = Number(totalItemsCount[0]?.count ?? 0)
+
   return {
     reviewsDue: Number(reviewsDue[0]?.count ?? 0),
     reviewsDueToday: Number(reviewsDueTodayResult[0]?.count ?? 0),
     currentStreak: profile?.current_streak ?? 0,
     longestStreak: profile?.longest_streak ?? 0,
-    totalItemsLearned: profile?.total_items_learned ?? 0,
+    // Use actual count from user_items as source of truth
+    totalItemsLearned: actualItemsLearned,
     stageBreakdown: stageCounts.map((s) => ({
       stage: s.stage,
       count: Number(s.count),
@@ -584,6 +594,34 @@ export async function updateUserStreak(userId: string) {
     .where(eq(schema.profiles.id, userId))
 
   return { currentStreak: newStreak, longestStreak }
+}
+
+/**
+ * Get all-time accuracy from user_items table
+ *
+ * Calculates accuracy based on correct_count and total_reviews across all items
+ * This provides a more accurate picture than the 30-day daily_stats calculation
+ *
+ * @param userId - User's UUID
+ * @returns Accuracy percentage (0-100)
+ */
+export async function getAllTimeAccuracy(userId: string): Promise<number> {
+  const result = await db
+    .select({
+      totalCorrect: sql<number>`sum(correct_count)::int`,
+      totalReviews: sql<number>`sum(total_reviews)::int`,
+    })
+    .from(schema.userItems)
+    .where(eq(schema.userItems.user_id, userId))
+
+  const totalCorrect = Number(result[0]?.totalCorrect ?? 0)
+  const totalReviews = Number(result[0]?.totalReviews ?? 0)
+
+  if (totalReviews === 0) {
+    return 0
+  }
+
+  return Math.round((totalCorrect / totalReviews) * 100)
 }
 
 // ============================================================================

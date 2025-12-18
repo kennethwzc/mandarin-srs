@@ -5,7 +5,8 @@ import { db } from '@/lib/db/client'
 import * as schema from '@/lib/db/schema'
 import { getLessonById } from '@/lib/db/queries'
 import { createClient } from '@/lib/supabase/server'
-import { and, eq } from 'drizzle-orm'
+import { deleteCached } from '@/lib/cache/server'
+import { and, eq, sql } from 'drizzle-orm'
 
 /**
  * POST /api/lessons/[id]/start
@@ -125,6 +126,52 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
         })
         addedCount++
       }
+    }
+
+    // Update profiles.total_items_learned if new items were added
+    if (addedCount > 0) {
+      await db
+        .update(schema.profiles)
+        .set({
+          total_items_learned: sql`${schema.profiles.total_items_learned} + ${addedCount}`,
+          updated_at: new Date(),
+        })
+        .where(eq(schema.profiles.id, user.id))
+
+      // Update daily_stats.new_items_learned for today
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const existingStats = await db
+        .select()
+        .from(schema.dailyStats)
+        .where(and(eq(schema.dailyStats.user_id, user.id), eq(schema.dailyStats.stat_date, today)))
+        .limit(1)
+
+      if (existingStats.length > 0) {
+        // Update existing daily stats
+        await db
+          .update(schema.dailyStats)
+          .set({
+            new_items_learned: sql`${schema.dailyStats.new_items_learned} + ${addedCount}`,
+            updated_at: new Date(),
+          })
+          .where(eq(schema.dailyStats.id, existingStats[0]!.id))
+      } else {
+        // Create new daily stats record for today
+        await db.insert(schema.dailyStats).values({
+          user_id: user.id,
+          stat_date: today,
+          reviews_completed: 0,
+          new_items_learned: addedCount,
+          accuracy_percentage: 0,
+          time_spent_seconds: 0,
+          streak_maintained: false,
+        })
+      }
+
+      // Invalidate dashboard cache so stats refresh immediately
+      await deleteCached(`dashboard:stats:${user.id}`)
     }
 
     console.log('[StartLesson] Completed', {

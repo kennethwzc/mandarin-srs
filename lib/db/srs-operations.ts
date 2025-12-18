@@ -5,7 +5,9 @@ import type { PostgresJsQueryResultHKT } from 'drizzle-orm/postgres-js'
 
 import { db } from './client'
 import * as schema from './schema'
+import { updateUserStreak } from './queries'
 import { calculateNextReview } from '@/lib/utils/srs-algorithm'
+import { deleteCached } from '@/lib/cache/server'
 import type { SrsInput } from '@/lib/utils/srs-algorithm'
 import type { Grade } from '@/lib/utils/srs-constants'
 
@@ -67,7 +69,7 @@ export async function submitReview(submission: ReviewSubmission) {
   } = submission
 
   // Start transaction
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // 1. Get current user_item state
     const userItems = await tx
       .select()
@@ -152,6 +154,14 @@ export async function submitReview(submission: ReviewSubmission) {
 
     return updatedItems[0]!
   })
+
+  // 6. Update user streak (outside transaction since it uses its own db connection)
+  await updateUserStreak(userId)
+
+  // 7. Invalidate dashboard cache so stats refresh immediately
+  await deleteCached(`dashboard:stats:${userId}`)
+
+  return result
 }
 
 /**
