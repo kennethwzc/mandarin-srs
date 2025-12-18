@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils/cn'
 interface DashboardStatsProps {
   stats: {
     totalItemsLearned: number
-    reviewsDueToday: number
+    reviewsDue: number // Reviews due NOW (not by end of day)
     currentStreak: number
     longestStreak: number
     accuracyPercentage: number
@@ -26,7 +26,7 @@ interface DashboardStatsProps {
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
   const {
     totalItemsLearned,
-    reviewsDueToday,
+    reviewsDue,
     currentStreak,
     longestStreak,
     accuracyPercentage,
@@ -46,12 +46,12 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
       },
       {
         title: 'Reviews Due',
-        value: reviewsDueToday,
+        value: reviewsDue,
         description: 'Ready to review now',
         icon: Brain,
         color: 'text-purple-600 dark:text-purple-400',
         bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-        action: reviewsDueToday > 0 ? '/reviews' : undefined,
+        action: reviewsDue > 0 ? '/reviews' : undefined,
       },
       {
         title: 'Current Streak',
@@ -103,7 +103,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ],
     [
       totalItemsLearned,
-      reviewsDueToday,
+      reviewsDue,
       currentStreak,
       longestStreak,
       accuracyPercentage,

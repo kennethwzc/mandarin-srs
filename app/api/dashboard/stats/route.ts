@@ -97,6 +97,7 @@ export async function GET(_request: NextRequest) {
           return {
             stats: {
               totalItemsLearned: 0,
+              reviewsDue: 0,
               reviewsDueToday: 0,
               currentStreak: 0,
               longestStreak: 0,
@@ -140,7 +141,8 @@ export async function GET(_request: NextRequest) {
         return {
           stats: {
             totalItemsLearned: overallStats.totalItemsLearned,
-            reviewsDueToday: overallStats.reviewsDueToday ?? overallStats.reviewsDue,
+            reviewsDue: overallStats.reviewsDue, // Reviews due NOW (matches queue)
+            reviewsDueToday: overallStats.reviewsDueToday, // Reviews due by end of day
             currentStreak: overallStats.currentStreak,
             longestStreak: overallStats.longestStreak,
             accuracyPercentage,
