@@ -1,22 +1,67 @@
+/**
+ * Next.js Middleware for Authentication
+ *
+ * Handles auth checks and redirects for protected routes.
+ * Uses Supabase SSR for server-side session validation.
+ *
+ * Design decisions:
+ * - No caching: Auth state must be fresh to prevent stale session bugs
+ * - Fail-safe: When in doubt, redirect to login (better UX than showing errors)
+ * - Simple: Less code = fewer bugs
+ */
+
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import type { User } from '@supabase/supabase-js'
 
-// Auth cache: Reduces redundant getUser() calls within 30-second window
-// This significantly improves performance for rapid successive requests
-const authCache = new Map<
-  string,
-  { user: User | null; error: Error | null; expires: number; confirmed: boolean }
->()
+/**
+ * Public routes that don't require authentication
+ * Keep this list minimal - only truly public pages
+ */
+const PUBLIC_PATHS = [
+  '/login',
+  '/signup',
+  '/auth',
+  '/confirm-email',
+  '/email-verified',
+  '/',
+  '/privacy',
+  '/terms',
+  '/about',
+  '/pricing',
+  '/api/health',
+  '/api/test-utils',
+] as const
 
-// Cache TTL: 30 seconds (balance between performance and freshness)
-const AUTH_CACHE_TTL_MS = 30000
+/**
+ * Check if a pathname is a public route
+ */
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))
+}
+
+/**
+ * Check if a pathname is a static asset (should skip middleware entirely)
+ * This is a backup - the matcher config should already exclude these
+ */
+function isStaticAsset(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/static/') ||
+    pathname.includes('.') // Has file extension
+  )
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Skip static assets (backup check)
+  if (isStaticAsset(pathname)) {
+    return NextResponse.next()
+  }
+
   // Create Supabase client for middleware
+  // Note: This client cannot set cookies (middleware limitation)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -26,109 +71,79 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set() {
-          // Middleware cannot set cookies, ignore
+          // Middleware cannot set cookies - handled by server actions/API routes
         },
         remove() {
-          // Middleware cannot remove cookies, ignore
+          // Middleware cannot remove cookies - handled by server actions/API routes
         },
       },
     }
   )
 
-  // Extract session token for cache key
-  const sessionToken = request.cookies.get('sb-access-token')?.value || 'anonymous'
-  const cacheKey = `auth:${sessionToken}`
+  // Get current user - always fetch fresh (no caching)
+  // This ensures we never have stale auth state
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
-  // Check cache first
-  const cached = authCache.get(cacheKey)
-  let user: User | null = null
-  let userError: Error | null = null
-
-  if (cached && cached.expires > Date.now()) {
-    // Cache hit - use cached auth result
-    user = cached.user
-    userError = cached.error
-  } else {
-    // Cache miss - fetch from Supabase
-    const result = await supabase.auth.getUser()
-    user = result.data.user
-    userError = result.error
-
-    // Store in cache
-    authCache.set(cacheKey, {
-      user,
-      error: userError,
-      expires: Date.now() + AUTH_CACHE_TTL_MS,
-      confirmed: !!user?.email_confirmed_at,
-    })
-
-    // Cleanup old cache entries (prevent memory leak)
-    if (authCache.size > 1000) {
-      const now = Date.now()
-      for (const [key, value] of authCache.entries()) {
-        if (value.expires < now) {
-          authCache.delete(key)
-        }
-      }
-    }
-  }
-
-  const hasValidSession = !!user && !userError
+  // Determine auth state
+  const hasValidSession = !!user && !authError
   const isEmailConfirmed = !!user?.email_confirmed_at
   const isFullyAuthenticated = hasValidSession && isEmailConfirmed
+  const isPublic = isPublicPath(pathname)
 
-  // Only log in development mode to reduce production overhead
-  const isDev = process.env.NODE_ENV === 'development'
-  if (isDev) {
-    console.log('[Middleware] Path:', pathname, '| Auth:', isFullyAuthenticated ? '✅' : '❌')
+  // Debug logging (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      '[Middleware]',
+      pathname,
+      '| User:',
+      user?.email ?? 'none',
+      '| Auth:',
+      isFullyAuthenticated ? '✅' : '❌'
+    )
   }
 
-  // Define public routes that don't require authentication
-  const publicPaths = [
-    '/login',
-    '/signup',
-    '/auth',
-    '/confirm-email',
-    '/email-verified', // Allow users to see verification success page
-    '/',
-    '/privacy',
-    '/terms',
-    '/about',
-    '/pricing',
-    '/api/health',
-    '/api/test-utils', // Test utility endpoints for E2E tests
-    '/api/lessons', // Static lesson data (cached)
-    '/api/reviews/upcoming', // Upcoming reviews (can be cached)
-  ]
-  const isPublicPath = publicPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + '/')
-  )
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ROUTING LOGIC
+  // Order matters: check most specific conditions first
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  // SCENARIO 1: Fully authenticated user trying to access login page
-  // Action: Redirect to dashboard (prevents authenticated users from seeing login)
+  // CASE 1: Authenticated user on login page → Redirect to dashboard
+  // Prevents seeing login form when already logged in
   if (isFullyAuthenticated && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // SCENARIO 2: User has session but email not confirmed
-  // Action: Redirect to confirmation page (except if already there)
-  if (hasValidSession && !isEmailConfirmed && !isPublicPath && pathname !== '/confirm-email') {
+  // CASE 2: User has session but email not confirmed → Redirect to confirm page
+  // Except if they're on public paths or already on confirm page
+  if (hasValidSession && !isEmailConfirmed && !isPublic && pathname !== '/confirm-email') {
     return NextResponse.redirect(new URL('/confirm-email', request.url))
   }
 
-  // SCENARIO 3: Unauthenticated user trying to access protected route
-  // Action: Redirect to login with return path
-  if (!isFullyAuthenticated && !isPublicPath) {
+  // CASE 3: Public path → Allow through (no auth required)
+  if (isPublic) {
+    return NextResponse.next()
+  }
+
+  // CASE 4: Protected path without authentication → Redirect to login
+  // This is the fail-safe: any unhandled case redirects to login
+  if (!isFullyAuthenticated) {
     const loginUrl = new URL('/login', request.url)
+    // Preserve the original destination for redirect after login
     loginUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // SCENARIO 4: Valid request, allow it through
+  // CASE 5: Authenticated user on protected path → Allow through
   return NextResponse.next()
 }
 
-// Configure which routes the middleware runs on
+// ─────────────────────────────────────────────────────────────────────────────
+// MIDDLEWARE MATCHER CONFIGURATION
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const config = {
   matcher: [
     /*
@@ -136,8 +151,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - Public files (images, etc)
+     * - Public files with extensions (images, fonts, etc.)
+     * - sw.js (service worker)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }

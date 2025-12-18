@@ -6,6 +6,7 @@
  */
 
 import dynamicImport from 'next/dynamic'
+import { redirect } from 'next/navigation'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -63,35 +64,17 @@ async function withTimeout<T>(
 export default async function LessonsPage() {
   try {
     // Step 1: Check authentication
+    // If auth fails, redirect to login (don't show error messages)
     const supabase = createClient()
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser()
 
-    if (authError) {
-      console.error('Lessons page auth error:', authError.message)
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Authentication Error</AlertTitle>
-            <AlertDescription>{authError.message}</AlertDescription>
-          </Alert>
-        </div>
-      )
-    }
-
-    if (!user) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Not Authenticated</AlertTitle>
-            <AlertDescription>Please log in to view lessons.</AlertDescription>
-          </Alert>
-        </div>
-      )
+    // Redirect to login if not authenticated
+    // This is a fail-safe in case middleware didn't catch it
+    if (authError || !user) {
+      redirect('/login?redirectTo=/lessons')
     }
 
     // Step 2: Fetch lessons with timeout protection

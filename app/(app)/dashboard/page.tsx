@@ -91,10 +91,12 @@ async function DashboardContent() {
   const supabase = createClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
+  // Redirect to login if not authenticated (fail-safe for middleware edge cases)
+  if (authError || !user) {
+    redirect('/login?redirectTo=/dashboard')
   }
 
   const baseUrl = getBaseUrl()

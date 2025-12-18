@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 import { LessonContentPreview } from '@/components/features/lesson-content-preview'
 import { StartLessonButton } from '@/components/features/start-lesson-button'
@@ -33,10 +33,12 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const supabase = createClient()
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    notFound()
+  // Redirect to login if not authenticated (fail-safe for middleware edge cases)
+  if (authError || !user) {
+    redirect(`/login?redirectTo=/lessons/${params.id}`)
   }
 
   const lessonId = Number.parseInt(params.id, 10)
