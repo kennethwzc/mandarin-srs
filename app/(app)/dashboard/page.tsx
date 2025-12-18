@@ -196,9 +196,7 @@ async function DashboardContent() {
             Track your Mandarin learning progress
           </p>
         </div>
-        {data.stats.reviewsDue > 0 && (
-          <StartReviewsButton reviewsCount={data.stats.reviewsDue} />
-        )}
+        {data.stats.reviewsDue > 0 && <StartReviewsButton reviewsCount={data.stats.reviewsDue} />}
       </div>
 
       <DashboardStats stats={data.stats} />

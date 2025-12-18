@@ -46,9 +46,7 @@ function isPublicPath(pathname: string): boolean {
  */
 function isStaticAsset(pathname: string): boolean {
   return (
-    pathname.startsWith('/_next/') ||
-    pathname.startsWith('/static/') ||
-    pathname.includes('.') // Has file extension
+    pathname.startsWith('/_next/') || pathname.startsWith('/static/') || pathname.includes('.') // Has file extension
   )
 }
 
