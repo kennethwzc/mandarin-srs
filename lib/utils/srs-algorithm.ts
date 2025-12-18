@@ -19,6 +19,17 @@ import {
 import type { SrsStage, Grade } from './srs-constants'
 
 /**
+ * Safe array access helper - returns default if index out of bounds
+ */
+function getStep(steps: readonly number[], index: number, defaultValue: number): number {
+  return steps[index] ?? defaultValue
+}
+
+// Default step values (first step of each array)
+const DEFAULT_LEARNING_STEP = LEARNING_STEPS_MINUTES[0] ?? 1
+const DEFAULT_RELEARNING_STEP = RELEARNING_STEPS_MINUTES[0] ?? 10
+
+/**
  * SRS Algorithm Implementation
  *
  * Pure functions for calculating next review intervals based on SM-2 algorithm.
@@ -136,7 +147,7 @@ function handleNewStage(grade: Grade, timezone: string, reviewedAt: Date): SrsOu
 
   if (grade === GRADES.AGAIN) {
     // Failed - review again in 1 minute
-    intervalMinutes = LEARNING_STEPS_MINUTES[0]!
+    intervalMinutes = DEFAULT_LEARNING_STEP
   } else if (grade === GRADES.EASY) {
     // Easy - skip learning, go straight to review stage
     return {
@@ -148,7 +159,7 @@ function handleNewStage(grade: Grade, timezone: string, reviewedAt: Date): SrsOu
     }
   } else {
     // Hard or Good - start learning process
-    intervalMinutes = LEARNING_STEPS_MINUTES[0]!
+    intervalMinutes = DEFAULT_LEARNING_STEP
   }
 
   return {
@@ -173,7 +184,7 @@ function handleLearningStage(
 ): SrsOutput {
   // AGAIN - reset to first step
   if (grade === GRADES.AGAIN) {
-    const intervalMinutes = LEARNING_STEPS_MINUTES[0]!
+    const intervalMinutes = DEFAULT_LEARNING_STEP
     return {
       newStage: SRS_STAGES.LEARNING,
       newInterval: 0,
@@ -212,7 +223,7 @@ function handleLearningStage(
   }
 
   // Continue learning - advance to next step
-  const intervalMinutes = LEARNING_STEPS_MINUTES[nextStep]!
+  const intervalMinutes = getStep(LEARNING_STEPS_MINUTES, nextStep, DEFAULT_LEARNING_STEP)
   return {
     newStage: SRS_STAGES.LEARNING,
     newInterval: 0,
@@ -236,7 +247,7 @@ function handleRelearningStage(
 ): SrsOutput {
   // AGAIN - reset to first relearning step
   if (grade === GRADES.AGAIN) {
-    const intervalMinutes = RELEARNING_STEPS_MINUTES[0]!
+    const intervalMinutes = DEFAULT_RELEARNING_STEP
     const newEaseFactor = adjustEaseFactor(currentEaseFactor, grade)
     return {
       newStage: SRS_STAGES.RELEARNING,
@@ -278,7 +289,7 @@ function handleRelearningStage(
   }
 
   // Continue relearning
-  const intervalMinutes = RELEARNING_STEPS_MINUTES[nextStep]!
+  const intervalMinutes = getStep(RELEARNING_STEPS_MINUTES, nextStep, DEFAULT_RELEARNING_STEP)
   return {
     newStage: SRS_STAGES.RELEARNING,
     newInterval: previousInterval,
@@ -301,7 +312,7 @@ function handleReviewStage(
 ): SrsOutput {
   // AGAIN - move to relearning
   if (grade === GRADES.AGAIN) {
-    const intervalMinutes = RELEARNING_STEPS_MINUTES[0]!
+    const intervalMinutes = DEFAULT_RELEARNING_STEP
     const newEaseFactor = adjustEaseFactor(currentEaseFactor, grade)
     return {
       newStage: SRS_STAGES.RELEARNING,

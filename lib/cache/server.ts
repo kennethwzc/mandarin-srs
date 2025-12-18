@@ -1,67 +1,17 @@
 /**
- * Server-side cache with Redis support
- *
- * Uses Upstash Redis for persistent caching across serverless instances.
- * Falls back to in-memory cache if Redis is not configured.
+ * Server-side cache with in-memory storage
  *
  * Features:
  * - Stale-while-revalidate pattern for better UX
- * - Automatic fallback to memory cache
- * - TTL support with Redis or memory expiration
- */
-
-// In-memory fallback cache
-const memoryCache = new Map<string, { value: unknown; expires: number; staleAt: number }>()
-
-// Lazy-loaded Redis client (only imports if env vars are set)
-let redisClient: {
-  get: <T>(key: string) => Promise<T | null>
-  set: (key: string, value: unknown, options?: { ex?: number }) => Promise<void>
-  del: (key: string) => Promise<void>
-} | null = null
-
-let redisInitialized = false
-
-/**
- * Initialize Redis client if environment variables are set
+ * - TTL support with memory expiration
  *
- * Note: @upstash/redis is an optional dependency.
- * Install it with: pnpm add @upstash/redis
- * Then set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+ * Note: For production with multiple serverless instances,
+ * consider adding Upstash Redis for shared caching.
+ * See: https://upstash.com/docs/redis/sdks/ts/overview
  */
-async function getRedisClient() {
-  if (redisInitialized) {
-    return redisClient
-  }
 
-  redisInitialized = true
-
-  // Only initialize if both env vars are present
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    try {
-      // Dynamic import to avoid bundling if not used
-      // This will fail if @upstash/redis is not installed, which is fine
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-      const upstashModule = require('@upstash/redis') as any
-      const Redis = upstashModule.Redis
-      redisClient = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Cache] Upstash Redis initialized')
-      }
-    } catch {
-      // Redis not available - using memory cache only
-      // This is expected if @upstash/redis is not installed
-      redisClient = null
-    }
-  }
-
-  return redisClient
-}
+// In-memory cache storage
+const memoryCache = new Map<string, { value: unknown; expires: number; staleAt: number }>()
 
 /**
  * Get a value from cache
@@ -71,23 +21,6 @@ async function getRedisClient() {
  * @returns Cached value or null if not found/expired
  */
 export async function getCached<T>(key: string, _ttlSeconds: number = 300): Promise<T | null> {
-  // Try Redis first
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      const cached = await redis.get<T>(key)
-      if (cached !== null) {
-        return cached
-      }
-    } catch (error) {
-      // Log error but fall through to memory cache
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Cache] Redis get error:', error)
-      }
-    }
-  }
-
-  // Fallback to memory cache
   const cached = memoryCache.get(key)
   if (cached && cached.expires > Date.now()) {
     return cached.value as T
@@ -116,19 +49,6 @@ export async function setCached(
   const expiresAt = Date.now() + ttlSeconds * 1000
   const staleAt = Date.now() + (ttlSeconds / 2) * 1000 // Stale at half TTL
 
-  // Try Redis first
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      await redis.set(key, value, { ex: ttlSeconds })
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Cache] Redis set error:', error)
-      }
-    }
-  }
-
-  // Always also set in memory cache (for faster reads and fallback)
   memoryCache.set(key, {
     value,
     expires: expiresAt,
@@ -142,19 +62,6 @@ export async function setCached(
  * @param key - Cache key to delete
  */
 export async function deleteCached(key: string): Promise<void> {
-  // Delete from Redis
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      await redis.del(key)
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Cache] Redis del error:', error)
-      }
-    }
-  }
-
-  // Always delete from memory cache
   memoryCache.delete(key)
 }
 
@@ -175,22 +82,6 @@ export async function withCache<T>(
   fn: () => Promise<T>,
   ttlSeconds: number = 300
 ): Promise<T> {
-  // Try to get from Redis first
-  const redis = await getRedisClient()
-  if (redis) {
-    try {
-      const cached = await redis.get<T>(key)
-      if (cached !== null) {
-        return cached
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Cache] Redis get error in withCache:', error)
-      }
-    }
-  }
-
-  // Check memory cache
   const memoryCached = memoryCache.get(key)
   if (memoryCached) {
     const now = Date.now()
@@ -224,11 +115,8 @@ async function revalidateInBackground<T>(
   try {
     const result = await fn()
     await setCached(key, result, ttlSeconds)
-  } catch (error) {
+  } catch {
     // Silently fail - stale data is still available
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Cache] Background revalidation failed:', error)
-    }
   }
 }
 

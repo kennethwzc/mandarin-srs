@@ -101,7 +101,11 @@ export async function submitReview(submission: ReviewSubmission) {
         })
         .returning()
 
-      userItem = newItems[0]!
+      const newItem = newItems[0]
+      if (!newItem) {
+        throw new Error('Failed to create user item')
+      }
+      userItem = newItem
     }
 
     // 2. Calculate next review state using SRS algorithm
@@ -152,7 +156,11 @@ export async function submitReview(submission: ReviewSubmission) {
     // 5. Update daily stats
     await updateDailyStats(tx, userId, isCorrect, responseTimeMs)
 
-    return updatedItems[0]!
+    const updatedItem = updatedItems[0]
+    if (!updatedItem) {
+      throw new Error('Failed to update user item')
+    }
+    return updatedItem
   })
 
   // 6. Update user streak (outside transaction since it uses its own db connection)
@@ -184,12 +192,12 @@ async function updateDailyStats(
     .where(and(eq(schema.dailyStats.user_id, userId), eq(schema.dailyStats.stat_date, today)))
     .limit(1)
 
-  if (existingStats.length > 0) {
+  const existingStat = existingStats[0]
+  if (existingStat) {
     // Update existing stats
-    const stats = existingStats[0]!
-    const newReviewsCompleted = stats.reviews_completed + 1
+    const newReviewsCompleted = existingStat.reviews_completed + 1
     const newCorrectCount =
-      stats.reviews_completed * (stats.accuracy_percentage / 100) + (isCorrect ? 1 : 0)
+      existingStat.reviews_completed * (existingStat.accuracy_percentage / 100) + (isCorrect ? 1 : 0)
     const newAccuracy = Math.round((newCorrectCount / newReviewsCompleted) * 100)
 
     await tx
@@ -197,10 +205,10 @@ async function updateDailyStats(
       .set({
         reviews_completed: newReviewsCompleted,
         accuracy_percentage: newAccuracy,
-        time_spent_seconds: stats.time_spent_seconds + Math.floor(responseTimeMs / 1000),
+        time_spent_seconds: existingStat.time_spent_seconds + Math.floor(responseTimeMs / 1000),
         updated_at: new Date(),
       })
-      .where(eq(schema.dailyStats.id, stats.id))
+      .where(eq(schema.dailyStats.id, existingStat.id))
   } else {
     // Create new stats
     await tx.insert(schema.dailyStats).values({

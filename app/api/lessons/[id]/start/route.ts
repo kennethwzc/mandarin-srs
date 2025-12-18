@@ -148,7 +148,8 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
         .where(and(eq(schema.dailyStats.user_id, user.id), eq(schema.dailyStats.stat_date, today)))
         .limit(1)
 
-      if (existingStats.length > 0) {
+      const existingStat = existingStats[0]
+      if (existingStat) {
         // Update existing daily stats
         await db
           .update(schema.dailyStats)
@@ -156,7 +157,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
             new_items_learned: sql`${schema.dailyStats.new_items_learned} + ${addedCount}`,
             updated_at: new Date(),
           })
-          .where(eq(schema.dailyStats.id, existingStats[0]!.id))
+          .where(eq(schema.dailyStats.id, existingStat.id))
       } else {
         // Create new daily stats record for today
         await db.insert(schema.dailyStats).values({

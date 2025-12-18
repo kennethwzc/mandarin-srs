@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Auth callback route
  * Handles OAuth redirects and email confirmations

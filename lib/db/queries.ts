@@ -164,12 +164,18 @@ export async function getDashboardStats(userId: string) {
 
   // Build stage breakdown from aggregated results
   const stageBreakdown: Array<{ stage: string; count: number }> = []
-  if (stats.stage_new > 0) stageBreakdown.push({ stage: 'new', count: stats.stage_new })
-  if (stats.stage_learning > 0)
+  if (stats.stage_new > 0) {
+    stageBreakdown.push({ stage: 'new', count: stats.stage_new })
+  }
+  if (stats.stage_learning > 0) {
     stageBreakdown.push({ stage: 'learning', count: stats.stage_learning })
-  if (stats.stage_review > 0) stageBreakdown.push({ stage: 'review', count: stats.stage_review })
-  if (stats.stage_relearning > 0)
+  }
+  if (stats.stage_review > 0) {
+    stageBreakdown.push({ stage: 'review', count: stats.stage_review })
+  }
+  if (stats.stage_relearning > 0) {
     stageBreakdown.push({ stage: 'relearning', count: stats.stage_relearning })
+  }
 
   return {
     reviewsDue: stats.reviews_due_now,
