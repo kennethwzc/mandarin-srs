@@ -5,6 +5,7 @@
  * Only runs in production builds in the browser.
  */
 
+/* eslint-disable no-console */
 'use client'
 
 import { useEffect } from 'react'
@@ -68,4 +69,3 @@ export function ServiceWorkerProvider() {
 
   return null // This component doesn't render anything
 }
-

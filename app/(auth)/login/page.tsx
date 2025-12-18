@@ -140,8 +140,6 @@ function LoginForm() {
         fetch('/api/dashboard/stats', {
           method: 'GET',
           credentials: 'include',
-          // @ts-expect-error priority is a valid fetch option
-          priority: 'low',
         }).catch(() => {
           // Silently fail - prefetch is optional
         })

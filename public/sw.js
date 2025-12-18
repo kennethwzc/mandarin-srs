@@ -13,20 +13,10 @@ const CACHE_NAME = 'mandarin-srs-v1'
 const CACHE_VERSION = '1.0.0'
 
 // Static assets to cache on install
-const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/lessons',
-  '/reviews',
-  '/offline',
-]
+const STATIC_ASSETS = ['/', '/dashboard', '/lessons', '/reviews', '/offline']
 
 // API routes to cache (network-first strategy)
-const API_ROUTES = [
-  '/api/dashboard/stats',
-  '/api/lessons',
-  '/api/user/profile',
-]
+const API_ROUTES = ['/api/dashboard/stats', '/api/lessons', '/api/user/profile']
 
 /**
  * Install Event
@@ -125,30 +115,27 @@ async function networkFirstStrategy(request) {
   try {
     // Try network with 3-second timeout
     const networkResponse = await fetchWithTimeout(request, 3000)
-    
+
     // Cache successful response
     if (networkResponse && networkResponse.ok) {
       cache.put(request, networkResponse.clone())
     }
-    
+
     return networkResponse
   } catch (error) {
     // Network failed - try cache
     const cachedResponse = await cache.match(request)
-    
+
     if (cachedResponse) {
       console.log('[Service Worker] Serving from cache (offline):', request.url)
       return cachedResponse
     }
 
     // No cache available - return offline response
-    return new Response(
-      JSON.stringify({ error: 'Offline', message: 'No cached data available' }),
-      {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    return new Response(JSON.stringify({ error: 'Offline', message: 'No cached data available' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 }
 
@@ -178,11 +165,11 @@ async function cacheFirstStrategy(request) {
   // Not in cache - fetch from network
   try {
     const networkResponse = await fetch(request)
-    
+
     if (networkResponse && networkResponse.ok) {
       cache.put(request, networkResponse.clone())
     }
-    
+
     return networkResponse
   } catch (error) {
     return new Response('Offline', { status: 503 })
@@ -258,4 +245,3 @@ self.addEventListener('message', (event) => {
     self.skipWaiting()
   }
 })
-

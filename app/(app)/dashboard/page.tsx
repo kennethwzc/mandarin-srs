@@ -131,13 +131,13 @@ async function ChartsSection({ userId }: { userId: string }) {
   const dailyStats = await getDailyStatsRange(userId, startDate, endDate)
 
   const reviewsOverTime = dailyStats.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0],
+    date: stat.stat_date.toISOString().slice(0, 10),
     reviews: stat.reviews_completed,
     newItems: stat.new_items_learned,
   }))
 
   const accuracyOverTime = dailyStats.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0],
+    date: stat.stat_date.toISOString().slice(0, 10),
     accuracy: stat.accuracy_percentage,
   }))
 
@@ -161,7 +161,7 @@ async function ActivitySection({ userId }: { userId: string }) {
   const dailyStats = await getDailyStatsRange(userId, startDate, endDate)
 
   const activityCalendar = dailyStats.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0],
+    date: stat.stat_date.toISOString().slice(0, 10),
     count: stat.reviews_completed,
   }))
 

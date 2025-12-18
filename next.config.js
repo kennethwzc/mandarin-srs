@@ -27,8 +27,6 @@ const nextConfig = {
   // Reduce bundle size and enable performance features
   experimental: {
     optimizePackageImports: ['recharts', 'lucide-react', 'framer-motion'],
-    // Partial Prerendering for faster page loads
-    ppr: 'incremental',
     // Don't bundle database driver (serverless optimization)
     serverComponentsExternalPackages: ['postgres'],
   },

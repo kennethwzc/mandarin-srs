@@ -29,10 +29,7 @@ import { createClient } from '@/lib/supabase/server'
  * Unauthorized response with consistent format
  */
 export function unauthorizedResponse(message = 'Unauthorized') {
-  return NextResponse.json(
-    { error: message, code: 'UNAUTHORIZED' },
-    { status: 401 }
-  )
+  return NextResponse.json({ error: message, code: 'UNAUTHORIZED' }, { status: 401 })
 }
 
 /**
@@ -105,9 +102,7 @@ export async function requireAuth(): Promise<AuthResult> {
 export function getUserEmail(user: User): string | undefined {
   return (
     user.email ??
-    (typeof user.user_metadata?.email === 'string'
-      ? user.user_metadata.email
-      : undefined)
+    (typeof user.user_metadata?.email === 'string' ? user.user_metadata.email : undefined)
   )
 }
 
@@ -118,8 +113,7 @@ export function getUserEmail(user: User): string | undefined {
  * @returns Object with user, email, and error
  */
 export async function requireAuthWithEmail(): Promise<
-  | { user: User; email: string; error: null }
-  | { user: null; email: null; error: NextResponse }
+  { user: User; email: string; error: null } | { user: null; email: null; error: NextResponse }
 > {
   const auth = await requireAuth()
   if (auth.error) {
@@ -140,4 +134,3 @@ export async function requireAuthWithEmail(): Promise<
 
   return { user: auth.user, email, error: null }
 }
-
