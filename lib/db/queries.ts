@@ -140,14 +140,19 @@ export async function getDashboardStats(userId: string) {
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.userItems)
-      .where(and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, now))),
+      .where(
+        and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, now))
+      ),
 
     // Reviews due today (until end of day)
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.userItems)
       .where(
-        and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, endOfToday))
+        and(
+          eq(schema.userItems.user_id, userId),
+          lte(schema.userItems.next_review_date, endOfToday)
+        )
       ),
 
     // Get total items learned count

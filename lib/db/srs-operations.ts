@@ -197,7 +197,8 @@ async function updateDailyStats(
     // Update existing stats
     const newReviewsCompleted = existingStat.reviews_completed + 1
     const newCorrectCount =
-      existingStat.reviews_completed * (existingStat.accuracy_percentage / 100) + (isCorrect ? 1 : 0)
+      existingStat.reviews_completed * (existingStat.accuracy_percentage / 100) +
+      (isCorrect ? 1 : 0)
     const newAccuracy = Math.round((newCorrectCount / newReviewsCompleted) * 100)
 
     await tx
