@@ -5,7 +5,12 @@ import { StartLessonButton } from '@/components/features/start-lesson-button'
 import { BackToLessonsButton } from '@/components/ui/back-to-lessons-button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { getCharactersByIds, getLessonById, getVocabularyByIds } from '@/lib/db/queries'
+import {
+  getCharactersByIds,
+  getLessonById,
+  getVocabularyByIds,
+  hasUserStartedLesson,
+} from '@/lib/db/queries'
 import { createClient } from '@/lib/supabase/server'
 
 interface LessonPageProps {
@@ -60,9 +65,12 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   const totalItems = characters.length + vocabulary.length
 
-  // TODO: replace with real user progress tracking
+  // Check if user has already started this lesson (has items in SRS queue)
+  const isStarted = await hasUserStartedLesson(user.id, lessonId)
+
+  // Note: isCompleted could be implemented later if needed
+  // For now, we only care about whether the lesson was started (for practice mode)
   const isCompleted = false
-  const isStarted = false
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
