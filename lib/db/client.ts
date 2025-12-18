@@ -46,7 +46,7 @@ function getClient(): postgres.Sql {
    * Create postgres connection
    *
    * Configuration optimized for Vercel serverless and Supabase:
-   * - max: 3 connections (conservative for connection pooling with Supabase)
+   * - max: 5 connections (balanced for connection pooling with Supabase)
    * - idle_timeout: 20 seconds (faster cleanup for serverless)
    * - connect_timeout: 10 seconds (faster failure for responsiveness)
    * - max_lifetime: 15 minutes (shorter for serverless cold starts)
@@ -55,7 +55,7 @@ function getClient(): postgres.Sql {
    * (adding ?pgbouncer=true to DATABASE_URL) helps manage connections.
    */
   _client = postgres(process.env.DATABASE_URL, {
-    max: 3, // Conservative for Supabase connection limits
+    max: 5, // Balanced for Supabase connection limits
     idle_timeout: 20, // Faster cleanup for serverless
     connect_timeout: 10, // Faster failure for responsiveness
     max_lifetime: 60 * 15, // 15 minutes (shorter for serverless)

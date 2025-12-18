@@ -114,9 +114,7 @@ export async function createUserProfile(userId: string, email: string, username?
 /**
  * Get dashboard statistics for user
  *
- * OPTIMIZED: Combines 5 queries into 2 using SQL aggregation with FILTER
- * - Query 1: All user_items stats (total, due now, due today, stage breakdown)
- * - Query 2: User profile (for streak info)
+ * Uses parallel queries for better performance while maintaining reliability.
  *
  * @param userId - User's UUID
  * @returns Dashboard stats
@@ -126,64 +124,52 @@ export async function getDashboardStats(userId: string) {
   const endOfToday = new Date()
   endOfToday.setHours(23, 59, 59, 999)
 
-  // COMBINED QUERY: Get all counts in a single query using SQL aggregation
-  // This replaces 4 separate queries with 1
-  const [statsResult, profile] = await Promise.all([
-    db.execute<{
-      total_items: number
-      reviews_due_now: number
-      reviews_due_today: number
-      stage_new: number
-      stage_learning: number
-      stage_review: number
-      stage_relearning: number
-    }>(sql`
-      SELECT 
-        COUNT(*)::int as total_items,
-        COUNT(*) FILTER (WHERE next_review_date <= ${now})::int as reviews_due_now,
-        COUNT(*) FILTER (WHERE next_review_date <= ${endOfToday})::int as reviews_due_today,
-        COUNT(*) FILTER (WHERE srs_stage = 'new')::int as stage_new,
-        COUNT(*) FILTER (WHERE srs_stage = 'learning')::int as stage_learning,
-        COUNT(*) FILTER (WHERE srs_stage = 'review')::int as stage_review,
-        COUNT(*) FILTER (WHERE srs_stage = 'relearning')::int as stage_relearning
-      FROM user_items
-      WHERE user_id = ${userId}
-    `),
+  // Run all queries in parallel for better performance
+  const [stageCounts, reviewsDue, reviewsDueToday, totalItemsCount, profile] = await Promise.all([
+    // Get counts by SRS stage
+    db
+      .select({
+        stage: schema.userItems.srs_stage,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.userItems)
+      .where(eq(schema.userItems.user_id, userId))
+      .groupBy(schema.userItems.srs_stage),
+
+    // Get review queue count (due now)
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.userItems)
+      .where(and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, now))),
+
+    // Reviews due today (until end of day)
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.userItems)
+      .where(
+        and(eq(schema.userItems.user_id, userId), lte(schema.userItems.next_review_date, endOfToday))
+      ),
+
+    // Get total items learned count
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.userItems)
+      .where(eq(schema.userItems.user_id, userId)),
+
+    // Get user profile for streak info
     getUserProfile(userId),
   ])
 
-  const stats = statsResult[0] || {
-    total_items: 0,
-    reviews_due_now: 0,
-    reviews_due_today: 0,
-    stage_new: 0,
-    stage_learning: 0,
-    stage_review: 0,
-    stage_relearning: 0,
-  }
-
-  // Build stage breakdown from aggregated results
-  const stageBreakdown: Array<{ stage: string; count: number }> = []
-  if (stats.stage_new > 0) {
-    stageBreakdown.push({ stage: 'new', count: stats.stage_new })
-  }
-  if (stats.stage_learning > 0) {
-    stageBreakdown.push({ stage: 'learning', count: stats.stage_learning })
-  }
-  if (stats.stage_review > 0) {
-    stageBreakdown.push({ stage: 'review', count: stats.stage_review })
-  }
-  if (stats.stage_relearning > 0) {
-    stageBreakdown.push({ stage: 'relearning', count: stats.stage_relearning })
-  }
-
   return {
-    reviewsDue: stats.reviews_due_now,
-    reviewsDueToday: stats.reviews_due_today,
+    reviewsDue: Number(reviewsDue[0]?.count ?? 0),
+    reviewsDueToday: Number(reviewsDueToday[0]?.count ?? 0),
     currentStreak: profile?.current_streak ?? 0,
     longestStreak: profile?.longest_streak ?? 0,
-    totalItemsLearned: stats.total_items,
-    stageBreakdown,
+    totalItemsLearned: Number(totalItemsCount[0]?.count ?? 0),
+    stageBreakdown: stageCounts.map((s) => ({
+      stage: s.stage,
+      count: Number(s.count),
+    })),
   }
 }
 
