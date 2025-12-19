@@ -7,10 +7,13 @@
  * - Cache static assets (JS, CSS, images)
  * - Cache API responses with network-first strategy
  * - Fallback for offline access
+ *
+ * Note: Console statements are allowed in service workers for debugging
+ * as they run in a separate context and cannot use the logger utility.
  */
 
+/* eslint-disable no-console */
 const CACHE_NAME = 'mandarin-srs-v2'
-const CACHE_VERSION = '2.0.0'
 
 // Static assets to cache on install (only public pages that don't require auth)
 // Auth-required pages (/dashboard, /lessons, /reviews) are cached dynamically on visit
@@ -229,20 +232,97 @@ function isStaticAsset(pathname) {
 }
 
 /**
+ * Prefetch queue to avoid overwhelming network
+ */
+const prefetchQueue = []
+let isPrefetching = false
+
+/**
+ * Process prefetch queue
+ */
+async function processPrefetchQueue() {
+  if (isPrefetching || prefetchQueue.length === 0) {
+    return
+  }
+
+  isPrefetching = true
+  const cache = await caches.open(CACHE_NAME)
+
+  while (prefetchQueue.length > 0) {
+    const url = prefetchQueue.shift()
+    if (!url) {
+      continue
+    }
+
+    try {
+      // Check if already cached
+      const cached = await cache.match(url)
+      if (cached) {
+        continue // Already cached, skip
+      }
+
+      // Fetch and cache
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
+
+      if (response && response.ok) {
+        await cache.put(url, response.clone())
+        console.log('[Service Worker] Prefetched and cached:', url)
+      }
+    } catch (error) {
+      // Silently fail - prefetch is optional
+      console.debug('[Service Worker] Prefetch failed:', url, error)
+    }
+
+    // Small delay between prefetches to avoid overwhelming network
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  isPrefetching = false
+}
+
+/**
  * Message Handler
- * Allow manual cache clearing from client
+ * Allow manual cache clearing and prefetching from client
  */
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(
       caches.delete(CACHE_NAME).then(() => {
         console.log('[Service Worker] Cache cleared')
-        event.ports[0].postMessage({ success: true })
+        if (event.ports && event.ports[0]) {
+          event.ports[0].postMessage({ success: true })
+        }
       })
     )
   }
 
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
+  }
+
+  if (event.data && event.data.type === 'PREFETCH') {
+    const url = event.data.url
+    if (url && typeof url === 'string') {
+      // Add to prefetch queue
+      if (!prefetchQueue.includes(url)) {
+        prefetchQueue.push(url)
+        console.log('[Service Worker] Queued for prefetch:', url)
+      }
+
+      // Process queue
+      processPrefetchQueue().catch((error) => {
+        console.debug('[Service Worker] Prefetch queue processing error:', error)
+      })
+
+      // Acknowledge prefetch request
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ success: true, url })
+      }
+    }
   }
 })

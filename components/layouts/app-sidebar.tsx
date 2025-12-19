@@ -1,16 +1,50 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen, Home, Settings, TrendingUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils/cn'
+import { PrefetchLink } from '@/components/ui/prefetch-link'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, prefetch: true },
-  { name: 'Lessons', href: '/lessons', icon: BookOpen, prefetch: true },
-  { name: 'Reviews', href: '/reviews', icon: TrendingUp, prefetch: false }, // Dynamic, don't prefetch
-  { name: 'Settings', href: '/settings', icon: Settings, prefetch: false },
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    prefetchDataKey: 'dashboard:prefetch',
+    prefetchDataFetcher: async () => {
+      const response = await fetch('/api/dashboard/stats', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error('Failed to prefetch dashboard')
+      }
+      return response.json()
+    },
+  },
+  {
+    name: 'Lessons',
+    href: '/lessons',
+    icon: BookOpen,
+    prefetchDataKey: 'lessons:prefetch',
+    prefetchDataFetcher: async () => {
+      const response = await fetch('/api/lessons', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error('Failed to prefetch lessons')
+      }
+      return response.json()
+    },
+  },
+  {
+    name: 'Reviews',
+    href: '/reviews',
+    icon: TrendingUp,
+    // Don't prefetch reviews - it's dynamic and user-specific
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    // Don't prefetch settings - minimal data needed
+  },
 ]
 
 export function AppSidebar() {
@@ -26,10 +60,12 @@ export function AppSidebar() {
         {navigation.map((item) => {
           const isActive = pathname?.startsWith(item.href)
           return (
-            <Link
+            <PrefetchLink
               key={item.name}
               href={item.href}
-              prefetch={item.prefetch}
+              prefetchDataKey={item.prefetchDataKey}
+              prefetchDataFetcher={item.prefetchDataFetcher}
+              prefetchDelay={150}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 isActive
@@ -39,7 +75,7 @@ export function AppSidebar() {
             >
               <item.icon className="h-5 w-5" />
               {item.name}
-            </Link>
+            </PrefetchLink>
           )
         })}
       </nav>

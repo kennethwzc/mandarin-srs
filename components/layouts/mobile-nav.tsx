@@ -14,19 +14,53 @@
 
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen, Home, Settings, TrendingUp, X } from 'lucide-react'
 import { Drawer } from 'vaul'
 
 import { Button } from '@/components/ui/button'
+import { PrefetchLink } from '@/components/ui/prefetch-link'
 import { cn } from '@/lib/utils/cn'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, prefetch: true },
-  { name: 'Lessons', href: '/lessons', icon: BookOpen, prefetch: true },
-  { name: 'Reviews', href: '/reviews', icon: TrendingUp, prefetch: false },
-  { name: 'Settings', href: '/settings', icon: Settings, prefetch: false },
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    prefetchDataKey: 'dashboard:prefetch',
+    prefetchDataFetcher: async () => {
+      const response = await fetch('/api/dashboard/stats', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error('Failed to prefetch dashboard')
+      }
+      return response.json()
+    },
+  },
+  {
+    name: 'Lessons',
+    href: '/lessons',
+    icon: BookOpen,
+    prefetchDataKey: 'lessons:prefetch',
+    prefetchDataFetcher: async () => {
+      const response = await fetch('/api/lessons', { credentials: 'include' })
+      if (!response.ok) {
+        throw new Error('Failed to prefetch lessons')
+      }
+      return response.json()
+    },
+  },
+  {
+    name: 'Reviews',
+    href: '/reviews',
+    icon: TrendingUp,
+    // Don't prefetch reviews - it's dynamic
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    // Don't prefetch settings
+  },
 ]
 
 interface MobileNavProps {
@@ -64,10 +98,12 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
             {navigation.map((item) => {
               const isActive = pathname?.startsWith(item.href)
               return (
-                <Link
+                <PrefetchLink
                   key={item.name}
                   href={item.href}
-                  prefetch={item.prefetch}
+                  prefetchDataKey={item.prefetchDataKey}
+                  prefetchDataFetcher={item.prefetchDataFetcher}
+                  prefetchDelay={150}
                   onClick={() => onOpenChange(false)}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors',
@@ -81,7 +117,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
                   {item.name}
-                </Link>
+                </PrefetchLink>
               )
             })}
           </nav>

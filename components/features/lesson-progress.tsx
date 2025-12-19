@@ -1,12 +1,11 @@
 'use client'
 
-import Link from 'next/link'
-
 import { BookOpen, Check, Lock } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { PrefetchLink } from '@/components/ui/prefetch-link'
 import { cn } from '@/lib/utils/cn'
 
 interface LessonProgressProps {
@@ -40,9 +39,19 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
             </CardDescription>
           </div>
           <Button asChild size="sm" variant="outline">
-            <Link href="/lessons" prefetch={true}>
+            <PrefetchLink
+              href="/lessons"
+              prefetchDataKey="lessons:prefetch"
+              prefetchDataFetcher={async () => {
+                const response = await fetch('/api/lessons', { credentials: 'include' })
+                if (!response.ok) {
+                  throw new Error('Failed to prefetch lessons')
+                }
+                return response.json()
+              }}
+            >
               View All
-            </Link>
+            </PrefetchLink>
           </Button>
         </div>
       </CardHeader>
@@ -61,10 +70,23 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
 
         <div className="space-y-2">
           {lessons.slice(0, 5).map((lesson) => (
-            <Link
+            <PrefetchLink
               key={lesson.id}
               href={lesson.isUnlocked ? `/lessons/${lesson.id}` : '#'}
-              prefetch={lesson.isUnlocked}
+              prefetchDataKey={lesson.isUnlocked ? `lesson:${lesson.id}:prefetch` : undefined}
+              prefetchDataFetcher={
+                lesson.isUnlocked
+                  ? async () => {
+                      const response = await fetch(`/api/lessons/${lesson.id}`, {
+                        credentials: 'include',
+                      })
+                      if (!response.ok) {
+                        throw new Error('Failed to prefetch lesson')
+                      }
+                      return response.json()
+                    }
+                  : undefined
+              }
               className={cn(
                 'flex items-center gap-3 rounded-lg border p-3 transition-colors',
                 lesson.isUnlocked
@@ -107,15 +129,25 @@ export function LessonProgress({ lessons }: LessonProgressProps) {
                   Completed
                 </span>
               )}
-            </Link>
+            </PrefetchLink>
           ))}
         </div>
 
         {lessons.length > 5 && (
           <Button asChild className="w-full" variant="ghost">
-            <Link href="/lessons" prefetch={true}>
+            <PrefetchLink
+              href="/lessons"
+              prefetchDataKey="lessons:prefetch"
+              prefetchDataFetcher={async () => {
+                const response = await fetch('/api/lessons', { credentials: 'include' })
+                if (!response.ok) {
+                  throw new Error('Failed to prefetch lessons')
+                }
+                return response.json()
+              }}
+            >
               View all {lessons.length} lessons
-            </Link>
+            </PrefetchLink>
           </Button>
         )}
       </CardContent>

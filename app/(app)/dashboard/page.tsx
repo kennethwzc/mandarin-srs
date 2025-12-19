@@ -26,6 +26,7 @@ import * as schema from '@/lib/db/schema'
 import { withCache, getCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
 import { isAbortedError, safeAsync } from '@/lib/utils/request-helpers'
+import { LessonsPrefetcher } from './_components/lessons-prefetcher'
 
 type DailyStat = typeof schema.dailyStats.$inferSelect
 
@@ -478,6 +479,16 @@ async function DashboardContent() {
     }
   }
 
+  // Check if user has incomplete lessons (likely to visit lessons page)
+  // This is a lightweight check for prefetching decision
+  let hasIncompleteLessons = false
+  try {
+    const lessonProgress = await safeAsync(() => getUserLessonProgress(user.id), [], undefined)
+    hasIncompleteLessons = lessonProgress.some((lesson) => !lesson.isCompleted)
+  } catch {
+    // Silently fail - prefetch decision is optional
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {/* Header - loads immediately */}
@@ -497,6 +508,9 @@ async function DashboardContent() {
       <Suspense fallback={<SecondarySkeleton />}>
         <DashboardSecondarySection userId={user.id} />
       </Suspense>
+
+      {/* Lessons prefetcher - runs in background after dashboard loads */}
+      {hasIncompleteLessons && <LessonsPrefetcher hasIncompleteLessons={hasIncompleteLessons} />}
     </div>
   )
 }
