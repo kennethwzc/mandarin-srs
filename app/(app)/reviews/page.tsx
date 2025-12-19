@@ -1,17 +1,19 @@
 /**
  * Reviews Page
  *
- * Server-side rendered reviews page that fetches review queue during SSR.
- * This eliminates the client-side fetch waterfall for faster initial load.
+ * Server-side rendered reviews page with direct DB queries.
+ * Uses same resilient pattern as dashboard for reliability.
  */
 
 import { Suspense } from 'react'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import dynamicImport from 'next/dynamic'
 
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
+import { getReviewQueue } from '@/lib/db/srs-operations'
+import { withCache, getCached } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
 
 // Dynamic import for the client component to avoid SSR issues
 const ReviewSession = dynamicImport(
@@ -30,18 +32,6 @@ export const metadata = {
 export const dynamic = 'force-dynamic'
 
 /**
- * Review item data structure matching the API response
- */
-interface ReviewQueueItem {
-  id: string
-  item_id: number
-  item_type: 'radical' | 'character' | 'vocabulary'
-  character: string
-  pinyin: string
-  meaning: string
-}
-
-/**
  * Transformed review item for the ReviewSession component
  */
 interface ReviewItem {
@@ -53,18 +43,29 @@ interface ReviewItem {
   correctPinyin: string
 }
 
-function getBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-  )
-}
+/**
+ * Fetch review queue directly from database (no HTTP overhead)
+ */
+async function fetchReviewQueue(userId: string, limit: number = 20): Promise<ReviewItem[]> {
+  const startTime = Date.now()
 
-function getCookieHeader() {
-  return cookies()
-    .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join('; ')
+  const queue = await getReviewQueue(userId, limit)
+
+  logger.info('Review queue query completed', {
+    userId,
+    itemCount: queue.length,
+    durationMs: Date.now() - startTime,
+  })
+
+  // Transform to ReviewItem format
+  return queue.map((item) => ({
+    id: item.id,
+    itemId: item.item_id,
+    itemType: item.item_type,
+    character: item.character,
+    meaning: item.meaning,
+    correctPinyin: item.pinyin,
+  }))
 }
 
 /**
@@ -82,77 +83,78 @@ async function ReviewsContent() {
     redirect('/login?redirectTo=/reviews')
   }
 
-  const baseUrl = getBaseUrl()
-  const cookieHeader = getCookieHeader()
+  // Direct DB call with caching (60 second TTL)
+  const cacheKey = `reviews:queue:${user.id}:20`
 
-  // Add timeout to prevent long waits
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+  let initialQueue: ReviewItem[]
+  let isStale = false
 
-  let response
   try {
-    response = await fetch(`${baseUrl}/api/reviews/queue?limit=20`, {
-      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-      cache: 'no-store',
-      signal: controller.signal,
-    })
+    // Try to get fresh data with cache
+    initialQueue = await withCache(cacheKey, () => fetchReviewQueue(user.id, 20), 60)
   } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      return (
-        <div className="space-y-4 py-12 text-center">
-          <h2 className="text-xl font-semibold">Loading Reviews...</h2>
-          <p className="text-muted-foreground">
-            This is taking longer than expected. Please wait a moment.
-          </p>
+    logger.error('Review queue fetch failed', {
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+
+    // FALLBACK: Try to get stale cached data
+    const cachedData = await getCached<ReviewItem[]>(cacheKey)
+    if (cachedData) {
+      initialQueue = cachedData
+      isStale = true
+      logger.info('Using stale cached data for reviews', { userId: user.id })
+    } else {
+      // LAST RESORT: Show error state
+      return <MinimalReviews />
+    }
+  }
+
+  return (
+    <>
+      {isStale && (
+        <div className="mx-auto mb-4 max-w-2xl rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+          Showing cached data. <a href="/reviews" className="underline">Refresh</a> for latest reviews.
+        </div>
+      )}
+      <ReviewSession initialQueue={initialQueue} />
+    </>
+  )
+}
+
+/**
+ * Minimal reviews fallback when all data fetching fails
+ */
+function MinimalReviews() {
+  return (
+    <div className="mx-auto max-w-2xl">
+      <Card className="p-6 text-center">
+        <p className="mb-4 text-muted-foreground">
+          Unable to load reviews. This might be a temporary issue.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <a
+            href="/reviews"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Try Again
+          </a>
           <a
             href="/dashboard"
-            className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             Back to Dashboard
           </a>
+          <a
+            href="/lessons"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            Go to Lessons
+          </a>
         </div>
-      )
-    }
-    throw error
-  }
-  clearTimeout(timeoutId)
-
-  if (!response.ok) {
-    let errorMessage = 'Failed to load reviews'
-    try {
-      const errorData = await response.json()
-      errorMessage = errorData.error || errorMessage
-    } catch {
-      // Response might not be JSON
-    }
-
-    return (
-      <div className="py-12 text-center">
-        <p className="text-muted-foreground">{errorMessage}</p>
-        <a
-          href="/dashboard"
-          className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Back to Dashboard
-        </a>
-      </div>
-    )
-  }
-
-  const { data } = await response.json()
-
-  // Transform API data to ReviewItem format
-  const initialQueue: ReviewItem[] = (data.queue || []).map((item: ReviewQueueItem) => ({
-    id: item.id,
-    itemId: item.item_id,
-    itemType: item.item_type,
-    character: item.character,
-    meaning: item.meaning,
-    correctPinyin: item.pinyin,
-  }))
-
-  return <ReviewSession initialQueue={initialQueue} />
+      </Card>
+    </div>
+  )
 }
 
 export default function ReviewsPage() {

@@ -2,11 +2,10 @@
  * Dashboard Page
  *
  * Displays user's learning progress and statistics.
- * Uses a single API fetch for reliability.
+ * Uses direct DB queries for reliability (no internal HTTP overhead).
  */
 
 import { Suspense } from 'react'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import dynamicImport from 'next/dynamic'
 
@@ -14,6 +13,20 @@ import { Card } from '@/components/ui/card'
 import { StartReviewsButton } from '@/components/ui/start-reviews-button'
 import { createClient } from '@/lib/supabase/server'
 import { VerificationSuccess } from './_components/verification-success'
+import {
+  getAllTimeAccuracy,
+  getDailyStatsRange,
+  getDashboardStats,
+  getUpcomingReviewsForecast,
+  getUserLessonProgress,
+  getUserProfile,
+  createUserProfile,
+} from '@/lib/db/queries'
+import * as schema from '@/lib/db/schema'
+import { withCache, getCached } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
+
+type DailyStat = typeof schema.dailyStats.$inferSelect
 
 // Lazy load client components to avoid SSR issues in CI
 const DashboardStats = dynamicImport(
@@ -81,20 +94,141 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic'
 
-function getBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
-  )
+/**
+ * Dashboard data structure
+ */
+interface DashboardData {
+  stats: {
+    totalItemsLearned: number
+    reviewsDue: number
+    reviewsDueToday: number
+    currentStreak: number
+    longestStreak: number
+    accuracyPercentage: number
+    reviewsCompletedToday: number
+  }
+  charts: {
+    reviewsOverTime: Array<{ date: string; reviews: number; newItems: number }>
+    accuracyOverTime: Array<{ date: string; accuracy: number }>
+    activityCalendar: Array<{ date: string; count: number }>
+    upcomingForecast: Array<{ hour: number; count: number }>
+  }
+  lessons: Array<{
+    id: number
+    title: string
+    isCompleted: boolean
+    isUnlocked: boolean
+  }>
 }
 
-function getCookieHeader() {
-  return cookies()
-    .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join('; ')
+/**
+ * Get today's stats from daily stats array
+ */
+function getTodayStats(dailyStats: DailyStat[]) {
+  const today = new Date().toISOString().split('T')[0] ?? ''
+  return dailyStats.find((stat) => (stat.stat_date.toISOString().split('T')[0] ?? '') === today)
 }
 
+/**
+ * Fetch dashboard data directly from database (no HTTP overhead)
+ */
+async function fetchDashboardData(userId: string): Promise<DashboardData> {
+  const startTime = Date.now()
+
+  // Calculate date ranges
+  const endDate = new Date()
+  const startDate90Days = new Date()
+  startDate90Days.setDate(startDate90Days.getDate() - 90)
+
+  // PARALLEL EXECUTION: Run ALL independent queries at once
+  const [overallStats, dailyStats90d, lessonProgress, upcomingForecast, accuracyPercentage] =
+    await Promise.all([
+      getDashboardStats(userId),
+      getDailyStatsRange(userId, startDate90Days, endDate),
+      getUserLessonProgress(userId),
+      getUpcomingReviewsForecast(userId),
+      getAllTimeAccuracy(userId),
+    ])
+
+  logger.info('Dashboard queries completed', {
+    userId,
+    durationMs: Date.now() - startTime,
+  })
+
+  // For new users with no data, return simplified response
+  if (overallStats.totalItemsLearned === 0) {
+    return {
+      stats: {
+        totalItemsLearned: 0,
+        reviewsDue: 0,
+        reviewsDueToday: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        accuracyPercentage: 0,
+        reviewsCompletedToday: 0,
+      },
+      charts: {
+        reviewsOverTime: [],
+        accuracyOverTime: [],
+        activityCalendar: [],
+        upcomingForecast: [],
+      },
+      lessons: [],
+    }
+  }
+
+  // Slice 30-day data from 90-day result (no extra query needed)
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - 30)
+  const dailyStats30d = dailyStats90d.filter((stat) => stat.stat_date >= cutoffDate)
+
+  // Transform data for charts
+  const reviewsOverTime = dailyStats30d.map((stat) => ({
+    date: stat.stat_date.toISOString().split('T')[0] ?? '',
+    reviews: stat.reviews_completed,
+    newItems: stat.new_items_learned,
+  }))
+
+  const accuracyOverTime = dailyStats30d.map((stat) => ({
+    date: stat.stat_date.toISOString().split('T')[0] ?? '',
+    accuracy: stat.accuracy_percentage,
+  }))
+
+  const activityCalendar = dailyStats90d.map((stat) => ({
+    date: stat.stat_date.toISOString().split('T')[0] ?? '',
+    count: stat.reviews_completed,
+  }))
+
+  const reviewsCompletedToday = getTodayStats(dailyStats30d)?.reviews_completed ?? 0
+
+  return {
+    stats: {
+      totalItemsLearned: overallStats.totalItemsLearned,
+      reviewsDue: overallStats.reviewsDue,
+      reviewsDueToday: overallStats.reviewsDueToday,
+      currentStreak: overallStats.currentStreak,
+      longestStreak: overallStats.longestStreak,
+      accuracyPercentage,
+      reviewsCompletedToday,
+    },
+    charts: {
+      reviewsOverTime,
+      accuracyOverTime,
+      activityCalendar,
+      upcomingForecast,
+    },
+    lessons: lessonProgress.map((lesson) => ({
+      id: lesson.id,
+      title: lesson.title,
+      isCompleted: lesson.isCompleted,
+      isUnlocked: lesson.isUnlocked,
+    })),
+  }
+}
+
+/**
+ * Dashboard content with direct DB calls and fallback support
+ */
 async function DashboardContent() {
   const supabase = createClient()
   const {
@@ -102,66 +236,25 @@ async function DashboardContent() {
     error: authError,
   } = await supabase.auth.getUser()
 
-  // Redirect to login if not authenticated (fail-safe for middleware edge cases)
+  // Redirect to login if not authenticated
   if (authError || !user) {
     redirect('/login?redirectTo=/dashboard')
   }
 
-  const baseUrl = getBaseUrl()
-  const cookieHeader = getCookieHeader()
+  // Check if profile exists, create if not (safety net)
+  const profile = await getUserProfile(user.id)
 
-  // Add timeout to prevent long waits
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
-
-  let response
-  try {
-    response = await fetch(`${baseUrl}/api/dashboard/stats`, {
-      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-  } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof Error && error.name === 'AbortError') {
-      // Timeout occurred - show helpful message
-      return (
-        <div className="space-y-4 py-12 text-center">
-          <h2 className="text-xl font-semibold">Dashboard is Loading...</h2>
-          <p className="text-muted-foreground">
-            This is taking longer than expected. Your account is being set up.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Please refresh the page in a moment, or try the simplified view:
-          </p>
-          <a
-            href="/lessons"
-            className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Go to Lessons
-          </a>
-        </div>
-      )
-    }
-    throw error
-  }
-  clearTimeout(timeoutId)
-
-  if (!response.ok) {
-    // Try to get error details
-    let errorMessage = 'Failed to load dashboard data'
-    let errorCode: string | null = null
+  if (!profile) {
+    logger.info('Creating missing profile for user', { userId: user.id })
 
     try {
-      const errorData = await response.json()
-      errorCode = errorData.errorCode
-      errorMessage = errorData.error || errorMessage
-    } catch {
-      // Response might not be JSON
-    }
+      await createUserProfile(user.id, user.email || '')
+    } catch (createError) {
+      logger.error('Profile creation failed', {
+        userId: user.id,
+        error: createError instanceof Error ? createError.message : String(createError),
+      })
 
-    // Show specific error for profile not found
-    if (errorCode === 'PROFILE_NOT_FOUND') {
       return (
         <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4 px-4">
           <div className="text-center">
@@ -184,19 +277,43 @@ async function DashboardContent() {
         </div>
       )
     }
-
-    // Generic error message
-    return (
-      <div className="py-12 text-center">
-        <p className="text-muted-foreground">{errorMessage}</p>
-      </div>
-    )
   }
 
-  const { data } = await response.json()
+  // Direct DB calls with caching (5 min TTL)
+  const cacheKey = `dashboard:stats:${user.id}`
+
+  let data: DashboardData
+  let isStale = false
+
+  try {
+    // Try to get fresh data with cache
+    data = await withCache(cacheKey, () => fetchDashboardData(user.id), 300)
+  } catch (error) {
+    logger.error('Dashboard data fetch failed', {
+      userId: user.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+
+    // FALLBACK: Try to get stale cached data
+    const cachedData = await getCached<DashboardData>(cacheKey)
+    if (cachedData) {
+      data = cachedData
+      isStale = true
+      logger.info('Using stale cached data for dashboard', { userId: user.id })
+    } else {
+      // LAST RESORT: Return minimal dashboard
+      return <MinimalDashboard />
+    }
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
+      {isStale && (
+        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+          Showing cached data. <a href="/dashboard" className="underline">Refresh</a> for latest stats.
+        </div>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
@@ -228,6 +345,48 @@ async function DashboardContent() {
           currentHour={new Date().getHours()}
         />
       </div>
+    </div>
+  )
+}
+
+/**
+ * Minimal dashboard fallback when all data fetching fails
+ */
+function MinimalDashboard() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          Track your Mandarin learning progress
+        </p>
+      </div>
+
+      <Card className="p-6 text-center">
+        <p className="mb-4 text-muted-foreground">
+          Unable to load dashboard data. This might be a temporary issue.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <a
+            href="/dashboard"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Try Again
+          </a>
+          <a
+            href="/lessons"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            Go to Lessons
+          </a>
+          <a
+            href="/reviews"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            Start Reviews
+          </a>
+        </div>
+      </Card>
     </div>
   )
 }
