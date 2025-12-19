@@ -9,11 +9,11 @@ import dynamicImport from 'next/dynamic'
 import { redirect } from 'next/navigation'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { getAllLessons } from '@/lib/db/queries'
 import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { isAbortedError } from '@/lib/utils/request-helpers'
-import { AlertCircle, Info, RefreshCw } from 'lucide-react'
+import { AlertCircle, Info } from 'lucide-react'
 
 // Dynamically import LessonCard to avoid SSR issues with Link component
 const LessonCard = dynamicImport(
@@ -110,15 +110,9 @@ export default async function LessonsPage() {
                     <li>The server is starting up after being idle</li>
                   </ul>
                   <div className="pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.location.reload()}
-                      className="gap-2"
-                    >
-                      <RefreshCw className="h-4 w-4" />
+                    <RefreshButton variant="outline" size="sm">
                       Try Again
-                    </Button>
+                    </RefreshButton>
                   </div>
                 </div>
               </AlertDescription>
@@ -203,15 +197,9 @@ export default async function LessonsPage() {
             <div className="space-y-2">
               <p>An error occurred while loading lessons. Please try again.</p>
               <div className="pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                  className="gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
+                <RefreshButton variant="outline" size="sm">
                   Try Again
-                </Button>
+                </RefreshButton>
               </div>
             </div>
           </AlertDescription>
@@ -241,15 +229,9 @@ function LessonsMinimalFallback({ message }: { message: string }) {
           <div className="space-y-2">
             <p>{message}</p>
             <div className="pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
+              <RefreshButton variant="outline" size="sm">
                 Refresh
-              </Button>
+              </RefreshButton>
             </div>
           </div>
         </AlertDescription>
