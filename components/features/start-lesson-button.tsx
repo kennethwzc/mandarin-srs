@@ -61,6 +61,10 @@ export function StartLessonButton({
         description: `Added ${newItems} items to your learning queue.`,
       })
 
+      // Refresh router cache to update dashboard stats
+      // This ensures stats are fresh when user returns to dashboard
+      router.refresh()
+
       // Redirect to practice mode instead of reviews
       router.push(`/lessons/${lessonId}/practice`)
     } catch (error) {

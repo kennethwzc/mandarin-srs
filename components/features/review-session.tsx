@@ -19,7 +19,7 @@
 
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -95,6 +95,18 @@ export function ReviewSession({ initialQueue }: ReviewSessionProps) {
   const pendingSubmissions = useRef<PendingSubmission[]>([])
   const isProcessingQueue = useRef(false)
   const hasAdvancedRef = useRef(false)
+
+  /**
+   * Refresh router cache when session completes
+   * This ensures dashboard stats are fresh when user navigates back
+   */
+  useEffect(() => {
+    if (sessionComplete && totalReviewed > 0) {
+      // Refresh Next.js router cache to pull fresh server component data
+      // This updates dashboard stats automatically without manual refresh
+      router.refresh()
+    }
+  }, [sessionComplete, totalReviewed, router])
 
   /**
    * Process pending submissions in background
