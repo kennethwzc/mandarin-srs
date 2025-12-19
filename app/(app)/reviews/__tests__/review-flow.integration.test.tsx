@@ -154,9 +154,9 @@ describe('Review Flow Integration', () => {
       expect(screen.getAllByText(/correct/i).length).toBeGreaterThan(0)
     })
 
-    // Click a grade button (e.g., "Good")
-    const goodButton = screen.getByRole('button', { name: /good/i })
-    await user.click(goodButton)
+    // Click the "Next" button (grade is now auto-calculated based on time)
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    await user.click(nextButton)
 
     // Should advance to second card
     await waitFor(() => {
@@ -181,9 +181,9 @@ describe('Review Flow Integration', () => {
       expect(screen.getAllByText(/correct/i).length).toBeGreaterThan(0)
     })
 
-    // Click grade button
-    const goodButton = screen.getByRole('button', { name: /good/i })
-    await user.click(goodButton)
+    // Click the "Next" button (grade is now auto-calculated based on time)
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    await user.click(nextButton)
 
     // Should show completion screen
     await waitFor(() => {

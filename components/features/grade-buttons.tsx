@@ -8,6 +8,20 @@ import { GRADES } from '@/lib/utils/srs-constants'
 /**
  * Grade Buttons Component
  *
+ * @deprecated This component is no longer used in the review flow.
+ * Grades are now calculated automatically based on response time using
+ * `calculateGradeFromTime` from `@/lib/utils/srs-algorithm`.
+ *
+ * The time-based grading system works as follows:
+ * - EASY (3): < 4 seconds per character
+ * - GOOD (2): 4-8 seconds per character
+ * - HARD (1): > 8 seconds per character
+ * - AGAIN (0): Wrong answer
+ *
+ * This file is kept for potential future use (e.g., override mode, settings).
+ *
+ * ---
+ * Original description:
  * Self-assessment buttons for rating how well you knew the answer.
  * This determines the next review interval.
  *

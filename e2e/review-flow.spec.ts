@@ -39,8 +39,8 @@ test.describe('Review Flow', () => {
       timeout: 5000,
     })
 
-    // Grade the review
-    await page.keyboard.press('3') // Good
+    // Continue to next card (grade is now auto-calculated based on response time)
+    await page.keyboard.press('Enter')
 
     // Should either move to next card or show session complete
     await page.waitForTimeout(1000)

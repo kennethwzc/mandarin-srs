@@ -1,10 +1,16 @@
-import { calculateNextReview, getDaysUntilReview, isDueForReview } from '../srs-algorithm'
+import {
+  calculateNextReview,
+  getDaysUntilReview,
+  isDueForReview,
+  calculateGradeFromTime,
+} from '../srs-algorithm'
 import {
   SRS_STAGES,
   GRADES,
   INITIAL_EASE_FACTOR,
   GRADUATING_INTERVAL_DAYS,
   EASY_INTERVAL_DAYS,
+  TIME_THRESHOLDS,
 } from '../srs-constants'
 
 /**
@@ -542,6 +548,132 @@ describe('SRS Algorithm', () => {
       // Both should have same interval, but different absolute times
       expect(resultUTC.newInterval).toBe(resultNY.newInterval)
       expect(resultUTC.newStage).toBe(resultNY.newStage)
+    })
+  })
+
+  describe('calculateGradeFromTime', () => {
+    describe('incorrect answers', () => {
+      it('should return AGAIN for incorrect answers regardless of time', () => {
+        // Even with fast response time, wrong answer = AGAIN
+        expect(calculateGradeFromTime(1000, 1, false)).toBe(GRADES.AGAIN)
+        expect(calculateGradeFromTime(100, 1, false)).toBe(GRADES.AGAIN)
+        expect(calculateGradeFromTime(30000, 1, false)).toBe(GRADES.AGAIN)
+      })
+
+      it('should return AGAIN for skipped answers (0ms)', () => {
+        expect(calculateGradeFromTime(0, 1, false)).toBe(GRADES.AGAIN)
+      })
+    })
+
+    describe('EASY grade (< 4 sec/char)', () => {
+      it('should return EASY for very fast single character response', () => {
+        // 2 seconds for 1 character = 2 sec/char < 4 = EASY
+        expect(calculateGradeFromTime(2000, 1, true)).toBe(GRADES.EASY)
+      })
+
+      it('should return EASY for fast multi-character response', () => {
+        // 6 seconds for 2 characters = 3 sec/char < 4 = EASY
+        expect(calculateGradeFromTime(6000, 2, true)).toBe(GRADES.EASY)
+      })
+
+      it('should return EASY for sub-second response', () => {
+        // 500ms for 1 character = 0.5 sec/char = EASY
+        expect(calculateGradeFromTime(500, 1, true)).toBe(GRADES.EASY)
+      })
+
+      it('should return EASY at just under threshold', () => {
+        // 3.9 seconds for 1 character = 3.9 sec/char < 4 = EASY
+        expect(calculateGradeFromTime(3900, 1, true)).toBe(GRADES.EASY)
+      })
+    })
+
+    describe('GOOD grade (4-8 sec/char)', () => {
+      it('should return GOOD at exactly 4 sec/char', () => {
+        // 4 seconds for 1 character = 4 sec/char = GOOD
+        expect(calculateGradeFromTime(4000, 1, true)).toBe(GRADES.GOOD)
+      })
+
+      it('should return GOOD for medium response time', () => {
+        // 6 seconds for 1 character = 6 sec/char = GOOD
+        expect(calculateGradeFromTime(6000, 1, true)).toBe(GRADES.GOOD)
+      })
+
+      it('should return GOOD for multi-character at good pace', () => {
+        // 12 seconds for 2 characters = 6 sec/char = GOOD
+        expect(calculateGradeFromTime(12000, 2, true)).toBe(GRADES.GOOD)
+      })
+
+      it('should return GOOD at exactly 8 sec/char', () => {
+        // 8 seconds for 1 character = 8 sec/char = GOOD (boundary)
+        expect(calculateGradeFromTime(8000, 1, true)).toBe(GRADES.GOOD)
+      })
+    })
+
+    describe('HARD grade (> 8 sec/char)', () => {
+      it('should return HARD for slow response', () => {
+        // 10 seconds for 1 character = 10 sec/char > 8 = HARD
+        expect(calculateGradeFromTime(10000, 1, true)).toBe(GRADES.HARD)
+      })
+
+      it('should return HARD just above threshold', () => {
+        // 8.1 seconds for 1 character = 8.1 sec/char > 8 = HARD
+        expect(calculateGradeFromTime(8100, 1, true)).toBe(GRADES.HARD)
+      })
+
+      it('should return HARD for very slow response', () => {
+        // 30 seconds for 1 character = 30 sec/char = HARD
+        expect(calculateGradeFromTime(30000, 1, true)).toBe(GRADES.HARD)
+      })
+
+      it('should return HARD for slow multi-character response', () => {
+        // 20 seconds for 2 characters = 10 sec/char > 8 = HARD
+        expect(calculateGradeFromTime(20000, 2, true)).toBe(GRADES.HARD)
+      })
+    })
+
+    describe('edge cases', () => {
+      it('should handle 0ms response time as EASY', () => {
+        // 0ms for correct answer = 0 sec/char < 4 = EASY
+        expect(calculateGradeFromTime(0, 1, true)).toBe(GRADES.EASY)
+      })
+
+      it('should handle very long response times', () => {
+        // 5 minutes for 1 character = 300 sec/char = HARD
+        expect(calculateGradeFromTime(300000, 1, true)).toBe(GRADES.HARD)
+      })
+
+      it('should handle 0 character count gracefully (treat as 1)', () => {
+        // Edge case: 0 characters should not cause division by zero
+        expect(calculateGradeFromTime(3000, 0, true)).toBe(GRADES.EASY) // 3 sec/1 = EASY
+        expect(calculateGradeFromTime(6000, 0, true)).toBe(GRADES.GOOD) // 6 sec/1 = GOOD
+        expect(calculateGradeFromTime(10000, 0, true)).toBe(GRADES.HARD) // 10 sec/1 = HARD
+      })
+
+      it('should handle negative character count gracefully (treat as 1)', () => {
+        // Edge case: negative should be treated as 1
+        expect(calculateGradeFromTime(3000, -1, true)).toBe(GRADES.EASY)
+      })
+
+      it('should scale correctly with character count', () => {
+        // Same total time, different character counts
+        // 16 seconds:
+        // - 1 char: 16 sec/char = HARD
+        // - 2 chars: 8 sec/char = GOOD
+        // - 4 chars: 4 sec/char = GOOD
+        // - 8 chars: 2 sec/char = EASY
+        expect(calculateGradeFromTime(16000, 1, true)).toBe(GRADES.HARD)
+        expect(calculateGradeFromTime(16000, 2, true)).toBe(GRADES.GOOD)
+        expect(calculateGradeFromTime(16000, 4, true)).toBe(GRADES.GOOD)
+        expect(calculateGradeFromTime(16000, 8, true)).toBe(GRADES.EASY)
+      })
+    })
+
+    describe('threshold constants', () => {
+      it('should use correct threshold values', () => {
+        // Verify thresholds match expected values
+        expect(TIME_THRESHOLDS.EASY_MAX).toBe(4)
+        expect(TIME_THRESHOLDS.GOOD_MAX).toBe(8)
+      })
     })
   })
 

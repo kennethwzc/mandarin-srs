@@ -149,3 +149,19 @@ export const FUZZ_FACTOR_RANGE = 0.05
  * (Not implemented in MVP, but useful for future)
  */
 export const LEECH_THRESHOLD = 8
+
+/**
+ * Time-based grading thresholds (seconds per character)
+ *
+ * Grade is calculated automatically based on response time:
+ * - EASY: Fast recall (< 4 seconds per character)
+ * - GOOD: Normal recall (4-8 seconds per character)
+ * - HARD: Slow recall (> 8 seconds per character)
+ * - AGAIN: Wrong answer or skip (handled separately)
+ */
+export const TIME_THRESHOLDS = {
+  /** Under this = EASY grade (seconds per character) */
+  EASY_MAX: 4,
+  /** Under or equal to this = GOOD grade, above = HARD (seconds per character) */
+  GOOD_MAX: 8,
+} as const

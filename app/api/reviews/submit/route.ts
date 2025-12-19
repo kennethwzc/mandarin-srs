@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/api/auth-middleware'
 import { submitReview } from '@/lib/db/srs-operations'
 import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
+import { calculateGradeFromTime } from '@/lib/utils/srs-algorithm'
 import { GRADES } from '@/lib/utils/srs-constants'
 import { deleteCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
@@ -54,17 +55,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { itemId, itemType, userAnswer, correctAnswer, grade, responseTimeMs } =
-      validationResult.data
+    // Note: grade is received from client but we recalculate server-side for security
+    const {
+      itemId,
+      itemType,
+      userAnswer,
+      correctAnswer,
+      grade: _clientGrade,
+      responseTimeMs,
+    } = validationResult.data
 
     // 3. Determine if answer is correct using centralized pinyin comparison
     const isCorrect = comparePinyinExact(userAnswer, correctAnswer)
 
-    // 4. Get user's timezone (from profile or default to UTC)
+    // 4. Recalculate grade server-side for security
+    // This ensures clients cannot manipulate their grades
+    const calculatedGrade = calculateGradeFromTime(
+      responseTimeMs,
+      correctAnswer.length, // Character count from the correct answer
+      isCorrect
+    )
+
+    // 5. Get user's timezone (from profile or default to UTC)
     // TODO (Q1 2025): Fetch timezone from user profile once timezone field is added to profiles table
     const timezone = 'UTC'
 
-    // 5. Submit review
+    // 6. Submit review with server-calculated grade
     const updatedItem = await submitReview({
       userId: user.id,
       itemId,
@@ -72,12 +88,12 @@ export async function POST(request: NextRequest) {
       userAnswer,
       correctAnswer,
       isCorrect,
-      grade: grade as 0 | 1 | 2 | 3,
+      grade: calculatedGrade,
       responseTimeMs,
       timezone,
     })
 
-    // 6. Invalidate review queue cache for this user
+    // 7. Invalidate review queue cache for this user
     // This ensures fresh data on next page load after completing reviews
     await Promise.all([
       deleteCached(`reviews:queue:${user.id}:10`),
@@ -87,7 +103,7 @@ export async function POST(request: NextRequest) {
       deleteCached(`dashboard:stats:${user.id}`), // Also invalidate dashboard stats
     ])
 
-    // 7. Return updated state
+    // 8. Return updated state
     return NextResponse.json({
       success: true,
       data: {

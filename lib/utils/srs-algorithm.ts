@@ -15,6 +15,7 @@ import {
   EASY_BONUS_MULTIPLIER,
   MIN_DAYS_INCREMENT,
   FUZZ_FACTOR_RANGE,
+  TIME_THRESHOLDS,
 } from './srs-constants'
 import type { SrsStage, Grade } from './srs-constants'
 
@@ -451,4 +452,55 @@ export function getDaysUntilReview(nextReviewDate: Date, now: Date = new Date())
  */
 export function isDueForReview(nextReviewDate: Date, now: Date = new Date()): boolean {
   return nextReviewDate <= now
+}
+
+/**
+ * Calculate grade automatically based on response time
+ *
+ * Grade is determined by seconds per character:
+ * - EASY (3): < 4 seconds per character (fast recall)
+ * - GOOD (2): 4-8 seconds per character (normal recall)
+ * - HARD (1): > 8 seconds per character (slow recall)
+ * - AGAIN (0): Wrong answer or skip
+ *
+ * @param responseTimeMs - Response time in milliseconds
+ * @param characterCount - Number of characters in the item (e.g., 你好 = 2)
+ * @param isCorrect - Whether the answer was correct
+ * @returns Grade (0-3)
+ *
+ * @example
+ * ```ts
+ * // Single character answered in 3 seconds = EASY
+ * calculateGradeFromTime(3000, 1, true) // Returns 3 (EASY)
+ *
+ * // Two characters answered in 12 seconds (6 sec/char) = GOOD
+ * calculateGradeFromTime(12000, 2, true) // Returns 2 (GOOD)
+ *
+ * // Wrong answer = AGAIN regardless of time
+ * calculateGradeFromTime(1000, 1, false) // Returns 0 (AGAIN)
+ * ```
+ */
+export function calculateGradeFromTime(
+  responseTimeMs: number,
+  characterCount: number,
+  isCorrect: boolean
+): Grade {
+  // Wrong answer or skip = AGAIN
+  if (!isCorrect) {
+    return GRADES.AGAIN
+  }
+
+  // Calculate seconds per character (guard against division by zero)
+  const secondsPerChar = responseTimeMs / 1000 / Math.max(characterCount, 1)
+
+  // Determine grade based on time thresholds
+  if (secondsPerChar < TIME_THRESHOLDS.EASY_MAX) {
+    return GRADES.EASY
+  }
+
+  if (secondsPerChar <= TIME_THRESHOLDS.GOOD_MAX) {
+    return GRADES.GOOD
+  }
+
+  return GRADES.HARD
 }

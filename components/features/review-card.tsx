@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { CharacterDisplay } from './character-display'
 import { PinyinInput } from './pinyin-input'
 import { ToneSelector } from './tone-selector'
-import { GradeButtons } from './grade-buttons'
 import { PinyinFeedback } from './pinyin-feedback'
 import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pinyin-utils'
+import { calculateGradeFromTime } from '@/lib/utils/srs-algorithm'
+import { GRADES, TIME_THRESHOLDS } from '@/lib/utils/srs-constants'
 import { cn } from '@/lib/utils/cn'
 
 // Re-export types for external use
@@ -94,33 +95,65 @@ export const ReviewCard = memo(function ReviewCard({
   }, [userInput, correctPinyin])
 
   /**
-   * Handle self-grading
-   * Called when user clicks Again/Hard/Good/Easy
+   * Handle continue/next - automatically calculates grade based on response time
+   * Called when user clicks "Next" after seeing feedback
    */
-  const handleGrade = useCallback(
-    (grade: number) => {
-      const responseTime = Date.now() - startTime
+  const handleContinue = useCallback(() => {
+    const responseTime = Date.now() - startTime
+    const correct = isCorrect ?? false
 
-      onSubmit({
-        userAnswer: userInput,
-        isCorrect: isCorrect ?? false,
-        grade,
-        responseTimeMs: responseTime,
-      })
+    // Auto-calculate grade based on response time and character count
+    const autoGrade = calculateGradeFromTime(responseTime, character.length, correct)
 
-      // Reset for next card (parent will provide new character)
-    },
-    [userInput, isCorrect, startTime, onSubmit]
-  )
+    onSubmit({
+      userAnswer: userInput,
+      isCorrect: correct,
+      grade: autoGrade,
+      responseTimeMs: responseTime,
+    })
+
+    // Reset for next card (parent will provide new character)
+  }, [userInput, isCorrect, startTime, onSubmit, character.length])
+
+  /**
+   * Get grade label and color for display
+   */
+  const getGradeDisplay = useCallback(() => {
+    if (isCorrect === null) {
+      return null
+    }
+
+    const responseTime = Date.now() - startTime
+    const secondsPerChar = responseTime / 1000 / Math.max(character.length, 1)
+    const grade = calculateGradeFromTime(responseTime, character.length, isCorrect)
+
+    const gradeInfo = {
+      [GRADES.AGAIN]: { label: 'Again', color: 'text-red-500', bgColor: 'bg-red-500/10' },
+      [GRADES.HARD]: { label: 'Hard', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+      [GRADES.GOOD]: { label: 'Good', color: 'text-green-500', bgColor: 'bg-green-500/10' },
+      [GRADES.EASY]: { label: 'Easy', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+    }
+
+    const info = gradeInfo[grade]
+    return {
+      ...info,
+      secondsPerChar: secondsPerChar.toFixed(1),
+      grade,
+    }
+  }, [isCorrect, startTime, character.length])
 
   /**
    * Keyboard shortcuts
    */
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Enter to submit answer
-      if (e.key === 'Enter' && !isAnswerSubmitted) {
-        handleSubmitAnswer()
+      // Enter to submit answer or continue to next card
+      if (e.key === 'Enter') {
+        if (!isAnswerSubmitted) {
+          handleSubmitAnswer()
+        } else {
+          handleContinue()
+        }
       }
 
       // Escape to skip (if enabled)
@@ -131,7 +164,7 @@ export const ReviewCard = memo(function ReviewCard({
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [isAnswerSubmitted, handleSubmitAnswer, onSkip])
+  }, [isAnswerSubmitted, handleSubmitAnswer, handleContinue, onSkip])
 
   return (
     <Card
@@ -198,8 +231,58 @@ export const ReviewCard = memo(function ReviewCard({
               show={isAnswerSubmitted}
             />
 
-            {/* Self-Grading Buttons */}
-            <GradeButtons onGrade={handleGrade} isCorrect={isCorrect ?? false} />
+            {/* Auto-calculated Grade Display */}
+            {(() => {
+              const gradeDisplay = getGradeDisplay()
+              if (!gradeDisplay) {
+                return null
+              }
+
+              return (
+                <div className="space-y-4">
+                  {/* Grade indicator */}
+                  <div
+                    className={cn(
+                      'mx-auto flex items-center justify-center gap-2 rounded-lg px-4 py-2',
+                      gradeDisplay.bgColor
+                    )}
+                  >
+                    <span className={cn('font-medium', gradeDisplay.color)}>
+                      {gradeDisplay.label}
+                    </span>
+                    {isCorrect && (
+                      <span className="text-sm text-muted-foreground">
+                        ({gradeDisplay.secondsPerChar}s/char)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Time thresholds hint (only for correct answers) */}
+                  {isCorrect && (
+                    <p className="text-center text-xs text-muted-foreground">
+                      &lt;{TIME_THRESHOLDS.EASY_MAX}s = Easy • {TIME_THRESHOLDS.EASY_MAX}-
+                      {TIME_THRESHOLDS.GOOD_MAX}s = Good • &gt;{TIME_THRESHOLDS.GOOD_MAX}s = Hard
+                    </p>
+                  )}
+
+                  {/* Next button */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={handleContinue}
+                      className={cn(
+                        'min-h-[48px] w-full rounded-lg px-6 py-3 font-medium sm:w-auto sm:px-12',
+                        'bg-primary text-primary-foreground',
+                        'transition-all hover:scale-105 hover:bg-primary/90 active:scale-95',
+                        'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                      )}
+                    >
+                      Next
+                      <span className="ml-2 text-sm opacity-70 max-sm:hidden">(Enter)</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
 
