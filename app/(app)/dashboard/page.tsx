@@ -96,53 +96,23 @@ function getCookieHeader() {
 }
 
 async function DashboardContent() {
-  /* eslint-disable no-console */
-  console.log('[Dashboard] Starting DashboardContent server render')
-  
-  let supabase
-  try {
-    supabase = createClient()
-    console.log('[Dashboard] Supabase client created')
-  } catch (error) {
-    console.error('[Dashboard] Failed to create Supabase client:', error)
-    throw error
-  }
-
-  let user
-  let authError
-  try {
-    const authResult = await supabase.auth.getUser()
-    user = authResult.data.user
-    authError = authResult.error
-    console.log('[Dashboard] Auth check complete:', { hasUser: !!user, hasError: !!authError })
-  } catch (error) {
-    console.error('[Dashboard] Auth check failed:', error)
-    throw error
-  }
+  const supabase = createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
 
   // Redirect to login if not authenticated (fail-safe for middleware edge cases)
   if (authError || !user) {
-    console.log('[Dashboard] Redirecting to login')
     redirect('/login?redirectTo=/dashboard')
   }
 
-  let baseUrl
-  let cookieHeader
-  try {
-    baseUrl = getBaseUrl()
-    console.log('[Dashboard] Base URL:', baseUrl)
-    cookieHeader = getCookieHeader()
-    console.log('[Dashboard] Cookie header length:', cookieHeader.length)
-  } catch (error) {
-    console.error('[Dashboard] Failed to get base URL or cookies:', error)
-    throw error
-  }
+  const baseUrl = getBaseUrl()
+  const cookieHeader = getCookieHeader()
 
   // Add timeout to prevent long waits
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
-
-  console.log('[Dashboard] Starting fetch to:', `${baseUrl}/api/dashboard/stats`)
 
   let response
   try {
@@ -151,13 +121,7 @@ async function DashboardContent() {
       cache: 'no-store',
       signal: controller.signal,
     })
-    console.log('[Dashboard] Fetch complete:', {
-      ok: response.ok,
-      status: response.status,
-      statusText: response.statusText,
-    })
   } catch (error) {
-    console.error('[Dashboard] Fetch failed:', error)
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
       // Timeout occurred - show helpful message
@@ -179,45 +143,7 @@ async function DashboardContent() {
         </div>
       )
     }
-    
-    // Handle other fetch errors gracefully
-    return (
-      <div className="space-y-4 py-12 text-center">
-        <h2 className="text-xl font-semibold">Connection Error</h2>
-        <p className="text-muted-foreground">
-          Unable to connect to the dashboard service. This might be a temporary issue.
-        </p>
-        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
-          <p className="mb-2 font-semibold">Debug Information:</p>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(
-              {
-                error: 'Fetch failed',
-                message: error instanceof Error ? error.message : String(error),
-                name: error instanceof Error ? error.name : 'Unknown',
-                baseUrl,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Refresh Page
-          </button>
-          <a
-            href="/lessons"
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            Go to Lessons
-          </a>
-        </div>
-      </div>
-    )
+    throw error
   }
   clearTimeout(timeoutId)
 
@@ -225,26 +151,14 @@ async function DashboardContent() {
     // Try to get error details
     let errorMessage = 'Failed to load dashboard data'
     let errorCode: string | null = null
-    let errorDetails: unknown = null
 
     try {
       const errorData = await response.json()
       errorCode = errorData.errorCode
       errorMessage = errorData.error || errorMessage
-      errorDetails = errorData.details
     } catch {
       // Response might not be JSON
     }
-
-    // Log error to console for debugging (visible in production browser console)
-    console.error('Dashboard API Error:', {
-      status: response.status,
-      statusText: response.statusText,
-      errorCode,
-      errorMessage,
-      errorDetails,
-      url: response.url,
-    })
 
     // Show specific error for profile not found
     if (errorCode === 'PROFILE_NOT_FOUND') {
@@ -271,109 +185,15 @@ async function DashboardContent() {
       )
     }
 
-    // Generic error message with detailed info for debugging
+    // Generic error message
     return (
-      <div className="space-y-4 py-12 text-center">
+      <div className="py-12 text-center">
         <p className="text-muted-foreground">{errorMessage}</p>
-        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
-          <p className="mb-2 font-semibold">Debug Information:</p>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(
-              {
-                status: response.status,
-                statusText: response.statusText,
-                errorCode,
-                errorMessage,
-                errorDetails,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Refresh Page
-        </button>
       </div>
     )
   }
 
-  console.log('[Dashboard] Parsing JSON response')
-  let responseData
-  try {
-    responseData = await response.json()
-    console.log('[Dashboard] JSON parsed successfully:', {
-      hasData: !!responseData?.data,
-      dataKeys: responseData?.data ? Object.keys(responseData.data) : [],
-    })
-  } catch (jsonError) {
-    console.error('[Dashboard] Failed to parse JSON response:', jsonError)
-    return (
-      <div className="space-y-4 py-12 text-center">
-        <p className="text-muted-foreground">Failed to parse dashboard data</p>
-        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
-          <p className="mb-2 font-semibold">Debug Information:</p>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(
-              {
-                error: 'JSON parsing failed',
-                message: jsonError instanceof Error ? jsonError.message : String(jsonError),
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Refresh Page
-        </button>
-      </div>
-    )
-  }
-
-  const { data } = responseData
-
-  // Validate response structure
-  if (!data || !data.stats || !data.charts || !data.lessons) {
-    console.error('Invalid dashboard response structure:', responseData)
-    return (
-      <div className="space-y-4 py-12 text-center">
-        <p className="text-muted-foreground">Dashboard data has unexpected format</p>
-        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
-          <p className="mb-2 font-semibold">Debug Information:</p>
-          <pre className="whitespace-pre-wrap text-xs">
-            {JSON.stringify(
-              {
-                error: 'Invalid response structure',
-                received: responseData,
-                expected: {
-                  data: {
-                    stats: '{ ... }',
-                    charts: '{ ... }',
-                    lessons: '[ ... ]',
-                  },
-                },
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Refresh Page
-        </button>
-      </div>
-    )
-  }
+  const { data } = await response.json()
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -410,7 +230,6 @@ async function DashboardContent() {
       </div>
     </div>
   )
-  /* eslint-enable no-console */
 }
 
 export default function DashboardPage() {
