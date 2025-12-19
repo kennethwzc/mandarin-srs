@@ -11,10 +11,11 @@ import { PinyinFeedback } from './pinyin-feedback'
 import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
-import type { ReviewCardProps, ReviewResult } from './review-card.types'
-
 // Re-export types for external use
 export type { ReviewCardProps, ReviewResult } from './review-card.types'
+
+// Import ReviewCardProps for internal use in the component
+type ReviewCardPropsInternal = import('./review-card.types').ReviewCardProps
 
 /**
  * Review Card Component (Optimized with React.memo)
@@ -48,7 +49,7 @@ export const ReviewCard = memo(function ReviewCard({
   itemType,
   onSubmit,
   onSkip,
-}: ReviewCardProps) {
+}: ReviewCardPropsInternal) {
   // State
   const [userInput, setUserInput] = useState('')
   const [selectedTone, setSelectedTone] = useState<number | null>(null)

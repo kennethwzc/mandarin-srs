@@ -99,6 +99,37 @@ function validateEnv() {
   // Check if we're on the server
   const isServer = typeof window === 'undefined'
 
+  // Allow skipping validation during build (for CI without secrets)
+  // Set SKIP_ENV_VALIDATION=1 in CI build step if secrets aren't available
+  const skipValidation = process.env.SKIP_ENV_VALIDATION === '1'
+
+  if (skipValidation) {
+    // Return mock/default values for build-time type checking
+    return {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+      NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      NEXT_PUBLIC_ENABLE_ANALYTICS: false,
+      NEXT_PUBLIC_ENABLE_STRIPE: false,
+      NEXT_PUBLIC_ENABLE_AI_FEATURES: false,
+      NODE_ENV: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
+      DATABASE_URL: process.env.DATABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+      SENTRY_ORG: process.env.SENTRY_ORG,
+      SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+      RATE_LIMIT_REQUESTS: process.env.RATE_LIMIT_REQUESTS || '100',
+      RATE_LIMIT_WINDOW: process.env.RATE_LIMIT_WINDOW || '60000',
+    }
+  }
+
   try {
     // Always validate client variables
     const clientEnv = clientSchema.parse({

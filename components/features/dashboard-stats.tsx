@@ -14,8 +14,12 @@ import type { DashboardStatsProps } from './dashboard-stats.types'
  * @returns Tailwind color class
  */
 function getAccuracyTextColor(percentage: number): string {
-  if (percentage >= 80) return 'text-green-600 dark:text-green-400'
-  if (percentage >= 60) return 'text-yellow-600 dark:text-yellow-400'
+  if (percentage >= 80) {
+    return 'text-green-600 dark:text-green-400'
+  }
+  if (percentage >= 60) {
+    return 'text-yellow-600 dark:text-yellow-400'
+  }
   return 'text-red-600 dark:text-red-400'
 }
 
@@ -25,8 +29,12 @@ function getAccuracyTextColor(percentage: number): string {
  * @returns Tailwind background color class
  */
 function getAccuracyBgColor(percentage: number): string {
-  if (percentage >= 80) return 'bg-green-100 dark:bg-green-900/20'
-  if (percentage >= 60) return 'bg-yellow-100 dark:bg-yellow-900/20'
+  if (percentage >= 80) {
+    return 'bg-green-100 dark:bg-green-900/20'
+  }
+  if (percentage >= 60) {
+    return 'bg-yellow-100 dark:bg-yellow-900/20'
+  }
   return 'bg-red-100 dark:bg-red-900/20'
 }
 

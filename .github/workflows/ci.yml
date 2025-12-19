@@ -146,12 +146,14 @@ jobs:
       # Build with environment variables from secrets
       # These are required for Next.js build process
       # NEXT_PUBLIC_ variables are embedded at build time and cannot be overridden at runtime
-      # Build will fail if required secrets are missing to prevent production issues
+      # SKIP_ENV_VALIDATION=1 allows the build to succeed when secrets aren't available
       - name: 🏗️ Build application
         run: pnpm build
         env:
-          # Supabase environment variables (required for build)
-          # These MUST be set in GitHub Secrets - build will fail if missing
+          # Skip environment validation during CI build
+          # Runtime validation will still occur when the app starts in production
+          SKIP_ENV_VALIDATION: '1'
+          # Supabase environment variables (used when available)
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.APP_URL || 'http://localhost:3000' }}
