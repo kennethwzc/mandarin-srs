@@ -151,14 +151,26 @@ async function DashboardContent() {
     // Try to get error details
     let errorMessage = 'Failed to load dashboard data'
     let errorCode: string | null = null
+    let errorDetails: any = null
 
     try {
       const errorData = await response.json()
       errorCode = errorData.errorCode
       errorMessage = errorData.error || errorMessage
+      errorDetails = errorData.details
     } catch {
       // Response might not be JSON
     }
+
+    // Log error to console for debugging (visible in production browser console)
+    console.error('Dashboard API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorCode,
+      errorMessage,
+      errorDetails,
+      url: response.url,
+    })
 
     // Show specific error for profile not found
     if (errorCode === 'PROFILE_NOT_FOUND') {
@@ -185,10 +197,32 @@ async function DashboardContent() {
       )
     }
 
-    // Generic error message
+    // Generic error message with detailed info for debugging
     return (
-      <div className="py-12 text-center">
+      <div className="space-y-4 py-12 text-center">
         <p className="text-muted-foreground">{errorMessage}</p>
+        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
+          <p className="mb-2 font-semibold">Debug Information:</p>
+          <pre className="whitespace-pre-wrap text-xs">
+            {JSON.stringify(
+              {
+                status: response.status,
+                statusText: response.statusText,
+                errorCode,
+                errorMessage,
+                errorDetails,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Refresh Page
+        </button>
       </div>
     )
   }
