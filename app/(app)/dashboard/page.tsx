@@ -179,7 +179,45 @@ async function DashboardContent() {
         </div>
       )
     }
-    throw error
+    
+    // Handle other fetch errors gracefully
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <h2 className="text-xl font-semibold">Connection Error</h2>
+        <p className="text-muted-foreground">
+          Unable to connect to the dashboard service. This might be a temporary issue.
+        </p>
+        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
+          <p className="mb-2 font-semibold">Debug Information:</p>
+          <pre className="whitespace-pre-wrap text-xs">
+            {JSON.stringify(
+              {
+                error: 'Fetch failed',
+                message: error instanceof Error ? error.message : String(error),
+                name: error instanceof Error ? error.name : 'Unknown',
+                baseUrl,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Refresh Page
+          </button>
+          <a
+            href="/lessons"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            Go to Lessons
+          </a>
+        </div>
+      </div>
+    )
   }
   clearTimeout(timeoutId)
 
