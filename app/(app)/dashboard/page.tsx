@@ -96,23 +96,53 @@ function getCookieHeader() {
 }
 
 async function DashboardContent() {
-  const supabase = createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  /* eslint-disable no-console */
+  console.log('[Dashboard] Starting DashboardContent server render')
+  
+  let supabase
+  try {
+    supabase = createClient()
+    console.log('[Dashboard] Supabase client created')
+  } catch (error) {
+    console.error('[Dashboard] Failed to create Supabase client:', error)
+    throw error
+  }
+
+  let user
+  let authError
+  try {
+    const authResult = await supabase.auth.getUser()
+    user = authResult.data.user
+    authError = authResult.error
+    console.log('[Dashboard] Auth check complete:', { hasUser: !!user, hasError: !!authError })
+  } catch (error) {
+    console.error('[Dashboard] Auth check failed:', error)
+    throw error
+  }
 
   // Redirect to login if not authenticated (fail-safe for middleware edge cases)
   if (authError || !user) {
+    console.log('[Dashboard] Redirecting to login')
     redirect('/login?redirectTo=/dashboard')
   }
 
-  const baseUrl = getBaseUrl()
-  const cookieHeader = getCookieHeader()
+  let baseUrl
+  let cookieHeader
+  try {
+    baseUrl = getBaseUrl()
+    console.log('[Dashboard] Base URL:', baseUrl)
+    cookieHeader = getCookieHeader()
+    console.log('[Dashboard] Cookie header length:', cookieHeader.length)
+  } catch (error) {
+    console.error('[Dashboard] Failed to get base URL or cookies:', error)
+    throw error
+  }
 
   // Add timeout to prevent long waits
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 8000) // 8 second timeout
+
+  console.log('[Dashboard] Starting fetch to:', `${baseUrl}/api/dashboard/stats`)
 
   let response
   try {
@@ -121,7 +151,13 @@ async function DashboardContent() {
       cache: 'no-store',
       signal: controller.signal,
     })
+    console.log('[Dashboard] Fetch complete:', {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+    })
   } catch (error) {
+    console.error('[Dashboard] Fetch failed:', error)
     clearTimeout(timeoutId)
     if (error instanceof Error && error.name === 'AbortError') {
       // Timeout occurred - show helpful message
@@ -227,11 +263,16 @@ async function DashboardContent() {
     )
   }
 
+  console.log('[Dashboard] Parsing JSON response')
   let responseData
   try {
     responseData = await response.json()
+    console.log('[Dashboard] JSON parsed successfully:', {
+      hasData: !!responseData?.data,
+      dataKeys: responseData?.data ? Object.keys(responseData.data) : [],
+    })
   } catch (jsonError) {
-    console.error('Failed to parse JSON response:', jsonError)
+    console.error('[Dashboard] Failed to parse JSON response:', jsonError)
     return (
       <div className="space-y-4 py-12 text-center">
         <p className="text-muted-foreground">Failed to parse dashboard data</p>
@@ -331,6 +372,7 @@ async function DashboardContent() {
       </div>
     </div>
   )
+  /* eslint-enable no-console */
 }
 
 export default function DashboardPage() {
