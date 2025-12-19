@@ -22,6 +22,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:a11y": "playwright test e2e/accessibility.spec.ts",
     "test:all": "pnpm test:ci && pnpm test:e2e",
+    "verify:ci": "bash scripts/verify-ci.sh --full",
+    "verify:quick": "bash scripts/verify-ci.sh",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",

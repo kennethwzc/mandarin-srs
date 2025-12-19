@@ -1,9 +1,23 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Skip verification in CI environment (CI runs its own checks)
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
+  exit 0
+fi
+
+# Step 1: Run lint-staged for staged file formatting
 # Try pnpm first, fallback to npx if pnpm not available
 if command -v pnpm >/dev/null 2>&1; then
   pnpm lint-staged
 else
   npx lint-staged
+fi
+
+# Step 2: Run CI verification (quick mode - skips build for speed)
+# This ensures all CI checks pass before commit
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm verify:quick
+else
+  bash scripts/verify-ci.sh
 fi
