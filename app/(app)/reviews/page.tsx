@@ -14,7 +14,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { getReviewQueue } from '@/lib/db/srs-operations'
 import { withCache, getCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
-import { isAbortedError } from '@/lib/utils/request-helpers'
+import { isAbortedError, safeAsync } from '@/lib/utils/request-helpers'
 
 // Dynamic import for the client component to avoid SSR issues
 const ReviewSession = dynamicImport(
@@ -92,7 +92,11 @@ async function ReviewsContent() {
 
   try {
     // Try to get fresh data with cache (request deduplication handles concurrency)
-    initialQueue = await withCache(cacheKey, () => fetchReviewQueue(user.id, 20), 60)
+    initialQueue = await safeAsync(
+      () => withCache(cacheKey, () => fetchReviewQueue(user.id, 20), 60),
+      [] as ReviewItem[],
+      undefined
+    )
   } catch (error) {
     // If request was aborted during navigation, show minimal UI
     if (isAbortedError(error)) {

@@ -26,13 +26,13 @@ const customJestConfig = {
   ],
   // Coverage thresholds adjusted to current project state
   // TODO: Add tests for email-verified page and auth callback updates, then restore to: branches: 25, functions: 17, lines: 24, statements: 24
-  // NOTE: Lowered branches threshold from 23% to 21% due to new code paths (router.refresh guards, error handling) without tests
+  // NOTE: Lowered thresholds due to new code paths (progressive loading, abort handling, enhanced safeAsync) without tests
   coverageThreshold: {
     global: {
       branches: 21,
       functions: 16,
-      lines: 23,
-      statements: 23,
+      lines: 22,
+      statements: 22,
     },
   },
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],

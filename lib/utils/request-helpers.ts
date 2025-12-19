@@ -95,8 +95,11 @@ export function isAuthError(error: unknown): boolean {
  * instead of throwing an error. This prevents error boundaries from triggering
  * during rapid navigation.
  *
+ * Enhanced version that also accepts an optional AbortSignal for explicit cancellation.
+ *
  * @param operation - Async function to execute
  * @param fallback - Value to return if operation is aborted
+ * @param signal - Optional AbortSignal for explicit cancellation
  * @returns Result of operation or fallback value
  *
  * @example
@@ -107,11 +110,29 @@ export function isAuthError(error: unknown): boolean {
  * )
  * ```
  */
-export async function safeAsync<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
+export async function safeAsync<T>(
+  operation: () => Promise<T>,
+  fallback: T,
+  signal?: AbortSignal
+): Promise<T> {
+  // Check if already aborted before starting
+  if (signal?.aborted) {
+    return fallback
+  }
+
   try {
-    return await operation()
+    const result = await operation()
+
+    // Check if aborted after completion (still return result, but log for debugging)
+    if (signal?.aborted) {
+      // Silently return result even if aborted - the request completed
+      return result
+    }
+
+    return result
   } catch (error) {
-    if (isAbortedError(error)) {
+    // Check if error is from abort signal
+    if (signal?.aborted || isAbortedError(error)) {
       // Request was aborted - return fallback silently
       return fallback
     }

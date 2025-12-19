@@ -25,7 +25,7 @@ import {
 import * as schema from '@/lib/db/schema'
 import { withCache, getCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
-import { isAbortedError } from '@/lib/utils/request-helpers'
+import { isAbortedError, safeAsync } from '@/lib/utils/request-helpers'
 
 type DailyStat = typeof schema.dailyStats.$inferSelect
 
@@ -131,106 +131,289 @@ function getTodayStats(dailyStats: DailyStat[]) {
 }
 
 /**
- * Fetch dashboard data directly from database (no HTTP overhead)
+ * Dashboard header - always visible, loads immediately
  */
-async function fetchDashboardData(userId: string): Promise<DashboardData> {
-  const startTime = Date.now()
-
-  // Calculate date ranges
-  const endDate = new Date()
-  const startDate90Days = new Date()
-  startDate90Days.setDate(startDate90Days.getDate() - 90)
-
-  // PARALLEL EXECUTION: Run ALL independent queries at once
-  const [overallStats, dailyStats90d, lessonProgress, upcomingForecast, accuracyPercentage] =
-    await Promise.all([
-      getDashboardStats(userId),
-      getDailyStatsRange(userId, startDate90Days, endDate),
-      getUserLessonProgress(userId),
-      getUpcomingReviewsForecast(userId),
-      getAllTimeAccuracy(userId),
-    ])
-
-  logger.info('Dashboard queries completed', {
-    userId,
-    durationMs: Date.now() - startTime,
-  })
-
-  // For new users with no data, return simplified response
-  if (overallStats.totalItemsLearned === 0) {
-    return {
-      stats: {
-        totalItemsLearned: 0,
-        reviewsDue: 0,
-        reviewsDueToday: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        accuracyPercentage: 0,
-        reviewsCompletedToday: 0,
-      },
-      charts: {
-        reviewsOverTime: [],
-        accuracyOverTime: [],
-        activityCalendar: [],
-        upcomingForecast: [],
-      },
-      lessons: [],
-    }
-  }
-
-  // Slice 30-day data from 90-day result (no extra query needed)
-  const cutoffDate = new Date()
-  cutoffDate.setDate(cutoffDate.getDate() - 30)
-  const dailyStats30d = dailyStats90d.filter((stat) => stat.stat_date >= cutoffDate)
-
-  // Transform data for charts
-  const reviewsOverTime = dailyStats30d.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0] ?? '',
-    reviews: stat.reviews_completed,
-    newItems: stat.new_items_learned,
-  }))
-
-  const accuracyOverTime = dailyStats30d.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0] ?? '',
-    accuracy: stat.accuracy_percentage,
-  }))
-
-  const activityCalendar = dailyStats90d.map((stat) => ({
-    date: stat.stat_date.toISOString().split('T')[0] ?? '',
-    count: stat.reviews_completed,
-  }))
-
-  const reviewsCompletedToday = getTodayStats(dailyStats30d)?.reviews_completed ?? 0
-
-  return {
-    stats: {
-      totalItemsLearned: overallStats.totalItemsLearned,
-      reviewsDue: overallStats.reviewsDue,
-      reviewsDueToday: overallStats.reviewsDueToday,
-      currentStreak: overallStats.currentStreak,
-      longestStreak: overallStats.longestStreak,
-      accuracyPercentage,
-      reviewsCompletedToday,
+async function DashboardHeader({ userId }: { userId: string }) {
+  // Quick check for reviews due count (lightweight query)
+  const stats = await safeAsync(
+    () => getDashboardStats(userId),
+    {
+      reviewsDue: 0,
+      reviewsDueToday: 0,
+      totalItemsLearned: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      stageBreakdown: [],
     },
-    charts: {
-      reviewsOverTime,
-      accuracyOverTime,
-      activityCalendar,
-      upcomingForecast,
-    },
-    lessons: lessonProgress.map((lesson) => ({
-      id: lesson.id,
-      title: lesson.title,
-      isCompleted: lesson.isCompleted,
-      isUnlocked: lesson.isUnlocked,
-    })),
-  }
+    undefined
+  )
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          Track your Mandarin learning progress
+        </p>
+      </div>
+      {stats.reviewsDue > 0 && <StartReviewsButton reviewsCount={stats.reviewsDue} />}
+    </div>
+  )
 }
 
 /**
- * Dashboard content with direct DB calls and fallback support
+ * Critical stats section - loads first (above the fold)
+ */
+async function DashboardStatsSection({ userId }: { userId: string }) {
+  const cacheKey = `dashboard:stats:${userId}`
+
+  const defaultStats: DashboardData['stats'] = {
+    totalItemsLearned: 0,
+    reviewsDue: 0,
+    reviewsDueToday: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    accuracyPercentage: 0,
+    reviewsCompletedToday: 0,
+  }
+
+  let stats: DashboardData['stats']
+  let isStale = false
+
+  try {
+    const data = await safeAsync(
+      () =>
+        withCache(
+          cacheKey,
+          async () => {
+            const [overallStats, dailyStats90d, accuracyPercentage] = await Promise.all([
+              getDashboardStats(userId),
+              getDailyStatsRange(
+                userId,
+                new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+                new Date()
+              ),
+              getAllTimeAccuracy(userId),
+            ])
+
+            const cutoffDate = new Date()
+            cutoffDate.setDate(cutoffDate.getDate() - 30)
+            const dailyStats30d = dailyStats90d.filter((stat) => stat.stat_date >= cutoffDate)
+            const reviewsCompletedToday = getTodayStats(dailyStats30d)?.reviews_completed ?? 0
+
+            return {
+              stats: {
+                totalItemsLearned: overallStats.totalItemsLearned,
+                reviewsDue: overallStats.reviewsDue,
+                reviewsDueToday: overallStats.reviewsDueToday,
+                currentStreak: overallStats.currentStreak,
+                longestStreak: overallStats.longestStreak,
+                accuracyPercentage,
+                reviewsCompletedToday,
+              },
+            }
+          },
+          300
+        ),
+      { stats: defaultStats },
+      undefined
+    )
+    stats = data.stats
+  } catch (error) {
+    // Try stale cache
+    const cachedData = await getCached<DashboardData>(cacheKey)
+    if (cachedData) {
+      stats = cachedData.stats
+      isStale = true
+    } else {
+      stats = defaultStats
+    }
+  }
+
+  return (
+    <>
+      {isStale && (
+        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+          Showing cached data.{' '}
+          <a href="/dashboard" className="underline">
+            Refresh
+          </a>{' '}
+          for latest stats.
+        </div>
+      )}
+      <DashboardStats stats={stats} />
+      <StreakDisplay currentStreak={stats.currentStreak} longestStreak={stats.longestStreak} />
+    </>
+  )
+}
+
+/**
+ * Charts section - loads second (below the fold)
+ */
+async function DashboardChartsSection({ userId }: { userId: string }) {
+  const cacheKey = `dashboard:charts:${userId}`
+
+  let charts: {
+    reviewsOverTime: Array<{ date: string; reviews: number; newItems: number }>
+    accuracyOverTime: Array<{ date: string; accuracy: number }>
+    activityCalendar: Array<{ date: string; count: number }>
+  }
+  let isStale = false
+
+  try {
+    const data = await withCache(
+      cacheKey,
+      async () => {
+        const [dailyStats90d] = await Promise.all([
+          getDailyStatsRange(userId, new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), new Date()),
+        ])
+
+        const cutoffDate = new Date()
+        cutoffDate.setDate(cutoffDate.getDate() - 30)
+        const dailyStats30d = dailyStats90d.filter((stat) => stat.stat_date >= cutoffDate)
+
+        return {
+          reviewsOverTime: dailyStats30d.map((stat) => ({
+            date: stat.stat_date.toISOString().split('T')[0] ?? '',
+            reviews: stat.reviews_completed,
+            newItems: stat.new_items_learned,
+          })),
+          accuracyOverTime: dailyStats30d.map((stat) => ({
+            date: stat.stat_date.toISOString().split('T')[0] ?? '',
+            accuracy: stat.accuracy_percentage,
+          })),
+          activityCalendar: dailyStats90d.map((stat) => ({
+            date: stat.stat_date.toISOString().split('T')[0] ?? '',
+            count: stat.reviews_completed,
+          })),
+        }
+      },
+      300
+    )
+    charts = data
+  } catch (error) {
+    if (isAbortedError(error)) {
+      charts = {
+        reviewsOverTime: [],
+        accuracyOverTime: [],
+        activityCalendar: [],
+      }
+    } else {
+      const cachedData = await getCached<typeof charts>(cacheKey)
+      if (cachedData) {
+        charts = cachedData
+        isStale = true
+      } else {
+        charts = {
+          reviewsOverTime: [],
+          accuracyOverTime: [],
+          activityCalendar: [],
+        }
+      }
+    }
+  }
+
+  return (
+    <>
+      {isStale && (
+        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+          Showing cached charts.{' '}
+          <a href="/dashboard" className="underline">
+            Refresh
+          </a>{' '}
+          for latest data.
+        </div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
+        <ReviewsChart data={charts.reviewsOverTime} />
+        <AccuracyChart data={charts.accuracyOverTime} />
+      </div>
+      <ActivityCalendar data={charts.activityCalendar} />
+    </>
+  )
+}
+
+/**
+ * Secondary content section - loads last (lowest priority)
+ */
+async function DashboardSecondarySection({ userId }: { userId: string }) {
+  const cacheKey = `dashboard:secondary:${userId}`
+
+  let lessons: DashboardData['lessons']
+  let upcomingForecast: string[]
+  let isStale = false
+
+  try {
+    const data = await withCache(
+      cacheKey,
+      async () => {
+        const [lessonProgress, forecast] = await Promise.all([
+          getUserLessonProgress(userId),
+          getUpcomingReviewsForecast(userId),
+        ])
+
+        return {
+          lessons: lessonProgress.map((lesson) => ({
+            id: lesson.id,
+            title: lesson.title,
+            isCompleted: lesson.isCompleted,
+            isUnlocked: lesson.isUnlocked,
+          })),
+          upcomingForecast: forecast,
+        }
+      },
+      300
+    )
+    lessons = data.lessons
+    upcomingForecast = data.upcomingForecast
+  } catch (error) {
+    if (isAbortedError(error)) {
+      lessons = []
+      upcomingForecast = []
+    } else {
+      const cachedData = await getCached<{
+        lessons: DashboardData['lessons']
+        upcomingForecast: string[]
+      }>(cacheKey)
+      if (cachedData) {
+        lessons = cachedData.lessons
+        upcomingForecast = cachedData.upcomingForecast
+        isStale = true
+      } else {
+        lessons = []
+        upcomingForecast = []
+      }
+    }
+  }
+
+  return (
+    <>
+      {isStale && (
+        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+          Showing cached data.{' '}
+          <a href="/dashboard" className="underline">
+            Refresh
+          </a>{' '}
+          for latest.
+        </div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
+        <LessonProgress lessons={lessons} />
+        <UpcomingReviews forecast={upcomingForecast} />
+      </div>
+    </>
+  )
+}
+
+/**
+ * Dashboard content with progressive loading
  *
- * Uses simplified auth pattern - middleware has already validated.
+ * Uses multiple Suspense boundaries for progressive rendering:
+ * 1. Header (immediate)
+ * 2. Stats (critical, above fold)
+ * 3. Charts (secondary, below fold)
+ * 4. Secondary content (tertiary, lowest priority)
+ *
  * Handles aborted requests gracefully to prevent errors during navigation.
  */
 async function DashboardContent() {
@@ -295,78 +478,25 @@ async function DashboardContent() {
     }
   }
 
-  // Direct DB calls with caching (5 min TTL)
-  const cacheKey = `dashboard:stats:${user.id}`
-
-  let data: DashboardData
-  let isStale = false
-
-  try {
-    // Try to get fresh data with cache (request deduplication handles concurrency)
-    data = await withCache(cacheKey, () => fetchDashboardData(user.id), 300)
-  } catch (error) {
-    // If request was aborted during navigation, show minimal dashboard
-    if (isAbortedError(error)) {
-      return <MinimalDashboard />
-    }
-
-    logger.error('Dashboard data fetch failed', {
-      userId: user.id,
-      error: error instanceof Error ? error.message : String(error),
-    })
-
-    // FALLBACK: Try to get stale cached data
-    const cachedData = await getCached<DashboardData>(cacheKey)
-    if (cachedData) {
-      data = cachedData
-      isStale = true
-      logger.info('Using stale cached data for dashboard', { userId: user.id })
-    } else {
-      // LAST RESORT: Return minimal dashboard
-      return <MinimalDashboard />
-    }
-  }
-
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
-      {isStale && (
-        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
-          Showing cached data.{' '}
-          <a href="/dashboard" className="underline">
-            Refresh
-          </a>{' '}
-          for latest stats.
-        </div>
-      )}
+      {/* Header - loads immediately */}
+      <DashboardHeader userId={user.id} />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Track your Mandarin learning progress
-          </p>
-        </div>
-        {data.stats.reviewsDue > 0 && <StartReviewsButton reviewsCount={data.stats.reviewsDue} />}
-      </div>
+      {/* Critical stats - loads first (above the fold) */}
+      <Suspense fallback={<StatsSkeleton />}>
+        <DashboardStatsSection userId={user.id} />
+      </Suspense>
 
-      <DashboardStats stats={data.stats} />
+      {/* Charts - loads second (below the fold) */}
+      <Suspense fallback={<ChartsSkeleton />}>
+        <DashboardChartsSection userId={user.id} />
+      </Suspense>
 
-      <StreakDisplay
-        currentStreak={data.stats.currentStreak}
-        longestStreak={data.stats.longestStreak}
-      />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <ReviewsChart data={data.charts.reviewsOverTime} />
-        <AccuracyChart data={data.charts.accuracyOverTime} />
-      </div>
-
-      <ActivityCalendar data={data.charts.activityCalendar} />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <LessonProgress lessons={data.lessons} />
-        <UpcomingReviews forecast={data.charts.upcomingForecast} />
-      </div>
+      {/* Secondary content - loads last (lowest priority) */}
+      <Suspense fallback={<SecondarySkeleton />}>
+        <DashboardSecondarySection userId={user.id} />
+      </Suspense>
     </div>
   )
 }
@@ -440,6 +570,49 @@ function StreakSkeleton() {
   return <div className="h-[100px] animate-pulse rounded-lg bg-muted" />
 }
 
+/**
+ * Skeleton for stats section (critical, above fold)
+ */
+function StatsSkeleton() {
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="h-32 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+      <StreakSkeleton />
+    </>
+  )
+}
+
+/**
+ * Skeleton for charts section (secondary, below fold)
+ */
+function ChartsSkeleton() {
+  return (
+    <>
+      <div className="grid gap-4 md:grid-cols-2">
+        <ChartSkeleton />
+        <ChartSkeleton />
+      </div>
+      <CalendarSkeleton />
+    </>
+  )
+}
+
+/**
+ * Skeleton for secondary content (tertiary, lowest priority)
+ */
+function SecondarySkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <WidgetSkeleton />
+      <WidgetSkeleton />
+    </div>
+  )
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-8">
@@ -448,25 +621,9 @@ function DashboardSkeleton() {
         <div className="h-4 w-64 animate-pulse rounded bg-muted" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, index) => (
-          <div key={index} className="h-32 animate-pulse rounded-lg bg-muted" />
-        ))}
-      </div>
-
-      <StreakSkeleton />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <ChartSkeleton />
-        <ChartSkeleton />
-      </div>
-
-      <CalendarSkeleton />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <WidgetSkeleton />
-        <WidgetSkeleton />
-      </div>
+      <StatsSkeleton />
+      <ChartsSkeleton />
+      <SecondarySkeleton />
     </div>
   )
 }

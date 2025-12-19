@@ -3,8 +3,10 @@
  *
  * Displays all available lessons for learning Chinese characters and vocabulary.
  * Includes timeout protection to prevent "Connection closed" errors in production.
+ * Uses Suspense for progressive loading and better abort handling.
  */
 
+import { Suspense } from 'react'
 import dynamicImport from 'next/dynamic'
 import { redirect } from 'next/navigation'
 
@@ -12,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { RefreshButton } from '@/components/ui/refresh-button'
 import { getAllLessons } from '@/lib/db/queries'
 import { getAuthenticatedUser } from '@/lib/supabase/get-user'
-import { isAbortedError } from '@/lib/utils/request-helpers'
+import { isAbortedError, safeAsync } from '@/lib/utils/request-helpers'
 import { AlertCircle, Info } from 'lucide-react'
 
 // Dynamically import LessonCard to avoid SSR issues with Link component
@@ -62,99 +64,75 @@ async function withTimeout<T>(
   }
 }
 
-export default async function LessonsPage() {
-  try {
-    // Step 1: Check authentication using simplified pattern
-    // Middleware has already validated - this is a safety net
-    const user = await getAuthenticatedUser()
+/**
+ * Lessons content component - wrapped in Suspense for progressive loading
+ */
+async function LessonsContent() {
+  // Step 1: Check authentication using simplified pattern
+  // Middleware has already validated - this is a safety net
+  const user = await getAuthenticatedUser()
 
-    // If user is null, redirect to login (middleware should have caught this)
-    if (!user) {
-      redirect('/login?redirectTo=/lessons')
-    }
+  // If user is null, redirect to login (middleware should have caught this)
+  if (!user) {
+    redirect('/login?redirectTo=/lessons')
+  }
 
-    // Step 2: Fetch lessons with timeout protection
-    let lessons
-    try {
-      lessons = await withTimeout(
+  // Step 2: Fetch lessons with timeout protection and abort handling
+  const lessons = await safeAsync(
+    () =>
+      withTimeout(
         getAllLessons(),
         QUERY_TIMEOUT_MS,
         'Lessons query timeout - database may be slow'
-      )
-    } catch (error) {
-      // If request was aborted during navigation, show minimal UI
-      if (isAbortedError(error)) {
-        return <LessonsMinimalFallback message="Loading was interrupted. Please refresh." />
-      }
+      ),
+    [],
+    undefined
+  )
 
-      // Handle timeout specifically
-      if (error instanceof Error && error.message.includes('timeout')) {
-        return (
-          <div className="container mx-auto px-4 py-8">
-            <div className="mb-6 sm:mb-8">
-              <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
-              <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
-                Learn new characters and vocabulary through structured lessons
-              </p>
-            </div>
+  // Step 3: Handle no lessons
+  if (!lessons || lessons.length === 0) {
+    return (
+      <div className="mb-6 sm:mb-8">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Lessons Available</AlertTitle>
+          <AlertDescription>
+            No lessons found in the database. This usually means the seed data hasn&apos;t been
+            loaded yet.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
 
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Loading Timeout</AlertTitle>
-              <AlertDescription>
-                <div className="space-y-3">
-                  <p>Lessons are taking longer than expected to load. This usually happens when:</p>
-                  <ul className="ml-5 list-disc text-sm">
-                    <li>The database is experiencing high traffic</li>
-                    <li>Your network connection is slow</li>
-                    <li>The server is starting up after being idle</li>
-                  </ul>
-                  <div className="pt-2">
-                    <RefreshButton variant="outline" size="sm">
-                      Try Again
-                    </RefreshButton>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )
-      }
-      // Re-throw other errors
-      throw error
+  // Step 4: Process lessons with progress
+  const lessonsWithProgress = lessons.map((lesson, index) => ({
+    ...lesson,
+    characterCount: lesson.character_ids?.length || 0,
+    vocabularyCount: lesson.vocabulary_ids?.length || 0,
+    isUnlocked: index === 0, // First lesson always unlocked
+    isCompleted: false,
+  }))
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {lessonsWithProgress.map((lesson) => (
+        <LessonCard key={lesson.id} lesson={lesson} />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Lessons page with Suspense boundary for progressive loading
+ */
+export default async function LessonsPage() {
+  try {
+    // Check authentication - if fails, redirect (handled by middleware)
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      redirect('/login?redirectTo=/lessons')
     }
-
-    // Step 3: Handle no lessons
-    if (!lessons || lessons.length === 0) {
-      return (
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6 sm:mb-8">
-            <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
-            <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
-              Learn new characters and vocabulary through structured lessons
-            </p>
-          </div>
-
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>No Lessons Available</AlertTitle>
-            <AlertDescription>
-              No lessons found in the database. This usually means the seed data hasn&apos;t been
-              loaded yet.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )
-    }
-
-    // Step 4: Process lessons with progress
-    const lessonsWithProgress = lessons.map((lesson, index) => ({
-      ...lesson,
-      characterCount: lesson.character_ids?.length || 0,
-      vocabularyCount: lesson.vocabulary_ids?.length || 0,
-      isUnlocked: index === 0, // First lesson always unlocked
-      isCompleted: false,
-    }))
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -175,11 +153,9 @@ export default async function LessonsPage() {
           </AlertDescription>
         </Alert>
 
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {lessonsWithProgress.map((lesson) => (
-            <LessonCard key={lesson.id} lesson={lesson} />
-          ))}
-        </div>
+        <Suspense fallback={<LessonsSkeleton />}>
+          <LessonsContent />
+        </Suspense>
       </div>
     )
   } catch (error) {
@@ -207,6 +183,23 @@ export default async function LessonsPage() {
       </div>
     )
   }
+}
+
+/**
+ * Skeleton loading state for lessons list
+ */
+function LessonsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="h-48 animate-pulse rounded-lg border bg-muted"
+          aria-label="Loading lesson"
+        />
+      ))}
+    </div>
+  )
 }
 
 /**
