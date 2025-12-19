@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { addToneMark, isValidPinyin, getPinyinSuggestions } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
+import { logger } from '@/lib/utils/logger'
 import { Check, X, AlertCircle } from 'lucide-react'
 
 /**
@@ -73,7 +74,7 @@ export function PinyinInput({
         }, 0)
       } catch (error) {
         // Invalid syllable - ignore
-        console.warn('Could not apply tone mark:', error)
+        logger.warn('Could not apply tone mark', { error, value, selectedTone })
       }
     }
   }, [selectedTone, value, onChange, onToneChange])
