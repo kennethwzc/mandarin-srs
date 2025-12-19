@@ -227,7 +227,74 @@ async function DashboardContent() {
     )
   }
 
-  const { data } = await response.json()
+  let responseData
+  try {
+    responseData = await response.json()
+  } catch (jsonError) {
+    console.error('Failed to parse JSON response:', jsonError)
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">Failed to parse dashboard data</p>
+        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
+          <p className="mb-2 font-semibold">Debug Information:</p>
+          <pre className="whitespace-pre-wrap text-xs">
+            {JSON.stringify(
+              {
+                error: 'JSON parsing failed',
+                message: jsonError instanceof Error ? jsonError.message : String(jsonError),
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Refresh Page
+        </button>
+      </div>
+    )
+  }
+
+  const { data } = responseData
+
+  // Validate response structure
+  if (!data || !data.stats || !data.charts || !data.lessons) {
+    console.error('Invalid dashboard response structure:', responseData)
+    return (
+      <div className="space-y-4 py-12 text-center">
+        <p className="text-muted-foreground">Dashboard data has unexpected format</p>
+        <div className="mx-auto max-w-2xl rounded-lg bg-muted/50 p-4 text-left text-sm">
+          <p className="mb-2 font-semibold">Debug Information:</p>
+          <pre className="whitespace-pre-wrap text-xs">
+            {JSON.stringify(
+              {
+                error: 'Invalid response structure',
+                received: responseData,
+                expected: {
+                  data: {
+                    stats: '{ ... }',
+                    charts: '{ ... }',
+                    lessons: '[ ... ]',
+                  },
+                },
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Refresh Page
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
