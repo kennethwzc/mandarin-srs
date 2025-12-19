@@ -331,7 +331,11 @@ async function DashboardContent() {
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
       {isStale && (
         <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
-          Showing cached data. <a href="/dashboard" className="underline">Refresh</a> for latest stats.
+          Showing cached data.{' '}
+          <a href="/dashboard" className="underline">
+            Refresh
+          </a>{' '}
+          for latest stats.
         </div>
       )}
 

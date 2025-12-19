@@ -29,4 +29,3 @@ export interface PracticeSessionProps {
   /** Lesson title for display */
   lessonTitle: string
 }
-

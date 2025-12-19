@@ -144,11 +144,7 @@ export async function withCache<T>(
  * Only one background revalidation per key can run at a time.
  * Subsequent calls while revalidation is in progress are ignored.
  */
-function revalidateInBackground<T>(
-  key: string,
-  fn: () => Promise<T>,
-  ttlSeconds: number
-): void {
+function revalidateInBackground<T>(key: string, fn: () => Promise<T>, ttlSeconds: number): void {
   // Skip if already revalidating this key
   if (revalidatingKeys.has(key)) {
     return

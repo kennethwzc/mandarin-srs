@@ -10,17 +10,17 @@
  * Dependencies: none
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 interface LogContext {
-  [key: string]: unknown;
+  [key: string]: unknown
 }
 
 interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  context?: LogContext;
+  level: LogLevel
+  message: string
+  timestamp: string
+  context?: LogContext
 }
 
 const LOG_LEVELS: Record<LogLevel, number> = {
@@ -28,7 +28,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   info: 1,
   warn: 2,
   error: 3,
-};
+}
 
 /**
  * Get the minimum log level based on environment
@@ -37,17 +37,17 @@ const LOG_LEVELS: Record<LogLevel, number> = {
  */
 function getMinLogLevel(): LogLevel {
   if (process.env.NODE_ENV === 'production') {
-    return 'warn';
+    return 'warn'
   }
-  return 'debug';
+  return 'debug'
 }
 
 /**
  * Check if a log level should be output
  */
 function shouldLog(level: LogLevel): boolean {
-  const minLevel = getMinLogLevel();
-  return LOG_LEVELS[level] >= LOG_LEVELS[minLevel];
+  const minLevel = getMinLogLevel()
+  return LOG_LEVELS[level] >= LOG_LEVELS[minLevel]
 }
 
 /**
@@ -56,14 +56,12 @@ function shouldLog(level: LogLevel): boolean {
 function formatLogEntry(entry: LogEntry): string {
   if (process.env.NODE_ENV === 'production') {
     // JSON format for production log aggregation
-    return JSON.stringify(entry);
+    return JSON.stringify(entry)
   }
 
   // Readable format for development
-  const contextStr = entry.context
-    ? ` ${JSON.stringify(entry.context)}`
-    : '';
-  return `[${entry.level.toUpperCase()}] ${entry.message}${contextStr}`;
+  const contextStr = entry.context ? ` ${JSON.stringify(entry.context)}` : ''
+  return `[${entry.level.toUpperCase()}] ${entry.message}${contextStr}`
 }
 
 /**
@@ -71,7 +69,7 @@ function formatLogEntry(entry: LogEntry): string {
  */
 function log(level: LogLevel, message: string, context?: LogContext): void {
   if (!shouldLog(level)) {
-    return;
+    return
   }
 
   const entry: LogEntry = {
@@ -79,24 +77,24 @@ function log(level: LogLevel, message: string, context?: LogContext): void {
     message,
     timestamp: new Date().toISOString(),
     context,
-  };
+  }
 
-  const formatted = formatLogEntry(entry);
+  const formatted = formatLogEntry(entry)
 
   switch (level) {
     case 'debug':
     case 'info':
       // eslint-disable-next-line no-console
-      console.log(formatted);
-      break;
+      console.log(formatted)
+      break
     case 'warn':
       // eslint-disable-next-line no-console
-      console.warn(formatted);
-      break;
+      console.warn(formatted)
+      break
     case 'error':
       // eslint-disable-next-line no-console
-      console.error(formatted);
-      break;
+      console.error(formatted)
+      break
   }
 }
 
@@ -118,7 +116,7 @@ export const logger = {
    * @param context - Optional context metadata
    */
   debug: (message: string, context?: LogContext): void => {
-    log('debug', message, context);
+    log('debug', message, context)
   },
 
   /**
@@ -127,7 +125,7 @@ export const logger = {
    * @param context - Optional context metadata
    */
   info: (message: string, context?: LogContext): void => {
-    log('info', message, context);
+    log('info', message, context)
   },
 
   /**
@@ -136,7 +134,7 @@ export const logger = {
    * @param context - Optional context metadata
    */
   warn: (message: string, context?: LogContext): void => {
-    log('warn', message, context);
+    log('warn', message, context)
   },
 
   /**
@@ -145,7 +143,6 @@ export const logger = {
    * @param context - Optional context metadata
    */
   error: (message: string, context?: LogContext): void => {
-    log('error', message, context);
+    log('error', message, context)
   },
-};
-
+}

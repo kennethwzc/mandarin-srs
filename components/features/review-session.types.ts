@@ -41,4 +41,3 @@ export interface PendingSubmission {
   /** Whether the answer was correct */
   isCorrect: boolean
 }
-

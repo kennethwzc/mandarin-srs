@@ -54,7 +54,8 @@ export function isAbortedError(error: unknown): boolean {
   }
 
   // Check error message for known patterns
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  const errorMessage =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
 
   return ABORTED_ERROR_PATTERNS.some((pattern) => errorMessage.includes(pattern.toLowerCase()))
 }
@@ -71,7 +72,8 @@ export function isAuthError(error: unknown): boolean {
     return false
   }
 
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  const errorMessage =
+    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
 
   const authPatterns = [
     'unauthorized',
@@ -105,10 +107,7 @@ export function isAuthError(error: unknown): boolean {
  * )
  * ```
  */
-export async function safeAsync<T>(
-  operation: () => Promise<T>,
-  fallback: T
-): Promise<T> {
+export async function safeAsync<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await operation()
   } catch (error) {
@@ -256,4 +255,3 @@ export async function resilientAsync<T>(
     throw error
   }
 }
-

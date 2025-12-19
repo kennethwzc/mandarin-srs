@@ -29,4 +29,3 @@ export interface DashboardStatsProps {
   /** Statistics data to display */
   stats: DashboardStatsData
 }
-

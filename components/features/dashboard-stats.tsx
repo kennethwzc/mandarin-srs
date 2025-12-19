@@ -81,7 +81,10 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         description: `Longest: ${longestStreak} days`,
         icon: Flame,
         color: currentStreak > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400',
-        bgColor: currentStreak > 0 ? 'bg-orange-100 dark:bg-orange-900/20' : 'bg-gray-100 dark:bg-gray-800',
+        bgColor:
+          currentStreak > 0
+            ? 'bg-orange-100 dark:bg-orange-900/20'
+            : 'bg-gray-100 dark:bg-gray-800',
       },
       {
         title: 'Accuracy',

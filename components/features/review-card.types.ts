@@ -35,4 +35,3 @@ export interface ReviewResult {
   /** Time taken to answer in milliseconds */
   responseTimeMs: number
 }
-

@@ -32,4 +32,3 @@ export interface PinyinInputProps {
  * Validation state for pinyin input
  */
 export type PinyinValidationState = 'idle' | 'valid' | 'invalid'
-

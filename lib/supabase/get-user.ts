@@ -40,7 +40,10 @@ import { isAbortedError } from '@/lib/utils/request-helpers'
 export async function getAuthenticatedUser() {
   try {
     const supabase = createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
     if (error || !user) {
       return null
@@ -68,4 +71,3 @@ export async function getAuthenticatedUserId(): Promise<string | null> {
   const user = await getAuthenticatedUser()
   return user?.id ?? null
 }
-

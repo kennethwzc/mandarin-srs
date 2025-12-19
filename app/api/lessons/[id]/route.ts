@@ -11,7 +11,13 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
-import { getLessonById, getCharactersByIds, getVocabularyByIds, hasUserStartedLesson, hasUserCompletedLesson } from '@/lib/db/queries'
+import {
+  getLessonById,
+  getCharactersByIds,
+  getVocabularyByIds,
+  hasUserStartedLesson,
+  hasUserCompletedLesson,
+} from '@/lib/db/queries'
 import { logger } from '@/lib/utils/logger'
 
 /**
@@ -48,7 +54,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     let isCompleted = false
 
     if (user) {
-      [isStarted, isCompleted] = await Promise.all([
+      ;[isStarted, isCompleted] = await Promise.all([
         hasUserStartedLesson(user.id, lessonId),
         hasUserCompletedLesson(user.id, lessonId),
       ])

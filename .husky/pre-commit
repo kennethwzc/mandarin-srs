@@ -1,1 +1,9 @@
-pnpm lint-staged
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Try pnpm first, fallback to npx if pnpm not available
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm lint-staged
+else
+  npx lint-staged
+fi

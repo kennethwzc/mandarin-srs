@@ -149,9 +149,7 @@ export function SessionComplete({
         <div className="mx-auto grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {stats.map((stat, index) => (
             <div key={index} className="rounded-lg bg-muted p-4">
-              <div
-                className={`text-2xl font-bold sm:text-3xl ${stat.color || 'text-primary'}`}
-              >
+              <div className={`text-2xl font-bold sm:text-3xl ${stat.color || 'text-primary'}`}>
                 {stat.value}
                 {stat.suffix}
               </div>
@@ -162,9 +160,7 @@ export function SessionComplete({
       )}
 
       {description && (
-        <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
-          {description}
-        </p>
+        <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">{description}</p>
       )}
 
       <div className="flex flex-col justify-center gap-3 px-4 sm:flex-row sm:gap-4 sm:px-0">
@@ -271,4 +267,3 @@ interface SessionLayoutProps {
 export function SessionLayout({ children }: SessionLayoutProps) {
   return <div className="space-y-4 sm:space-y-6">{children}</div>
 }
-

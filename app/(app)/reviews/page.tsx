@@ -120,7 +120,11 @@ async function ReviewsContent() {
     <>
       {isStale && (
         <div className="mx-auto mb-4 max-w-2xl rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
-          Showing cached data. <a href="/reviews" className="underline">Refresh</a> for latest reviews.
+          Showing cached data.{' '}
+          <a href="/reviews" className="underline">
+            Refresh
+          </a>{' '}
+          for latest reviews.
         </div>
       )}
       <ReviewSession initialQueue={initialQueue} />

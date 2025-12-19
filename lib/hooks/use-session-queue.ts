@@ -126,20 +126,17 @@ export function useSessionQueue<T>(initialQueue: T[]): UseSessionQueueReturn<T> 
    * Reset session to beginning
    * @param shuffleItems - Whether to shuffle the queue
    */
-  const reset = useCallback(
-    (shuffleItems = false) => {
-      setCurrentIndex(0)
-      setCorrectCount(0)
-      setTotalReviewed(0)
-      setIsComplete(false)
-      hasAdvancedRef.current = false
+  const reset = useCallback((shuffleItems = false) => {
+    setCurrentIndex(0)
+    setCorrectCount(0)
+    setTotalReviewed(0)
+    setIsComplete(false)
+    hasAdvancedRef.current = false
 
-      if (shuffleItems) {
-        setQueue((prev) => [...prev].sort(() => Math.random() - 0.5))
-      }
-    },
-    []
-  )
+    if (shuffleItems) {
+      setQueue((prev) => [...prev].sort(() => Math.random() - 0.5))
+    }
+  }, [])
 
   // Calculate derived values
   const currentItem = queue[currentIndex]
@@ -162,4 +159,3 @@ export function useSessionQueue<T>(initialQueue: T[]): UseSessionQueueReturn<T> 
     progress,
   }
 }
-
