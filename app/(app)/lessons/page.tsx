@@ -11,7 +11,8 @@ import { redirect } from 'next/navigation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { getAllLessons } from '@/lib/db/queries'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser } from '@/lib/supabase/get-user'
+import { isAbortedError } from '@/lib/utils/request-helpers'
 import { AlertCircle, Info, RefreshCw } from 'lucide-react'
 
 // Dynamically import LessonCard to avoid SSR issues with Link component
@@ -63,17 +64,12 @@ async function withTimeout<T>(
 
 export default async function LessonsPage() {
   try {
-    // Step 1: Check authentication
-    // If auth fails, redirect to login (don't show error messages)
-    const supabase = createClient()
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    // Step 1: Check authentication using simplified pattern
+    // Middleware has already validated - this is a safety net
+    const user = await getAuthenticatedUser()
 
-    // Redirect to login if not authenticated
-    // This is a fail-safe in case middleware didn't catch it
-    if (authError || !user) {
+    // If user is null, redirect to login (middleware should have caught this)
+    if (!user) {
       redirect('/login?redirectTo=/lessons')
     }
 
@@ -86,9 +82,13 @@ export default async function LessonsPage() {
         'Lessons query timeout - database may be slow'
       )
     } catch (error) {
+      // If request was aborted during navigation, show minimal UI
+      if (isAbortedError(error)) {
+        return <LessonsMinimalFallback message="Loading was interrupted. Please refresh." />
+      }
+
       // Handle timeout specifically
       if (error instanceof Error && error.message.includes('timeout')) {
-        console.error('Lessons page timeout:', error.message)
         return (
           <div className="container mx-auto px-4 py-8">
             <div className="mb-6 sm:mb-8">
@@ -189,7 +189,10 @@ export default async function LessonsPage() {
       </div>
     )
   } catch (error) {
-    console.error('Lessons page error:', error instanceof Error ? error.message : String(error))
+    // If request was aborted during navigation, show minimal UI instead of error
+    if (isAbortedError(error)) {
+      return <LessonsMinimalFallback message="Loading was interrupted. Please refresh." />
+    }
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -216,4 +219,41 @@ export default async function LessonsPage() {
       </div>
     )
   }
+}
+
+/**
+ * Minimal fallback for lessons page when loading is interrupted
+ */
+function LessonsMinimalFallback({ message }: { message: string }) {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
+        <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
+          Learn new characters and vocabulary through structured lessons
+        </p>
+      </div>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Loading Interrupted</AlertTitle>
+        <AlertDescription>
+          <div className="space-y-2">
+            <p>{message}</p>
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
+    </div>
+  )
 }

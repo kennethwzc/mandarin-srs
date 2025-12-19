@@ -10,10 +10,11 @@ import { redirect } from 'next/navigation'
 import dynamicImport from 'next/dynamic'
 
 import { Card } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { getReviewQueue } from '@/lib/db/srs-operations'
 import { withCache, getCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
+import { isAbortedError } from '@/lib/utils/request-helpers'
 
 // Dynamic import for the client component to avoid SSR issues
 const ReviewSession = dynamicImport(
@@ -70,16 +71,16 @@ async function fetchReviewQueue(userId: string, limit: number = 20): Promise<Rev
 
 /**
  * Server component that fetches review queue data during SSR
+ *
+ * Uses simplified auth pattern - middleware has already validated.
+ * Handles aborted requests gracefully to prevent errors during navigation.
  */
 async function ReviewsContent() {
-  const supabase = createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Get user - middleware has validated, but handle null gracefully
+  const user = await getAuthenticatedUser()
 
-  // Redirect to login if not authenticated
-  if (authError || !user) {
+  // If user is null, they either aren't authenticated or request was aborted
+  if (!user) {
     redirect('/login?redirectTo=/reviews')
   }
 
@@ -90,9 +91,14 @@ async function ReviewsContent() {
   let isStale = false
 
   try {
-    // Try to get fresh data with cache
+    // Try to get fresh data with cache (request deduplication handles concurrency)
     initialQueue = await withCache(cacheKey, () => fetchReviewQueue(user.id, 20), 60)
   } catch (error) {
+    // If request was aborted during navigation, show minimal UI
+    if (isAbortedError(error)) {
+      return <MinimalReviews />
+    }
+
     logger.error('Review queue fetch failed', {
       userId: user.id,
       error: error instanceof Error ? error.message : String(error),

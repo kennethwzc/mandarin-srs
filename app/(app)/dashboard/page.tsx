@@ -11,7 +11,7 @@ import dynamicImport from 'next/dynamic'
 
 import { Card } from '@/components/ui/card'
 import { StartReviewsButton } from '@/components/ui/start-reviews-button'
-import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { VerificationSuccess } from './_components/verification-success'
 import {
   getAllTimeAccuracy,
@@ -25,6 +25,7 @@ import {
 import * as schema from '@/lib/db/schema'
 import { withCache, getCached } from '@/lib/cache/server'
 import { logger } from '@/lib/utils/logger'
+import { isAbortedError } from '@/lib/utils/request-helpers'
 
 type DailyStat = typeof schema.dailyStats.$inferSelect
 
@@ -228,21 +229,31 @@ async function fetchDashboardData(userId: string): Promise<DashboardData> {
 
 /**
  * Dashboard content with direct DB calls and fallback support
+ *
+ * Uses simplified auth pattern - middleware has already validated.
+ * Handles aborted requests gracefully to prevent errors during navigation.
  */
 async function DashboardContent() {
-  const supabase = createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Get user - middleware has validated, but handle null gracefully
+  const user = await getAuthenticatedUser()
 
-  // Redirect to login if not authenticated
-  if (authError || !user) {
+  // If user is null, they either aren't authenticated or request was aborted
+  // Redirect to login as safety net (middleware should have caught this)
+  if (!user) {
     redirect('/login?redirectTo=/dashboard')
   }
 
   // Check if profile exists, create if not (safety net)
-  const profile = await getUserProfile(user.id)
+  let profile
+  try {
+    profile = await getUserProfile(user.id)
+  } catch (error) {
+    // If request was aborted, show minimal dashboard instead of error
+    if (isAbortedError(error)) {
+      return <MinimalDashboard />
+    }
+    throw error
+  }
 
   if (!profile) {
     logger.info('Creating missing profile for user', { userId: user.id })
@@ -250,6 +261,11 @@ async function DashboardContent() {
     try {
       await createUserProfile(user.id, user.email || '')
     } catch (createError) {
+      // If aborted, show minimal dashboard
+      if (isAbortedError(createError)) {
+        return <MinimalDashboard />
+      }
+
       logger.error('Profile creation failed', {
         userId: user.id,
         error: createError instanceof Error ? createError.message : String(createError),
@@ -286,9 +302,14 @@ async function DashboardContent() {
   let isStale = false
 
   try {
-    // Try to get fresh data with cache
+    // Try to get fresh data with cache (request deduplication handles concurrency)
     data = await withCache(cacheKey, () => fetchDashboardData(user.id), 300)
   } catch (error) {
+    // If request was aborted during navigation, show minimal dashboard
+    if (isAbortedError(error)) {
+      return <MinimalDashboard />
+    }
+
     logger.error('Dashboard data fetch failed', {
       userId: user.id,
       error: error instanceof Error ? error.message : String(error),

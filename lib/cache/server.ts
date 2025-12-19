@@ -4,6 +4,7 @@
  * Features:
  * - Stale-while-revalidate pattern for better UX
  * - TTL support with memory expiration
+ * - In-flight request deduplication to prevent race conditions
  *
  * Note: For production with multiple serverless instances,
  * consider adding Upstash Redis for shared caching.
@@ -12,6 +13,13 @@
 
 // In-memory cache storage
 const memoryCache = new Map<string, { value: unknown; expires: number; staleAt: number }>()
+
+// Track in-flight requests to prevent duplicate concurrent fetches
+// Key: cache key, Value: Promise that resolves when fetch completes
+const inFlightRequests = new Map<string, Promise<unknown>>()
+
+// Track background revalidations to prevent duplicate revalidations
+const revalidatingKeys = new Set<string>()
 
 /**
  * Get a value from cache
@@ -63,14 +71,23 @@ export async function setCached(
  */
 export async function deleteCached(key: string): Promise<void> {
   memoryCache.delete(key)
+  // Also clear any in-flight request for this key
+  inFlightRequests.delete(key)
 }
 
 /**
- * Cache wrapper with stale-while-revalidate pattern
+ * Cache wrapper with stale-while-revalidate pattern and request deduplication
  *
- * Returns cached data immediately if available.
- * If data is stale (past half TTL), triggers background revalidation.
- * If no cache exists, fetches fresh data.
+ * Features:
+ * - Returns cached data immediately if available
+ * - If data is stale (past half TTL), triggers background revalidation
+ * - If no cache exists, fetches fresh data
+ * - Deduplicates concurrent requests for the same key
+ *
+ * Request Deduplication:
+ * If multiple requests come in for the same key simultaneously,
+ * only one fetch is executed. All requests share the same Promise.
+ * This prevents race conditions and reduces database load.
  *
  * @param key - Cache key
  * @param fn - Function to fetch fresh data
@@ -88,36 +105,70 @@ export async function withCache<T>(
 
     // If not expired, return cached value
     if (memoryCached.expires > now) {
-      // If stale, trigger background revalidation
+      // If stale, trigger background revalidation (deduplicated)
       if (memoryCached.staleAt < now) {
-        // Don't await - let it run in background
         revalidateInBackground(key, fn, ttlSeconds)
       }
       return memoryCached.value as T
     }
   }
 
-  // No valid cache - fetch fresh data
-  const result = await fn()
-  await setCached(key, result, ttlSeconds)
+  // Check if there's already an in-flight request for this key
+  const existingRequest = inFlightRequests.get(key)
+  if (existingRequest) {
+    // Wait for the existing request to complete
+    return existingRequest as Promise<T>
+  }
 
-  return result
+  // Create a new request and track it
+  const requestPromise = (async () => {
+    try {
+      const result = await fn()
+      await setCached(key, result, ttlSeconds)
+      return result
+    } finally {
+      // Clean up the in-flight tracking when done
+      inFlightRequests.delete(key)
+    }
+  })()
+
+  // Store the promise so concurrent requests can share it
+  inFlightRequests.set(key, requestPromise)
+
+  return requestPromise
 }
 
 /**
- * Revalidate cache in background (non-blocking)
+ * Revalidate cache in background (non-blocking, deduplicated)
+ *
+ * Only one background revalidation per key can run at a time.
+ * Subsequent calls while revalidation is in progress are ignored.
  */
-async function revalidateInBackground<T>(
+function revalidateInBackground<T>(
   key: string,
   fn: () => Promise<T>,
   ttlSeconds: number
-): Promise<void> {
-  try {
-    const result = await fn()
-    await setCached(key, result, ttlSeconds)
-  } catch {
-    // Silently fail - stale data is still available
+): void {
+  // Skip if already revalidating this key
+  if (revalidatingKeys.has(key)) {
+    return
   }
+
+  // Mark as revalidating
+  revalidatingKeys.add(key)
+
+  // Don't await - let it run in background
+  fn()
+    .then((result) => {
+      setCached(key, result, ttlSeconds)
+    })
+    .catch(() => {
+      // Silently fail - stale data is still available
+    })
+    .finally(() => {
+      // Clean up revalidation tracking
+      revalidatingKeys.delete(key)
+    })
 }
 
 /**
@@ -125,4 +176,6 @@ async function revalidateInBackground<T>(
  */
 export function clearAllCache(): void {
   memoryCache.clear()
+  inFlightRequests.clear()
+  revalidatingKeys.clear()
 }
