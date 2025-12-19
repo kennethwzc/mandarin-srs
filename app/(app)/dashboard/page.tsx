@@ -151,7 +151,7 @@ async function DashboardContent() {
     // Try to get error details
     let errorMessage = 'Failed to load dashboard data'
     let errorCode: string | null = null
-    let errorDetails: any = null
+    let errorDetails: unknown = null
 
     try {
       const errorData = await response.json()
