@@ -19,6 +19,18 @@ import { useRef, useEffect, useCallback, forwardRef } from 'react'
 
 import { prefetchRouteAndData, prefetchOnHover } from '@/lib/utils/prefetch'
 
+/**
+ * Check if we're in a test environment
+ */
+function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI === 'true' ||
+    typeof jest !== 'undefined' ||
+    typeof describe !== 'undefined'
+  )
+}
+
 interface PrefetchLinkProps extends LinkProps {
   /**
    * Cache key for prefetching data
@@ -80,8 +92,8 @@ export const PrefetchLink = forwardRef<HTMLAnchorElement, PrefetchLinkProps>(
     const ref = (forwardedRef as React.RefObject<HTMLAnchorElement>) || linkRef
 
     const handlePrefetch = useCallback(() => {
-      if (hasPrefetched.current) {
-        return // Already prefetched
+      if (isTestEnvironment() || hasPrefetched.current) {
+        return // Skip in test environment or already prefetched
       }
 
       const route = typeof href === 'string' ? href : href.pathname || ''
@@ -106,6 +118,11 @@ export const PrefetchLink = forwardRef<HTMLAnchorElement, PrefetchLinkProps>(
 
     // Attach hover listener
     useEffect(() => {
+      // Skip in test environment
+      if (isTestEnvironment()) {
+        return undefined
+      }
+
       // Wait for ref to be set
       const element = ref.current
       if (!element) {

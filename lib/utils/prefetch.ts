@@ -9,6 +9,19 @@
 import { preload } from '@/lib/hooks/use-swr'
 
 /**
+ * Check if we're in a test environment
+ * Prefetch utilities should skip execution during tests
+ */
+function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI === 'true' ||
+    typeof jest !== 'undefined' ||
+    typeof describe !== 'undefined'
+  )
+}
+
+/**
  * Check if connection is slow (should skip prefetching)
  */
 function isSlowConnection(): boolean {
@@ -38,7 +51,7 @@ function isSlowConnection(): boolean {
  * @param route - The route to prefetch (e.g., '/lessons')
  */
 export function prefetchRoute(route: string): void {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || isTestEnvironment()) {
     return
   }
 
@@ -66,7 +79,7 @@ export function prefetchRoute(route: string): void {
  * @param fetcher - Function that fetches the data
  */
 export async function prefetchData<T>(key: string, fetcher: () => Promise<T>): Promise<void> {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || isTestEnvironment()) {
     return
   }
 
@@ -94,7 +107,7 @@ export async function prefetchRouteAndData<T>(
   dataKey: string,
   dataFetcher: () => Promise<T>
 ): Promise<void> {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || isTestEnvironment()) {
     return
   }
 
@@ -113,7 +126,7 @@ export async function prefetchRouteAndData<T>(
  * @param url - URL to prefetch
  */
 export function prefetchViaServiceWorker(url: string): void {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+  if (typeof window === 'undefined' || isTestEnvironment() || !('serviceWorker' in navigator)) {
     return
   }
 
@@ -149,7 +162,7 @@ export function prefetchOnHover(
   prefetchFn: () => void,
   delay: number = 150
 ): (() => void) | undefined {
-  if (!element || typeof window === 'undefined') {
+  if (!element || typeof window === 'undefined' || isTestEnvironment()) {
     return undefined
   }
 

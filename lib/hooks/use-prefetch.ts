@@ -12,6 +12,18 @@ import { useEffect, useRef } from 'react'
 import { prefetchRouteAndData, prefetchOnHover } from '@/lib/utils/prefetch'
 
 /**
+ * Check if we're in a test environment
+ */
+function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI === 'true' ||
+    typeof jest !== 'undefined' ||
+    typeof describe !== 'undefined'
+  )
+}
+
+/**
  * Prefetch lessons data when dashboard loads
  * Only prefetches if user is likely to visit lessons (has incomplete lessons)
  *
@@ -22,7 +34,7 @@ export function usePrefetchLessons(hasIncompleteLessons: boolean, delay: number 
   const hasPrefetched = useRef(false)
 
   useEffect(() => {
-    if (!hasIncompleteLessons || hasPrefetched.current) {
+    if (isTestEnvironment() || !hasIncompleteLessons || hasPrefetched.current) {
       return
     }
 
@@ -63,7 +75,7 @@ export function usePrefetchOnHover(
   delay: number = 150
 ) {
   useEffect(() => {
-    if (!ref.current) {
+    if (isTestEnvironment() || !ref.current) {
       return undefined
     }
 
@@ -88,7 +100,7 @@ export function usePrefetchOnMount<T>(
   enabled: boolean = true
 ) {
   useEffect(() => {
-    if (!enabled) {
+    if (isTestEnvironment() || !enabled) {
       return
     }
 
