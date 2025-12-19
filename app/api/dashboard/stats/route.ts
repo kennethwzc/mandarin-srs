@@ -1,4 +1,12 @@
-/* eslint-disable no-console */
+/**
+ * Dashboard Stats API Route
+ *
+ * Provides aggregated statistics for the user dashboard.
+ * Optimized with caching and parallel queries.
+ *
+ * Dependencies: supabase, db/queries, cache/server
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -13,6 +21,7 @@ import {
 } from '@/lib/db/queries'
 import * as schema from '@/lib/db/schema'
 import { withCache } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
 
 type DailyStat = typeof schema.dailyStats.$inferSelect
 
@@ -44,15 +53,15 @@ export async function GET(_request: NextRequest) {
     const profile = await getUserProfile(user.id)
 
     if (!profile) {
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Creating missing profile for user:', user.id)
-      }
+      logger.info('Creating missing profile for user', { userId: user.id })
 
       try {
         await createUserProfile(user.id, user.email || '')
       } catch (createError) {
-        console.error('Profile creation failed:', user.id)
+        logger.error('Profile creation failed', {
+          userId: user.id,
+          error: createError instanceof Error ? createError.message : String(createError),
+        })
 
         return NextResponse.json(
           {
@@ -170,7 +179,9 @@ export async function GET(_request: NextRequest) {
       data: cachedData,
     })
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
+    logger.error('Error fetching dashboard stats', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       {
         error:

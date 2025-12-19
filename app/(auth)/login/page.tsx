@@ -1,8 +1,18 @@
+/**
+ * Login Page
+ *
+ * Handles user authentication with email/password.
+ * Displays verification status messages and redirects on success.
+ *
+ * Dependencies: react, next/navigation, sonner, supabase
+ */
+
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +28,85 @@ import {
 import { useAuth } from '@/lib/hooks/use-auth'
 import { useAuthStore } from '@/lib/stores/auth-store'
 import { createClient } from '@/lib/supabase/client'
-import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
+
+/**
+ * Handle verification-related query parameters and show appropriate toasts
+ */
+function useVerificationToasts(searchParams: URLSearchParams) {
+  useEffect(() => {
+    const error = searchParams.get('error')
+    const message = searchParams.get('message')
+    const verified = searchParams.get('verified')
+
+    if (verified === 'true') {
+      toast.success('Email Verified!', {
+        description: 'Your email has been verified successfully. Please sign in to continue.',
+        duration: 6000,
+      })
+    }
+
+    if (error === 'invalid_code') {
+      toast.error('Invalid Verification Code', {
+        description: 'The verification link is invalid or expired. Please try signing in again.',
+        duration: 8000,
+      })
+    }
+
+    if (error === 'verification_failed') {
+      toast.error('Email Verification Failed', {
+        description: message || 'Unable to verify your email. Please try clicking the link again.',
+        duration: 8000,
+      })
+    }
+
+    if (error === 'profile_creation_failed' || error === 'profile_setup_incomplete') {
+      toast.error('Account Setup Incomplete', {
+        description:
+          'Your email was verified, but we encountered an error setting up your profile. Please try signing in. If this issue persists, contact support at support@mandarinsrs.com',
+        duration: 12000,
+      })
+    }
+  }, [searchParams])
+}
+
+/**
+ * Verify session is properly set before redirecting
+ */
+async function verifySession(maxAttempts = 5): Promise<boolean> {
+  const supabase = createClient()
+  let attempts = 0
+
+  while (attempts < maxAttempts) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (session) {
+      return true
+    }
+
+    attempts++
+    if (attempts < maxAttempts) {
+      const waitTime = 200 * attempts
+      await new Promise((resolve) => setTimeout(resolve, waitTime))
+    }
+  }
+
+  return false
+}
+
+/**
+ * Prefetch dashboard data for faster load after redirect
+ */
+function prefetchDashboard() {
+  fetch('/api/dashboard/stats', {
+    method: 'GET',
+    credentials: 'include',
+  }).catch(() => {
+    // Silently fail - prefetch is optional
+  })
+}
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -29,104 +117,40 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Check for error and success query params
-  useEffect(() => {
-    const error = searchParams.get('error')
-    const message = searchParams.get('message')
-    const verified = searchParams.get('verified')
-
-    // Show success message for newly verified users
-    if (verified === 'true') {
-      toast.success('Email Verified!', {
-        description: 'Your email has been verified successfully. Please sign in to continue.',
-        duration: 6000,
-      })
-    }
-
-    // Error: Invalid verification code
-    if (error === 'invalid_code') {
-      toast.error('Invalid Verification Code', {
-        description: 'The verification link is invalid or expired. Please try signing in again.',
-        duration: 8000,
-      })
-    }
-
-    // Error: Email verification failed
-    if (error === 'verification_failed') {
-      toast.error('Email Verification Failed', {
-        description: message || 'Unable to verify your email. Please try clicking the link again.',
-        duration: 8000,
-      })
-    }
-
-    // Error: Profile creation failed (after successful verification)
-    if (error === 'profile_creation_failed' || error === 'profile_setup_incomplete') {
-      toast.error('Account Setup Incomplete', {
-        description:
-          'Your email was verified, but we encountered an error setting up your profile. Please try signing in. If this issue persists, contact support at support@mandarinsrs.com',
-        duration: 12000,
-      })
-    }
-  }, [searchParams])
+  useVerificationToasts(searchParams)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    e.stopPropagation() // Prevent any event bubbling that might interfere
+    e.stopPropagation()
     setIsLoading(true)
 
     try {
       const { error, session } = await signIn(email, password)
 
       if (error) {
-        toast.error('Login failed', {
-          description: error,
-        })
+        toast.error('Login failed', { description: error })
         setIsLoading(false)
         return
       }
 
       if (!session) {
-        toast.error('Login failed', {
-          description: 'No session created. Please try again.',
-        })
+        toast.error('Login failed', { description: 'No session created. Please try again.' })
         setIsLoading(false)
         return
       }
 
       toast.success('Logged in successfully')
 
-      // Get redirect destination and decode it (handles URL-encoded paths like %2Fdashboard)
+      // Determine redirect destination
       const redirectToParam = searchParams.get('redirectTo')
       const redirectTo = redirectToParam ? decodeURIComponent(redirectToParam) : '/dashboard'
-
-      // Ensure redirectTo is a valid path (starts with /)
       const finalRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
-      // Refresh auth store to sync session state
+      // Refresh auth store
       await initialize()
 
-      // Verify session and cookies are set before redirecting
-      const supabase = createClient()
-      let sessionVerified = false
-      let attempts = 0
-      const maxAttempts = 5
-
-      while (!sessionVerified && attempts < maxAttempts) {
-        const {
-          data: { session: verifySession },
-        } = await supabase.auth.getSession()
-
-        if (verifySession) {
-          sessionVerified = true
-          break
-        }
-
-        attempts++
-        if (attempts < maxAttempts) {
-          const waitTime = 200 * attempts // 200ms, 400ms, 600ms, 800ms, 1000ms
-          await new Promise((resolve) => setTimeout(resolve, waitTime))
-        }
-      }
+      // Verify session
+      const sessionVerified = await verifySession()
 
       if (!sessionVerified) {
         toast.error('Session verification failed. Please try again.')
@@ -134,30 +158,17 @@ function LoginForm() {
         return
       }
 
-      // Prefetch dashboard data in background before redirect
-      // This makes the dashboard feel instant when it loads
+      // Prefetch dashboard if redirecting there
       if (finalRedirect === '/dashboard' || finalRedirect.startsWith('/dashboard')) {
-        fetch('/api/dashboard/stats', {
-          method: 'GET',
-          credentials: 'include',
-        }).catch(() => {
-          // Silently fail - prefetch is optional
-        })
+        prefetchDashboard()
       }
 
-      // Build full URL
-      const fullRedirectUrl = new URL(finalRedirect, window.location.origin).href
-
-      // CRITICAL: Execute redirect and return immediately
-      // window.location.href should navigate, but we return to ensure
-      // no code executes after this point
-      window.location.href = fullRedirectUrl
-
-      // Return immediately - redirect should have happened
-      // If code after this executes, the redirect was blocked
-      return
+      // Execute redirect
+      window.location.href = new URL(finalRedirect, window.location.origin).href
     } catch (error) {
-      console.error('Login error:', error)
+      logger.error('Login error', {
+        error: error instanceof Error ? error.message : String(error),
+      })
       toast.error('An unexpected error occurred')
       setIsLoading(false)
     }

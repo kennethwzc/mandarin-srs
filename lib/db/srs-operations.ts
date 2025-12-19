@@ -216,7 +216,7 @@ async function updateDailyStats(
       user_id: userId,
       stat_date: today,
       reviews_completed: 1,
-      new_items_learned: 0, // TODO: Track new items
+      new_items_learned: 0, // NOTE: New items are tracked separately in lesson start flow
       accuracy_percentage: isCorrect ? 100 : 0,
       time_spent_seconds: Math.floor(responseTimeMs / 1000),
       streak_maintained: true,

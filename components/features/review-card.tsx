@@ -11,6 +11,11 @@ import { PinyinFeedback } from './pinyin-feedback'
 import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
+import type { ReviewCardProps, ReviewResult } from './review-card.types'
+
+// Re-export types for external use
+export type { ReviewCardProps, ReviewResult } from './review-card.types'
+
 /**
  * Review Card Component (Optimized with React.memo)
  *
@@ -35,25 +40,6 @@ import { cn } from '@/lib/utils/cn'
  * />
  * ```
  */
-
-interface ReviewCardProps {
-  // Item data
-  character: string // Character to review (你, 好, etc.)
-  meaning: string // English meaning
-  correctPinyin: string // Correct answer (nǐ, hǎo, etc.)
-  itemType: 'radical' | 'character' | 'vocabulary'
-
-  // Callbacks
-  onSubmit: (result: ReviewResult) => void // Called when review is graded
-  onSkip?: () => void // Optional skip functionality
-}
-
-export interface ReviewResult {
-  userAnswer: string // What user typed
-  isCorrect: boolean // Whether answer was correct
-  grade: number // 0-3 (Again, Hard, Good, Easy)
-  responseTimeMs: number // Time taken to answer
-}
 
 export const ReviewCard = memo(function ReviewCard({
   character,

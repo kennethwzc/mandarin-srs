@@ -6,15 +6,28 @@ import { BookOpen, Brain, Calendar, Flame, Target, TrendingUp } from 'lucide-rea
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils/cn'
 
-interface DashboardStatsProps {
-  stats: {
-    totalItemsLearned: number
-    reviewsDue: number // Reviews due NOW (not by end of day)
-    currentStreak: number
-    longestStreak: number
-    accuracyPercentage: number
-    reviewsCompletedToday: number
-  }
+import type { DashboardStatsProps } from './dashboard-stats.types'
+
+/**
+ * Get text color class based on accuracy percentage
+ * @param percentage - Accuracy percentage (0-100)
+ * @returns Tailwind color class
+ */
+function getAccuracyTextColor(percentage: number): string {
+  if (percentage >= 80) return 'text-green-600 dark:text-green-400'
+  if (percentage >= 60) return 'text-yellow-600 dark:text-yellow-400'
+  return 'text-red-600 dark:text-red-400'
+}
+
+/**
+ * Get background color class based on accuracy percentage
+ * @param percentage - Accuracy percentage (0-100)
+ * @returns Tailwind background color class
+ */
+function getAccuracyBgColor(percentage: number): string {
+  if (percentage >= 80) return 'bg-green-100 dark:bg-green-900/20'
+  if (percentage >= 60) return 'bg-yellow-100 dark:bg-yellow-900/20'
+  return 'bg-red-100 dark:bg-red-900/20'
 }
 
 /**
@@ -60,10 +73,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         description: `Longest: ${longestStreak} days`,
         icon: Flame,
         color: currentStreak > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400',
-        bgColor:
-          currentStreak > 0
-            ? 'bg-orange-100 dark:bg-orange-900/20'
-            : 'bg-gray-100 dark:bg-gray-800',
+        bgColor: currentStreak > 0 ? 'bg-orange-100 dark:bg-orange-900/20' : 'bg-gray-100 dark:bg-gray-800',
       },
       {
         title: 'Accuracy',
@@ -71,18 +81,8 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         suffix: '%',
         description: 'Overall correctness rate',
         icon: Target,
-        color:
-          accuracyPercentage >= 80
-            ? 'text-green-600 dark:text-green-400'
-            : accuracyPercentage >= 60
-              ? 'text-yellow-600 dark:text-yellow-400'
-              : 'text-red-600 dark:text-red-400',
-        bgColor:
-          accuracyPercentage >= 80
-            ? 'bg-green-100 dark:bg-green-900/20'
-            : accuracyPercentage >= 60
-              ? 'bg-yellow-100 dark:bg-yellow-900/20'
-              : 'bg-red-100 dark:bg-red-900/20',
+        color: getAccuracyTextColor(accuracyPercentage),
+        bgColor: getAccuracyBgColor(accuracyPercentage),
       },
       {
         title: 'Today Reviews',

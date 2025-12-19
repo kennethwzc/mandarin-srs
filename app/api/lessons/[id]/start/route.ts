@@ -1,4 +1,12 @@
-/* eslint-disable no-console */
+/**
+ * Start Lesson API Route
+ *
+ * Handles starting a lesson by adding all its items to the user's review queue.
+ * Creates user_items entries for each character and vocabulary item with SRS stage "new".
+ *
+ * Dependencies: supabase, db/client, db/queries, cache/server
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 
 import { db } from '@/lib/db/client'
@@ -6,6 +14,7 @@ import * as schema from '@/lib/db/schema'
 import { getLessonById } from '@/lib/db/queries'
 import { createClient } from '@/lib/supabase/server'
 import { deleteCached } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
 import { and, eq, sql } from 'drizzle-orm'
 
 /**
@@ -23,7 +32,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      console.error('[StartLesson] Unauthorized', { authError })
+      logger.error('Unauthorized access to StartLesson', { authError: authError?.message })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -32,7 +41,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       (typeof user.user_metadata?.email === 'string' ? user.user_metadata.email : undefined)
 
     if (!email) {
-      console.error('[StartLesson] Missing email for user', { userId: user.id })
+      logger.error('Missing email for user in StartLesson', { userId: user.id })
       return NextResponse.json(
         { error: 'User email missing; cannot create profile' },
         { status: 400 }
@@ -51,21 +60,21 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     const lessonId = Number.parseInt(params.id, 10)
 
     if (Number.isNaN(lessonId)) {
-      console.error('[StartLesson] Invalid lesson id', { raw: params.id })
+      logger.error('Invalid lesson id in StartLesson', { raw: params.id })
       return NextResponse.json({ error: 'Invalid lesson id' }, { status: 400 })
     }
 
     const lesson = await getLessonById(lessonId)
 
     if (!lesson) {
-      console.error('[StartLesson] Lesson not found', { lessonId })
+      logger.error('Lesson not found in StartLesson', { lessonId })
       return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
     }
 
     const characterIds = lesson.character_ids || []
     const vocabularyIds = lesson.vocabulary_ids || []
 
-    console.log('[StartLesson] Starting lesson', {
+    logger.info('Starting lesson', {
       lessonId,
       userId: user.id,
       characterCount: characterIds.length,
@@ -73,7 +82,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     })
 
     if (characterIds.length === 0 && vocabularyIds.length === 0) {
-      console.error('[StartLesson] Lesson has no items', { lessonId })
+      logger.error('Lesson has no items in StartLesson', { lessonId })
       return NextResponse.json({ error: 'Lesson has no items to add' }, { status: 400 })
     }
 
@@ -175,7 +184,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       await deleteCached(`dashboard:stats:${user.id}`)
     }
 
-    console.log('[StartLesson] Completed', {
+    logger.info('Lesson started successfully', {
       lessonId,
       userId: user.id,
       totalItems: itemsToCreate.length,
@@ -193,8 +202,8 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
       },
     })
   } catch (error) {
-    console.error('[StartLesson] Internal error', {
-      error,
+    logger.error('Internal error in StartLesson', {
+      error: error instanceof Error ? error.message : String(error),
     })
     const message =
       error instanceof Error

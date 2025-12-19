@@ -1,13 +1,17 @@
-/* eslint-disable no-console */
 /**
- * Auth callback route
- * Handles OAuth redirects and email confirmations
+ * Auth Callback Route
+ *
+ * Handles OAuth redirects and email confirmations from Supabase Auth.
+ * Exchanges authorization codes for sessions and creates user profiles.
+ *
+ * Dependencies: supabase, db/queries
  */
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/utils/logger'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -34,7 +38,9 @@ export async function GET(request: NextRequest) {
       const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       if (exchangeError) {
-        console.error('Error exchanging code for session:', exchangeError)
+        logger.error('Error exchanging code for session', {
+          error: exchangeError.message,
+        })
         // Redirect to login with error message
         const errorUrl = new URL('/login', request.url)
         errorUrl.searchParams.set('error', 'invalid_code')
@@ -43,7 +49,7 @@ export async function GET(request: NextRequest) {
 
       // Verify email was actually confirmed by Supabase
       if (data.user && !data.user.email_confirmed_at) {
-        console.error('❌ Email confirmation failed - email_confirmed_at not set', {
+        logger.error('Email confirmation failed - email_confirmed_at not set', {
           userId: data.user.id,
           email: data.user.email,
         })
@@ -56,7 +62,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(errorUrl)
       }
 
-      console.log('✅ Email verified successfully:', {
+      logger.info('Email verified successfully', {
         userId: data.user?.id,
         email: data.user?.email,
         confirmedAt: data.user?.email_confirmed_at,
@@ -70,22 +76,20 @@ export async function GET(request: NextRequest) {
           const existingProfile = await getUserProfile(data.user.id)
 
           if (!existingProfile) {
-            console.log('Profile not found for user, creating...', data.user.id)
+            logger.info('Profile not found for user, creating...', { userId: data.user.id })
 
             await createUserProfile(
               data.user.id,
               data.user.email || '',
               data.user.user_metadata?.username
             )
-            console.log('Profile created successfully for user:', data.user.id)
+            logger.info('Profile created successfully for user', { userId: data.user.id })
           }
         } catch (profileError) {
-          // Enhanced error logging
-          console.error('❌ CRITICAL: Failed to create profile:', {
+          logger.error('Failed to create profile', {
             userId: data.user.id,
             email: data.user.email,
-            error: profileError instanceof Error ? profileError.message : profileError,
-            stack: profileError instanceof Error ? profileError.stack : undefined,
+            error: profileError instanceof Error ? profileError.message : String(profileError),
           })
 
           // Redirect to email-verified page with error parameter
@@ -101,7 +105,9 @@ export async function GET(request: NextRequest) {
       const successUrl = new URL('/email-verified', request.url)
       return NextResponse.redirect(successUrl)
     } catch (err) {
-      console.error('Unexpected error in callback:', err)
+      logger.error('Unexpected error in callback', {
+        error: err instanceof Error ? err.message : String(err),
+      })
       const errorUrl = new URL('/login', request.url)
       errorUrl.searchParams.set('error', 'callback_error')
       return NextResponse.redirect(errorUrl)

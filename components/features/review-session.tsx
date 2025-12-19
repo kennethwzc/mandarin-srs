@@ -1,16 +1,5 @@
-'use client'
-
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-
-import { ReviewCard } from './review-card'
-import type { ReviewResult } from './review-card'
-import { Progress } from '@/components/ui/progress'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-
 /**
- * Review Session Manager
+ * Review Session Component
  *
  * Manages a review session:
  * - Fetches review queue from API
@@ -23,17 +12,49 @@ import { toast } from 'sonner'
  * - Optimistic UI: Card advances immediately, API submits in background
  * - Memoized callbacks: Prevents unnecessary re-renders
  * - Submission queue: Handles rapid keypresses without blocking
+ *
+ * Dependencies: react, next/navigation, sonner, session-layout, review-card
  */
 
+'use client'
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+
+import { ReviewCard } from './review-card'
+import type { ReviewResult } from './review-card'
+import {
+  SessionLayout,
+  SessionLoading,
+  SessionEmpty,
+  SessionComplete,
+  SessionProgressBar,
+  SessionStatsDisplay,
+} from './session-layout'
+import { logger } from '@/lib/utils/logger'
+
+/**
+ * Review item data structure
+ */
 interface ReviewItem {
+  /** Unique review ID */
   id: string
+  /** Item ID in database */
   itemId: number
+  /** Type of item being reviewed */
   itemType: 'radical' | 'character' | 'vocabulary'
+  /** Chinese character or word */
   character: string
+  /** English meaning */
   meaning: string
+  /** Correct pinyin with tone marks */
   correctPinyin: string
 }
 
+/**
+ * Pending API submission data
+ */
 interface PendingSubmission {
   itemId: number
   itemType: 'radical' | 'character' | 'vocabulary'
@@ -44,6 +65,11 @@ interface PendingSubmission {
   isCorrect: boolean
 }
 
+/**
+ * Review Session Manager
+ *
+ * Manages the full review session lifecycle with optimistic UI updates.
+ */
 export function ReviewSession() {
   const router = useRouter()
 
@@ -60,7 +86,7 @@ export function ReviewSession() {
   // Refs for optimistic UI
   const pendingSubmissions = useRef<PendingSubmission[]>([])
   const isProcessingQueue = useRef(false)
-  const hasAdvancedRef = useRef(false) // Prevent double-advance on rapid keypresses
+  const hasAdvancedRef = useRef(false)
 
   // Fetch review queue on mount
   useEffect(() => {
@@ -81,7 +107,7 @@ export function ReviewSession() {
         throw new Error(data.error || 'Failed to fetch reviews')
       }
 
-      // Transform API data to ReviewItem format with actual content
+      // Transform API data to ReviewItem format
       const items: ReviewItem[] = data.data.queue.map(
         (item: {
           id: string
@@ -106,7 +132,9 @@ export function ReviewSession() {
         setSessionComplete(true)
       }
     } catch (error) {
-      console.error('Error fetching review queue:', error)
+      logger.error('Error fetching review queue', {
+        error: error instanceof Error ? error.message : String(error),
+      })
       toast.error('Failed to load reviews')
     } finally {
       setIsLoading(false)
@@ -127,7 +155,6 @@ export function ReviewSession() {
     while (pendingSubmissions.current.length > 0) {
       const submission = pendingSubmissions.current[0]
 
-      // Safety check - should never be undefined given the while condition
       if (!submission) {
         pendingSubmissions.current.shift()
         continue
@@ -152,13 +179,12 @@ export function ReviewSession() {
           throw new Error(data.error || 'Failed to submit review')
         }
 
-        // Remove successfully processed submission
         pendingSubmissions.current.shift()
       } catch (error) {
-        console.error('Error submitting review:', error)
-        // Remove failed submission to prevent infinite loop
+        logger.error('Error submitting review', {
+          error: error instanceof Error ? error.message : String(error),
+        })
         pendingSubmissions.current.shift()
-        // Show error but don't block - user already moved to next card
         toast.error('Failed to save review (will not affect progress)')
       }
     }
@@ -172,7 +198,6 @@ export function ReviewSession() {
    */
   const handleSubmitReview = useCallback(
     (result: ReviewResult) => {
-      // Prevent double-advance on rapid keypresses
       if (hasAdvancedRef.current) {
         return
       }
@@ -183,7 +208,6 @@ export function ReviewSession() {
         return
       }
 
-      // Mark as advanced to prevent double-processing
       hasAdvancedRef.current = true
 
       // OPTIMISTIC: Update stats immediately
@@ -192,7 +216,7 @@ export function ReviewSession() {
         setCorrectCount((prev) => prev + 1)
       }
 
-      // OPTIMISTIC: Move to next card immediately (before API call)
+      // OPTIMISTIC: Move to next card immediately
       const nextIndex = currentIndex + 1
       if (nextIndex >= queue.length) {
         setSessionComplete(true)
@@ -211,10 +235,10 @@ export function ReviewSession() {
         isCorrect: result.isCorrect,
       })
 
-      // Process queue in background (non-blocking)
+      // Process queue in background
       processSubmissionQueue()
 
-      // Reset advance guard after a short delay (allows next card's grade)
+      // Reset advance guard after short delay
       setTimeout(() => {
         hasAdvancedRef.current = false
       }, 50)
@@ -223,7 +247,7 @@ export function ReviewSession() {
   )
 
   /**
-   * Handle skip (optional)
+   * Handle skip
    */
   function handleSkip() {
     const nextIndex = currentIndex + 1
@@ -234,16 +258,13 @@ export function ReviewSession() {
     }
   }
 
+  // Navigation handlers
+  const goToDashboard = () => router.push('/dashboard')
+  const goToLessons = () => router.push('/lessons')
+
   // Loading state
   if (isLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
-          <p className="text-muted-foreground">Loading reviews...</p>
-        </div>
-      </div>
-    )
+    return <SessionLoading message="Loading reviews..." />
   }
 
   // Session complete
@@ -252,85 +273,49 @@ export function ReviewSession() {
     const hasCompletedReviews = totalReviewed > 0
 
     return (
-      <div className="mx-auto max-w-2xl space-y-6 p-4 text-center sm:p-8">
-        <div className="mb-4 text-5xl sm:text-6xl">{hasCompletedReviews ? '🎉' : '📚'}</div>
-        <h1 className="text-2xl font-bold sm:text-3xl">
-          {hasCompletedReviews ? 'Session Complete!' : 'No Reviews Due'}
-        </h1>
-
-        {hasCompletedReviews ? (
-          <>
-            <div className="mx-auto grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-              <div className="rounded-lg bg-muted p-4">
-                <div className="text-2xl font-bold text-primary sm:text-3xl">{totalReviewed}</div>
-                <div className="text-sm text-muted-foreground">Reviews</div>
-              </div>
-              <div className="rounded-lg bg-muted p-4">
-                <div className="text-2xl font-bold text-green-600 sm:text-3xl">{accuracy}%</div>
-                <div className="text-sm text-muted-foreground">Accuracy</div>
-              </div>
-            </div>
-            <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
-              Great work! Come back later for more reviews, or start a new lesson.
-            </p>
-          </>
-        ) : (
-          <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
-            You&apos;re all caught up! Start a new lesson to learn more items.
-          </p>
-        )}
-
-        <div className="flex flex-col justify-center gap-3 px-4 sm:flex-row sm:gap-4 sm:px-0">
-          <Button onClick={() => router.push('/dashboard')} className="w-full sm:w-auto">
-            Back to Dashboard
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/lessons')}
-            className="w-full sm:w-auto"
-          >
-            Browse Lessons
-          </Button>
-        </div>
-      </div>
+      <SessionComplete
+        emoji={hasCompletedReviews ? '🎉' : '📚'}
+        title={hasCompletedReviews ? 'Session Complete!' : 'No Reviews Due'}
+        description={
+          hasCompletedReviews
+            ? 'Great work! Come back later for more reviews, or start a new lesson.'
+            : "You're all caught up! Start a new lesson to learn more items."
+        }
+        stats={
+          hasCompletedReviews
+            ? [
+                { label: 'Reviews', value: totalReviewed, color: 'text-primary' },
+                { label: 'Accuracy', value: accuracy, suffix: '%', color: 'text-green-600' },
+              ]
+            : undefined
+        }
+        actions={[
+          { label: 'Back to Dashboard', onClick: goToDashboard },
+          { label: 'Browse Lessons', onClick: goToLessons, variant: 'outline' },
+        ]}
+      />
     )
   }
 
   const currentItem = queue[currentIndex]
-  const progress = ((currentIndex + 1) / queue.length) * 100
 
   if (!currentItem) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-muted-foreground">No reviews available</p>
-        <Button onClick={() => router.push('/dashboard')} className="mt-4">
-          Back to Dashboard
-        </Button>
-      </div>
+      <SessionEmpty
+        message="No reviews available"
+        onAction={goToDashboard}
+        actionText="Back to Dashboard"
+      />
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Progress bar */}
-      <div className="mx-auto w-full max-w-2xl space-y-2 px-4 sm:px-0">
-        <div className="flex justify-between text-xs text-muted-foreground sm:text-sm">
-          <span>Progress</span>
-          <span>
-            {currentIndex + 1} / {queue.length}
-          </span>
-        </div>
-        <Progress
-          value={progress}
-          className="h-2"
-          aria-label={`Review progress: ${currentIndex + 1} of ${queue.length} items`}
-        />
-      </div>
+    <SessionLayout>
+      <SessionProgressBar currentIndex={currentIndex} totalItems={queue.length} />
 
-      {/* Review card */}
       <div className="px-4 sm:px-0">
         <ReviewCard
-          key={currentItem.id} // Force remount on each item change
+          key={currentItem.id}
           character={currentItem.character}
           meaning={currentItem.meaning}
           correctPinyin={currentItem.correctPinyin}
@@ -340,14 +325,7 @@ export function ReviewSession() {
         />
       </div>
 
-      {/* Session stats */}
-      <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2 px-4 text-xs text-muted-foreground sm:gap-4 sm:px-0 sm:text-sm">
-        <span>✓ {correctCount} correct</span>
-        <span>• {totalReviewed} total</span>
-        {totalReviewed > 0 && (
-          <span>• {Math.round((correctCount / totalReviewed) * 100)}% accuracy</span>
-        )}
-      </div>
-    </div>
+      <SessionStatsDisplay correctCount={correctCount} totalReviewed={totalReviewed} />
+    </SessionLayout>
   )
 }

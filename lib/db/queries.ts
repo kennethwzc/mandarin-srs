@@ -40,8 +40,7 @@ export async function getReviewQueue(userId: string, limit: number = 50) {
     .orderBy(schema.userItems.next_review_date)
     .limit(limit)
 
-  // TODO: Join with radicals/characters/vocabulary based on item_type
-  // This will be implemented in PROMPT 4 with the full SRS logic
+  // NOTE: For joined data with content, use getReviewQueueOptimized or srs-operations.getReviewQueue
 
   return items
 }

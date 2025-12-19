@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const isCorrect = comparePinyinExact(userAnswer, correctAnswer)
 
     // 4. Get user's timezone (from profile or default to UTC)
-    // TODO: Fetch from user profile
+    // TODO (Q1 2025): Fetch timezone from user profile once timezone field is added to profiles table
     const timezone = 'UTC'
 
     // 5. Submit review
@@ -84,7 +84,11 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error submitting review:', error)
+    // Use logger for production-safe error logging
+    const { logger } = await import('@/lib/utils/logger')
+    logger.error('Error submitting review', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       {
         error:

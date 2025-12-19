@@ -18,6 +18,8 @@
  * - customer.subscription.deleted
  * - invoice.payment_succeeded
  * - invoice.payment_failed
+ *
+ * Dependencies: stripe, supabase
  */
 
 import { headers } from 'next/headers'
@@ -26,6 +28,7 @@ import type Stripe from 'stripe'
 
 import { stripe } from '@/lib/stripe/config'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/utils/logger'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,8 +62,9 @@ export async function POST(req: Request) {
     // Verify webhook signature
     event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Webhook signature verification failed:', err)
+    logger.error('Webhook signature verification failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -89,24 +93,30 @@ export async function POST(req: Request) {
         break
 
       default:
-        // eslint-disable-next-line no-console
-        console.log(`Unhandled event type: ${event.type}`)
+        logger.info('Unhandled Stripe event type', { eventType: event.type })
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Error handling webhook:', error)
+    logger.error('Error handling webhook', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }
 
 /**
  * Handle successful checkout session
+ *
+ * TODO (Stripe Integration - Q2 2025): Implement full subscription update
+ * Prerequisites:
+ * - Add stripe_customer_id column to profiles table
+ * - Add subscription_status column to profiles table
+ * - Add subscription_plan column to profiles table
+ * - Add subscription_end_date column to profiles table
  */
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  // eslint-disable-next-line no-console
-  console.log('Checkout session completed:', session.id)
+  logger.info('Checkout session completed', { sessionId: session.id })
 
   const supabase = createClient()
 
@@ -114,105 +124,66 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const userId = session.metadata?.userId
 
   if (!userId) {
-    console.error('No user ID in session metadata')
+    logger.error('No user ID in session metadata', { sessionId: session.id })
     return
   }
 
-  // TODO: Update user's subscription status
-  // You need to add these columns to your users table first:
-  // - stripe_customer_id (text)
-  // - subscription_status (text)
-  // - subscription_plan (text)
-  // - subscription_end_date (timestamptz)
-  //
-  // Example migration:
-  // ALTER TABLE users ADD COLUMN stripe_customer_id TEXT;
-  // ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'free';
-  // ALTER TABLE users ADD COLUMN subscription_plan TEXT DEFAULT 'free';
-  // ALTER TABLE users ADD COLUMN subscription_end_date TIMESTAMPTZ;
+  // NOTE: Subscription update is pending Stripe column additions to profiles table
+  // See migration script at scripts/add-stripe-columns.sql for required schema changes
+  logger.info('User upgrade recorded (pending DB schema update)', {
+    userId,
+    plan: session.metadata?.plan,
+    customerId: session.customer,
+  })
 
-  // Uncomment when you've added the columns:
-  // const { error } = await supabase
-  //   .from('users')
-  //   .update({
-  //     stripe_customer_id: session.customer as string,
-  //     subscription_status: 'active',
-  //     subscription_plan: session.metadata?.plan || 'pro',
-  //     updated_at: new Date().toISOString(),
-  //   })
-  //   .eq('id', userId)
-  //
-  // if (error) {
-  //   console.error('Error updating user subscription:', error)
-  // } else {
-  //   console.log(`User ${userId} upgraded to ${session.metadata?.plan}`)
-  // }
-
-  // For now, just log the upgrade
-  // eslint-disable-next-line no-console
-  console.log(
-    `User ${userId} upgraded to ${session.metadata?.plan} (DB update pending - add Stripe columns first)`
-  )
   // Suppress unused variable warning
   void supabase
 }
 
 /**
  * Handle subscription created or updated
+ *
+ * TODO (Stripe Integration - Q2 2025): Update user subscription status in database
  */
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  // eslint-disable-next-line no-console
-  console.log('Subscription updated:', subscription.id)
-
-  // Map Stripe status to our status
-  const status = subscription.status === 'active' ? 'active' : subscription.status
-
-  // TODO: Implement subscription update when Stripe columns are added to users table
-  // For now, just log the event
-  // eslint-disable-next-line no-console
-  console.log(
-    `Subscription ${subscription.id} updated (status: ${status}, customer: ${subscription.customer})`
-  )
+  logger.info('Subscription updated', {
+    subscriptionId: subscription.id,
+    status: subscription.status,
+    customerId: subscription.customer,
+  })
 }
 
 /**
  * Handle subscription deleted/cancelled
+ *
+ * TODO (Stripe Integration - Q2 2025): Revert user to free tier in database
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  // eslint-disable-next-line no-console
-  console.log('Subscription deleted:', subscription.id)
-
-  // TODO: Implement subscription deletion when Stripe columns are added to users table
-  // For now, just log the event
-  // eslint-disable-next-line no-console
-  console.log(`Subscription cancelled (customer: ${subscription.customer}, id: ${subscription.id})`)
+  logger.info('Subscription deleted', {
+    subscriptionId: subscription.id,
+    customerId: subscription.customer,
+  })
 }
 
 /**
  * Handle successful payment
  */
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  // eslint-disable-next-line no-console
-  console.log('Payment succeeded:', invoice.id)
-
-  // You could send a receipt email here
-  // Or log the payment for analytics
+  logger.info('Payment succeeded', { invoiceId: invoice.id })
 }
 
 /**
  * Handle failed payment
+ *
+ * TODO (Stripe Integration - Q2 2025): Implement payment failure notifications
+ * - Send email notification to user
+ * - Update subscription status to 'past_due'
+ * - Show notification in app
  */
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  // eslint-disable-next-line no-console
-  console.log('Payment failed:', invoice.id)
-
-  // TODO: Implement payment failure handling when Stripe is fully integrated
-  // You could:
-  // 1. Send an email notification
-  // 2. Update subscription status to 'past_due'
-  // 3. Show a notification in the app
-
-  // For now, just log
-  // eslint-disable-next-line no-console
-  console.log(`Payment failed (customer: ${invoice.customer}, amount: ${invoice.amount_due})`)
+  logger.warn('Payment failed', {
+    invoiceId: invoice.id,
+    customerId: invoice.customer,
+    amountDue: invoice.amount_due,
+  })
 }

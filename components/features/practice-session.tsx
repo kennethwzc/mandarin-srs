@@ -1,16 +1,5 @@
-'use client'
-
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-
-import { ReviewCard } from './review-card'
-import type { ReviewResult } from './review-card'
-import { Progress } from '@/components/ui/progress'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
-
 /**
- * Practice Session Manager
+ * Practice Session Component
  *
  * Practice mode for a specific lesson:
  * - Fetches ALL items from the lesson (not just due items)
@@ -22,21 +11,60 @@ import { toast } from 'sonner'
  * - Fetches from /api/lessons/[id]/practice instead of /api/reviews/queue
  * - No API submissions on answer
  * - Different completion UI (Practice Again option)
+ *
+ * Dependencies: react, next/navigation, sonner, session-layout, review-card
  */
 
+'use client'
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+
+import { ReviewCard } from './review-card'
+import type { ReviewResult } from './review-card'
+import {
+  SessionLayout,
+  SessionLoading,
+  SessionError,
+  SessionEmpty,
+  SessionComplete,
+  SessionProgressBar,
+  SessionStatsDisplay,
+} from './session-layout'
+import { logger } from '@/lib/utils/logger'
+
+/**
+ * Practice item data structure
+ */
 interface PracticeItem {
+  /** Unique item identifier */
   itemId: number
+  /** Type of item being practiced */
   itemType: 'character' | 'vocabulary'
+  /** Chinese character or word */
   character: string
+  /** English meaning */
   meaning: string
+  /** Correct pinyin with tone marks */
   correctPinyin: string
 }
 
+/**
+ * Props for PracticeSession component
+ */
 interface PracticeSessionProps {
+  /** Lesson ID to practice */
   lessonId: number
+  /** Lesson title for display */
   lessonTitle: string
 }
 
+/**
+ * Practice Session Manager
+ *
+ * Manages a practice session for a specific lesson.
+ */
 export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps) {
   const router = useRouter()
 
@@ -54,16 +82,10 @@ export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps)
   // Refs
   const hasAdvancedRef = useRef(false)
 
-  // Fetch practice items on mount
-  useEffect(() => {
-    fetchPracticeItems()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonId])
-
   /**
    * Fetch practice items from API
    */
-  async function fetchPracticeItems() {
+  const fetchPracticeItems = useCallback(async () => {
     setIsLoading(true)
     setLoadError(null)
 
@@ -98,14 +120,22 @@ export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps)
         setLoadError('This lesson has no items to practice.')
       }
     } catch (error) {
-      console.error('Error fetching practice items:', error)
+      logger.error('Error fetching practice items', {
+        error: error instanceof Error ? error.message : String(error),
+        lessonId,
+      })
       const message = error instanceof Error ? error.message : 'Failed to load practice items'
       setLoadError(message)
       toast.error('Failed to load practice items')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [lessonId])
+
+  // Fetch practice items on mount
+  useEffect(() => {
+    fetchPracticeItems()
+  }, [fetchPracticeItems])
 
   /**
    * Handle answer submission - LOCAL ONLY (no API call)
@@ -172,32 +202,25 @@ export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps)
     setQueue((prev) => [...prev].sort(() => Math.random() - 0.5))
   }
 
+  // Navigation handlers
+  const goToLesson = () => router.push(`/lessons/${lessonId}`)
+  const goToLessons = () => router.push('/lessons')
+
   // Loading state
   if (isLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="space-y-4 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
-          <p className="text-muted-foreground">Loading practice items...</p>
-        </div>
-      </div>
-    )
+    return <SessionLoading message="Loading practice items..." />
   }
 
   // Error state
   if (loadError) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 p-4 text-center sm:p-8">
-        <div className="mb-4 text-5xl">😕</div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Unable to Load Practice</h1>
-        <p className="text-muted-foreground">{loadError}</p>
-        <div className="flex flex-col justify-center gap-3 sm:flex-row sm:gap-4">
-          <Button onClick={() => router.push(`/lessons/${lessonId}`)}>Back to Lesson</Button>
-          <Button variant="outline" onClick={() => fetchPracticeItems()}>
-            Try Again
-          </Button>
-        </div>
-      </div>
+      <SessionError
+        message={loadError}
+        onPrimaryAction={goToLesson}
+        primaryActionText="Back to Lesson"
+        onSecondaryAction={fetchPracticeItems}
+        secondaryActionText="Try Again"
+      />
     )
   }
 
@@ -206,80 +229,43 @@ export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps)
     const accuracy = totalReviewed > 0 ? Math.round((correctCount / totalReviewed) * 100) : 0
 
     return (
-      <div className="mx-auto max-w-2xl space-y-6 p-4 text-center sm:p-8">
-        <div className="mb-4 text-5xl sm:text-6xl">🎉</div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Practice Complete!</h1>
-
-        <div className="mx-auto grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          <div className="rounded-lg bg-muted p-4">
-            <div className="text-2xl font-bold text-primary sm:text-3xl">{totalReviewed}</div>
-            <div className="text-sm text-muted-foreground">Items Practiced</div>
-          </div>
-          <div className="rounded-lg bg-muted p-4">
-            <div className="text-2xl font-bold text-green-600 sm:text-3xl">{accuracy}%</div>
-            <div className="text-sm text-muted-foreground">Accuracy</div>
-          </div>
-        </div>
-
-        <p className="px-2 text-sm text-muted-foreground sm:px-0 sm:text-base">
-          Great practice of &quot;{lessonTitle}&quot;! This doesn&apos;t affect your SRS schedule.
-        </p>
-
-        <div className="flex flex-col justify-center gap-3 px-4 sm:flex-row sm:gap-4 sm:px-0">
-          <Button onClick={handlePracticeAgain} className="w-full sm:w-auto">
-            Practice Again
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/lessons/${lessonId}`)}
-            className="w-full sm:w-auto"
-          >
-            Back to Lesson
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/lessons')}
-            className="w-full sm:w-auto"
-          >
-            All Lessons
-          </Button>
-        </div>
-      </div>
+      <SessionComplete
+        emoji="🎉"
+        title="Practice Complete!"
+        description={`Great practice of "${lessonTitle}"! This doesn't affect your SRS schedule.`}
+        stats={[
+          { label: 'Items Practiced', value: totalReviewed, color: 'text-primary' },
+          { label: 'Accuracy', value: accuracy, suffix: '%', color: 'text-green-600' },
+        ]}
+        actions={[
+          { label: 'Practice Again', onClick: handlePracticeAgain },
+          { label: 'Back to Lesson', onClick: goToLesson, variant: 'outline' },
+          { label: 'All Lessons', onClick: goToLessons, variant: 'outline' },
+        ]}
+      />
     )
   }
 
   const currentItem = queue[currentIndex]
-  const progress = ((currentIndex + 1) / queue.length) * 100
 
   if (!currentItem) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-muted-foreground">No items to practice</p>
-        <Button onClick={() => router.push(`/lessons/${lessonId}`)} className="mt-4">
-          Back to Lesson
-        </Button>
-      </div>
+      <SessionEmpty
+        message="No items to practice"
+        onAction={goToLesson}
+        actionText="Back to Lesson"
+      />
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Progress bar */}
-      <div className="mx-auto w-full max-w-2xl space-y-2 px-4 sm:px-0">
-        <div className="flex justify-between text-xs text-muted-foreground sm:text-sm">
-          <span>Practice Progress</span>
-          <span>
-            {currentIndex + 1} / {queue.length}
-          </span>
-        </div>
-        <Progress
-          value={progress}
-          className="h-2"
-          aria-label={`Practice progress: ${currentIndex + 1} of ${queue.length} items`}
-        />
-      </div>
+    <SessionLayout>
+      <SessionProgressBar
+        currentIndex={currentIndex}
+        totalItems={queue.length}
+        label="Practice Progress"
+      />
 
-      {/* Practice card (uses same ReviewCard component) */}
       <div className="px-4 sm:px-0">
         <ReviewCard
           key={`${currentItem.itemId}-${currentItem.itemType}`}
@@ -292,15 +278,11 @@ export function PracticeSession({ lessonId, lessonTitle }: PracticeSessionProps)
         />
       </div>
 
-      {/* Session stats (local only) */}
-      <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2 px-4 text-xs text-muted-foreground sm:gap-4 sm:px-0 sm:text-sm">
-        <span>✓ {correctCount} correct</span>
-        <span>• {totalReviewed} total</span>
-        {totalReviewed > 0 && (
-          <span>• {Math.round((correctCount / totalReviewed) * 100)}% accuracy</span>
-        )}
-        <span className="text-blue-500">• Practice mode</span>
-      </div>
-    </div>
+      <SessionStatsDisplay
+        correctCount={correctCount}
+        totalReviewed={totalReviewed}
+        additionalLabel="Practice mode"
+      />
+    </SessionLayout>
   )
 }
