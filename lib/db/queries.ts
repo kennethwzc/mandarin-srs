@@ -216,9 +216,15 @@ export async function getDailyStatsRange(userId: string, startDate: Date, endDat
 }
 
 /**
- * Calculate upcoming reviews forecast for the next 24 hours grouped by hour
+ * Get upcoming reviews forecast for the next 24 hours
+ *
+ * Returns raw timestamps (ISO strings) instead of grouped hours.
+ * This allows the client to group by hour using the user's local timezone.
+ *
+ * @param userId - User's UUID
+ * @returns Array of ISO timestamp strings for upcoming reviews
  */
-export async function getUpcomingReviewsForecast(userId: string) {
+export async function getUpcomingReviewsForecast(userId: string): Promise<string[]> {
   const now = new Date()
   const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000)
 
@@ -233,21 +239,11 @@ export async function getUpcomingReviewsForecast(userId: string) {
       )
     )
 
-  const hours: Array<{ hour: number; count: number }> = Array.from({ length: 24 }, (_, hour) => ({
-    hour,
-    count: 0,
-  }))
-
-  for (const item of upcoming) {
-    if (!item.next_review_date) {
-      continue
-    }
-    const hour = new Date(item.next_review_date).getHours()
-    const target = hours[hour] ?? { hour, count: 0 }
-    hours[hour] = { hour, count: target.count + 1 }
-  }
-
-  return hours
+  // Return raw timestamps as ISO strings for client-side timezone conversion
+  return upcoming
+    .map((item) => item.next_review_date)
+    .filter((date): date is Date => date !== null)
+    .map((date) => date.toISOString())
 }
 
 // ============================================================================

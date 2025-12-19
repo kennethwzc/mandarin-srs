@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 
 import { Clock } from 'lucide-react'
@@ -8,23 +9,45 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface UpcomingReviewsProps {
-  forecast: Array<{
-    hour: number
-    count: number
-  }>
-  currentHour: number
+  /**
+   * Array of ISO timestamp strings for upcoming reviews.
+   * These will be grouped by hour using the user's local timezone.
+   */
+  forecast: string[]
 }
 
 /**
  * Upcoming Reviews Component
  *
  * Shows when reviews are due in the next 24 hours.
+ * Uses client-side local time to display hours correctly for the user's timezone.
  */
-export function UpcomingReviews({ forecast, currentHour }: UpcomingReviewsProps) {
+export function UpcomingReviews({ forecast }: UpcomingReviewsProps) {
+  // Calculate current hour in user's local timezone
+  const currentHour = useMemo(() => new Date().getHours(), [])
+
+  // Group forecast timestamps by hour using user's local timezone
+  const forecastByHour = useMemo(() => {
+    const hours: Array<{ hour: number; count: number }> = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      count: 0,
+    }))
+
+    for (const timestamp of forecast) {
+      const date = new Date(timestamp)
+      const hour = date.getHours()
+      const target = hours[hour] ?? { hour, count: 0 }
+      hours[hour] = { hour, count: target.count + 1 }
+    }
+
+    return hours
+  }, [forecast])
+
+  // Get next 6 hours starting from current hour
   const upcomingHours: Array<{ hour: number; count: number }> = []
   for (let i = 0; i < 6; i++) {
     const hour = (currentHour + i) % 24
-    const data = forecast.find((entry) => entry.hour === hour) ?? { hour, count: 0 }
+    const data = forecastByHour.find((entry) => entry.hour === hour) ?? { hour, count: 0 }
     upcomingHours.push(data)
   }
 

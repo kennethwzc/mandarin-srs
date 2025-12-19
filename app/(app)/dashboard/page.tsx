@@ -112,7 +112,7 @@ interface DashboardData {
     reviewsOverTime: Array<{ date: string; reviews: number; newItems: number }>
     accuracyOverTime: Array<{ date: string; accuracy: number }>
     activityCalendar: Array<{ date: string; count: number }>
-    upcomingForecast: Array<{ hour: number; count: number }>
+    upcomingForecast: string[] // ISO timestamp strings for client-side timezone conversion
   }
   lessons: Array<{
     id: number
@@ -365,10 +365,7 @@ async function DashboardContent() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <LessonProgress lessons={data.lessons} />
-        <UpcomingReviews
-          forecast={data.charts.upcomingForecast}
-          currentHour={new Date().getHours()}
-        />
+        <UpcomingReviews forecast={data.charts.upcomingForecast} />
       </div>
     </div>
   )
