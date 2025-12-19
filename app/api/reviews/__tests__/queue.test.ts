@@ -13,6 +13,12 @@ import { NextRequest } from 'next/server'
 // Mock dependencies
 jest.mock('@/lib/supabase/server')
 jest.mock('@/lib/db/srs-operations')
+jest.mock('@/lib/cache/server', () => ({
+  withCache: jest.fn((key, fn) => fn()), // Always call the underlying function (bypass cache)
+  deleteCached: jest.fn(),
+  getCached: jest.fn().mockResolvedValue(null),
+  setCached: jest.fn(),
+}))
 
 import { GET } from '../queue/route'
 import { createClient } from '@/lib/supabase/server'

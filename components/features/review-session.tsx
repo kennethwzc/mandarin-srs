@@ -2,13 +2,14 @@
  * Review Session Component
  *
  * Manages a review session:
- * - Fetches review queue from API
+ * - Receives pre-fetched review queue from server (SSR)
  * - Shows cards one by one
  * - Submits answers to API (optimistically - non-blocking)
  * - Tracks progress
  * - Shows completion screen
  *
  * Performance optimizations:
+ * - Server-side data fetching: Queue is pre-loaded during SSR
  * - Optimistic UI: Card advances immediately, API submits in background
  * - Memoized callbacks: Prevents unnecessary re-renders
  * - Submission queue: Handles rapid keypresses without blocking
@@ -18,7 +19,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -26,7 +27,6 @@ import { ReviewCard } from './review-card'
 import type { ReviewResult } from './review-card'
 import {
   SessionLayout,
-  SessionLoading,
   SessionEmpty,
   SessionComplete,
   SessionProgressBar,
@@ -37,7 +37,7 @@ import { logger } from '@/lib/utils/logger'
 /**
  * Review item data structure
  */
-interface ReviewItem {
+export interface ReviewItem {
   /** Unique review ID */
   id: string
   /** Item ID in database */
@@ -50,6 +50,14 @@ interface ReviewItem {
   meaning: string
   /** Correct pinyin with tone marks */
   correctPinyin: string
+}
+
+/**
+ * Props for ReviewSession component
+ */
+export interface ReviewSessionProps {
+  /** Pre-fetched review queue from server (SSR) */
+  initialQueue: ReviewItem[]
 }
 
 /**
@@ -69,15 +77,15 @@ interface PendingSubmission {
  * Review Session Manager
  *
  * Manages the full review session lifecycle with optimistic UI updates.
+ * Receives pre-fetched queue from server for faster initial render.
  */
-export function ReviewSession() {
+export function ReviewSession({ initialQueue }: ReviewSessionProps) {
   const router = useRouter()
 
-  // State
-  const [queue, setQueue] = useState<ReviewItem[]>([])
+  // State - initialize with server-provided data
+  const [queue] = useState<ReviewItem[]>(initialQueue)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const [sessionComplete, setSessionComplete] = useState(false)
+  const [sessionComplete, setSessionComplete] = useState(initialQueue.length === 0)
 
   // Stats
   const [correctCount, setCorrectCount] = useState(0)
@@ -87,59 +95,6 @@ export function ReviewSession() {
   const pendingSubmissions = useRef<PendingSubmission[]>([])
   const isProcessingQueue = useRef(false)
   const hasAdvancedRef = useRef(false)
-
-  // Fetch review queue on mount
-  useEffect(() => {
-    fetchReviewQueue()
-  }, [])
-
-  /**
-   * Fetch review queue from API
-   */
-  async function fetchReviewQueue() {
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/reviews/queue?limit=20')
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch reviews')
-      }
-
-      // Transform API data to ReviewItem format
-      const items: ReviewItem[] = data.data.queue.map(
-        (item: {
-          id: string
-          item_id: number
-          item_type: 'radical' | 'character' | 'vocabulary'
-          character: string
-          pinyin: string
-          meaning: string
-        }) => ({
-          id: item.id,
-          itemId: item.item_id,
-          itemType: item.item_type,
-          character: item.character,
-          meaning: item.meaning,
-          correctPinyin: item.pinyin,
-        })
-      )
-
-      setQueue(items)
-
-      if (items.length === 0) {
-        setSessionComplete(true)
-      }
-    } catch (error) {
-      logger.error('Error fetching review queue', {
-        error: error instanceof Error ? error.message : String(error),
-      })
-      toast.error('Failed to load reviews')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   /**
    * Process pending submissions in background
@@ -262,12 +217,7 @@ export function ReviewSession() {
   const goToDashboard = () => router.push('/dashboard')
   const goToLessons = () => router.push('/lessons')
 
-  // Loading state
-  if (isLoading) {
-    return <SessionLoading message="Loading reviews..." />
-  }
-
-  // Session complete
+  // Session complete or no reviews
   if (sessionComplete) {
     const accuracy = totalReviewed > 0 ? Math.round((correctCount / totalReviewed) * 100) : 0
     const hasCompletedReviews = totalReviewed > 0

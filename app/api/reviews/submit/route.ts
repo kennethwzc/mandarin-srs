@@ -5,6 +5,8 @@ import { requireAuth } from '@/lib/api/auth-middleware'
 import { submitReview } from '@/lib/db/srs-operations'
 import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
 import { GRADES } from '@/lib/utils/srs-constants'
+import { deleteCached } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * POST /api/reviews/submit
@@ -75,7 +77,17 @@ export async function POST(request: NextRequest) {
       timezone,
     })
 
-    // 6. Return updated state
+    // 6. Invalidate review queue cache for this user
+    // This ensures fresh data on next page load after completing reviews
+    await Promise.all([
+      deleteCached(`reviews:queue:${user.id}:10`),
+      deleteCached(`reviews:queue:${user.id}:20`),
+      deleteCached(`reviews:queue:${user.id}:50`),
+      deleteCached(`reviews:queue:${user.id}:100`),
+      deleteCached(`dashboard:stats:${user.id}`), // Also invalidate dashboard stats
+    ])
+
+    // 7. Return updated state
     return NextResponse.json({
       success: true,
       data: {
@@ -84,8 +96,6 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    // Use logger for production-safe error logging
-    const { logger } = await import('@/lib/utils/logger')
     logger.error('Error submitting review', {
       error: error instanceof Error ? error.message : String(error),
     })

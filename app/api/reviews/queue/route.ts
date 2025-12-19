@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { requireAuth } from '@/lib/api/auth-middleware'
 import { getReviewQueue } from '@/lib/db/srs-operations'
+import { withCache } from '@/lib/cache/server'
+import { logger } from '@/lib/utils/logger'
 
 /**
  * GET /api/reviews/queue
  *
- * Get items due for review
+ * Get items due for review with caching for performance.
  *
  * Query params:
- * - limit: number (default: 50, max: 100)
+ * - limit: number (default: 20, max: 100)
  *
  * Returns:
  * - Array of items due for review
+ *
+ * Caching:
+ * - 60 second TTL with stale-while-revalidate
+ * - Cache invalidated on review submission (see submit route)
  */
 
 export const dynamic = 'force-dynamic'
@@ -28,10 +34,17 @@ export async function GET(request: NextRequest) {
 
     // 2. Parse query params
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100)
 
-    // 3. Get review queue
-    const queue = await getReviewQueue(user.id, limit)
+    // 3. Get review queue with caching (60 second TTL)
+    const cacheKey = `reviews:queue:${user.id}:${limit}`
+    const queue = await withCache(
+      cacheKey,
+      async () => {
+        return await getReviewQueue(user.id, limit)
+      },
+      60 // 60 second TTL - reviews don't change that frequently
+    )
 
     // 4. Return queue
     return NextResponse.json({
@@ -42,7 +55,9 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching review queue:', error)
+    logger.error('Error fetching review queue', {
+      error: error instanceof Error ? error.message : String(error),
+    })
     return NextResponse.json(
       {
         error:
