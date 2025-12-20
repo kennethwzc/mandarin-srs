@@ -35,7 +35,7 @@ test.describe('Review Flow', () => {
     await page.keyboard.press('Enter')
 
     // Should show feedback (correct or incorrect)
-    await expect(page.locator('text=/Correct|Incorrect|Almost/i').first()).toBeVisible({
+    await expect(page.locator('text=/Correct|Incorrect/i').first()).toBeVisible({
       timeout: 5000,
     })
 
@@ -85,7 +85,7 @@ test.describe('Review Flow', () => {
     await page.keyboard.press('Enter')
 
     // Should show feedback
-    await expect(page.locator('text=/Correct|Incorrect|Almost/i').first()).toBeVisible({
+    await expect(page.locator('text=/Correct|Incorrect/i').first()).toBeVisible({
       timeout: 5000,
     })
   })

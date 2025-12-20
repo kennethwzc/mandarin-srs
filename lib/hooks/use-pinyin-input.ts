@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { addToneMark, comparePinyinExact, isValidPinyin } from '@/lib/utils/pinyin-utils'
+import { addToneMark } from '@/lib/utils/pinyin-utils'
 
 export function usePinyinInput(initialValue = '') {
   const [value, setValue] = useState(initialValue)
@@ -34,19 +34,6 @@ export function usePinyinInput(initialValue = '') {
     [value]
   )
 
-  const validate = useCallback(
-    (correctPinyin: string) => {
-      if (!isValidPinyin(value)) {
-        return { isValid: false, isCorrect: false }
-      }
-      return {
-        isValid: true,
-        isCorrect: comparePinyinExact(value, correctPinyin),
-      }
-    },
-    [value]
-  )
-
   const reset = useCallback(() => {
     setValue('')
     setSelectedTone(null)
@@ -57,7 +44,6 @@ export function usePinyinInput(initialValue = '') {
     selectedTone,
     handleChange,
     handleToneSelect,
-    validate,
     reset,
   }
 }

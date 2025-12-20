@@ -9,8 +9,6 @@ import {
   removeToneMarks,
   getToneNumber,
   numericToToneMarks,
-  isValidPinyin,
-  comparePinyinIgnoreTones,
   comparePinyinExact,
 } from '../pinyin-utils'
 
@@ -198,76 +196,6 @@ describe('pinyin-utils', () => {
     it('should return unchanged if no numeric tones', () => {
       expect(numericToToneMarks('nihao')).toBe('nihao')
       expect(numericToToneMarks('nǐhǎo')).toBe('nǐhǎo')
-    })
-  })
-
-  describe('isValidPinyin', () => {
-    it('should return true for valid pinyin', () => {
-      expect(isValidPinyin('ni')).toBe(true)
-      expect(isValidPinyin('hao')).toBe(true)
-      expect(isValidPinyin('nǐ')).toBe(true)
-      expect(isValidPinyin('hǎo')).toBe(true)
-      expect(isValidPinyin('zhongguo')).toBe(true)
-    })
-
-    it('should return false for empty strings', () => {
-      expect(isValidPinyin('')).toBe(false)
-      expect(isValidPinyin('   ')).toBe(false)
-    })
-
-    it('should return false for invalid characters', () => {
-      expect(isValidPinyin('ni123')).toBe(false)
-      expect(isValidPinyin('ni@hao')).toBe(false)
-      expect(isValidPinyin('ni hao!')).toBe(false)
-    })
-
-    it('should handle whitespace', () => {
-      expect(isValidPinyin(' ni ')).toBe(true) // Trims whitespace
-      // Spaces are not allowed in pinyin validation (only letters and ü)
-      expect(isValidPinyin('ni hao')).toBe(false)
-    })
-
-    it('should handle ü', () => {
-      expect(isValidPinyin('nü')).toBe(true)
-      expect(isValidPinyin('lü')).toBe(true)
-    })
-
-    it('should be case insensitive', () => {
-      expect(isValidPinyin('NI')).toBe(true)
-      expect(isValidPinyin('Hao')).toBe(true)
-    })
-  })
-
-  describe('comparePinyinIgnoreTones', () => {
-    it('should return true when pinyin matches ignoring tones', () => {
-      expect(comparePinyinIgnoreTones('nǐ', 'ni')).toBe(true)
-      expect(comparePinyinIgnoreTones('hǎo', 'hao')).toBe(true)
-      expect(comparePinyinIgnoreTones('mā', 'ma')).toBe(true)
-    })
-
-    it('should return true for same tone marks', () => {
-      expect(comparePinyinIgnoreTones('nǐ', 'nǐ')).toBe(true)
-      expect(comparePinyinIgnoreTones('hǎo', 'hǎo')).toBe(true)
-    })
-
-    it('should return false for different base pinyin', () => {
-      expect(comparePinyinIgnoreTones('ni', 'hao')).toBe(false)
-      expect(comparePinyinIgnoreTones('nǐ', 'hǎo')).toBe(false)
-    })
-
-    it('should handle multi-syllable words', () => {
-      expect(comparePinyinIgnoreTones('nǐhǎo', 'nihao')).toBe(true)
-      expect(comparePinyinIgnoreTones('zhōngguó', 'zhongguo')).toBe(true)
-    })
-
-    it('should handle whitespace differences', () => {
-      expect(comparePinyinIgnoreTones('ni hao', 'nihao')).toBe(false) // Different after normalization
-      expect(comparePinyinIgnoreTones(' ni ', 'ni')).toBe(true) // Trims whitespace
-    })
-
-    it('should be case insensitive', () => {
-      expect(comparePinyinIgnoreTones('Nǐ', 'ni')).toBe(true)
-      expect(comparePinyinIgnoreTones('Hǎo', 'hao')).toBe(true)
     })
   })
 

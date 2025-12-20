@@ -11,7 +11,7 @@ This is a Mandarin learning platform focused on pinyin typing practice using spa
 - Users see a Chinese character
 - Users type the pinyin pronunciation
 - Users select the correct tone (1-5)
-- Real-time validation and feedback
+- Real-time pinyin input with tone support
 
 ### Spaced Repetition
 

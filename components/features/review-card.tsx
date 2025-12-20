@@ -9,7 +9,7 @@ import { CharacterDisplay } from './character-display'
 import { PinyinInput } from './pinyin-input'
 import { ToneSelector } from './tone-selector'
 import { PinyinFeedback } from './pinyin-feedback'
-import { comparePinyinFlexible, comparePinyinIgnoreTones } from '@/lib/utils/pinyin-utils'
+import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
 import { calculateGradeFromTime } from '@/lib/utils/srs-algorithm'
 import { cn } from '@/lib/utils/cn'
 
@@ -58,7 +58,6 @@ export const ReviewCard = memo(function ReviewCard({
   const [selectedTone, setSelectedTone] = useState<number | null>(null)
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
-  const [isClose, setIsClose] = useState(false)
   const [startTime, setStartTime] = useState(Date.now())
 
   // Reset state when character changes
@@ -67,7 +66,6 @@ export const ReviewCard = memo(function ReviewCard({
     setSelectedTone(null)
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
-    setIsClose(false)
     setStartTime(Date.now()) // Reset start time for accurate response time calculation
   }, [character])
 
@@ -80,14 +78,10 @@ export const ReviewCard = memo(function ReviewCard({
       return // Don't submit empty answers
     }
 
-    // Check if answer is correct (flexible comparison)
-    const answeredCorrectly = comparePinyinFlexible(userInput, correctPinyin)
-
-    // Check if close (right pinyin, wrong tone)
-    const answerIsClose = !answeredCorrectly && comparePinyinIgnoreTones(userInput, correctPinyin)
+    // Check if answer is correct (exact comparison)
+    const answeredCorrectly = comparePinyinExact(userInput, correctPinyin)
 
     setIsCorrect(answeredCorrectly)
-    setIsClose(answerIsClose)
     setIsAnswerSubmitted(true)
 
     // Remove focus from input to allow Enter key to continue to next card
@@ -169,15 +163,9 @@ export const ReviewCard = memo(function ReviewCard({
               'bg-green-50/40 dark:bg-green-950/20',
             ],
           isAnswerSubmitted &&
-            isCorrect === false &&
-            !isClose && [
+            isCorrect === false && [
               'shadow-[0_0_15px_rgba(239,68,68,0.2)] ring-2 ring-red-500/50',
               'bg-red-50/30 dark:bg-red-950/15',
-            ],
-          isAnswerSubmitted &&
-            isClose && [
-              'shadow-[0_0_15px_rgba(245,158,11,0.2)] ring-2 ring-orange-500/50',
-              'bg-orange-50/30 dark:bg-orange-950/15',
             ]
         )}
       >
@@ -188,9 +176,7 @@ export const ReviewCard = memo(function ReviewCard({
             meaning={meaning}
             itemType={itemType}
             showMeaning={!isAnswerSubmitted} // Hide meaning after submission
-            feedbackState={
-              !isAnswerSubmitted ? null : isCorrect ? 'correct' : isClose ? 'almost' : 'incorrect'
-            }
+            feedbackState={!isAnswerSubmitted ? null : isCorrect ? 'correct' : 'incorrect'}
           />
 
           {/* Pinyin Input Section */}
@@ -243,7 +229,6 @@ export const ReviewCard = memo(function ReviewCard({
                 isCorrect={isCorrect}
                 userAnswer={userInput}
                 correctAnswer={correctPinyin}
-                isClose={isClose}
                 show={isAnswerSubmitted}
               />
 

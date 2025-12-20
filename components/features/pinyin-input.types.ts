@@ -16,19 +16,10 @@ export interface PinyinInputProps {
   selectedTone: number | null
   /** Callback when tone selection changes */
   onToneChange: (tone: number | null) => void
-  /** Correct answer for validation (optional) */
-  correctAnswer?: string
   /** Whether input is disabled */
   disabled?: boolean
   /** Callback when user submits (Enter key) */
   onSubmit?: () => void
   /** Whether to auto-focus on mount */
   autoFocus?: boolean
-  /** Whether to show suggestions for invalid input */
-  showSuggestions?: boolean
 }
-
-/**
- * Validation state for pinyin input
- */
-export type PinyinValidationState = 'idle' | 'valid' | 'invalid'

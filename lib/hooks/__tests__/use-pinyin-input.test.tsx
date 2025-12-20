@@ -19,7 +19,6 @@ jest.mock('@/lib/utils/pinyin-utils', () => {
     // Keep actual implementations
     addToneMark: actual.addToneMark,
     comparePinyinExact: actual.comparePinyinExact,
-    isValidPinyin: actual.isValidPinyin,
   }
 })
 
@@ -142,37 +141,6 @@ describe('usePinyinInput', () => {
     })
   })
 
-  describe('validate', () => {
-    it('should return invalid for empty input', () => {
-      const { result } = renderHook(() => usePinyinInput())
-
-      const validation = result.current.validate('nǐ')
-
-      expect(validation.isValid).toBe(false)
-      expect(validation.isCorrect).toBe(false)
-    })
-
-    it('should return valid and correct for matching pinyin', () => {
-      const { result } = renderHook(() => usePinyinInput('nǐ'))
-
-      const validation = result.current.validate('nǐ')
-
-      expect(validation.isValid).toBe(true)
-      expect(validation.isCorrect).toBe(true)
-    })
-
-    it('should return valid but incorrect for non-matching pinyin', () => {
-      const { result } = renderHook(() => usePinyinInput('nǐ'))
-
-      const validation = result.current.validate('hǎo')
-
-      // nǐ is valid pinyin
-      expect(validation.isValid).toBe(true)
-      // nǐ !== hǎo, so not correct
-      expect(validation.isCorrect).toBe(false)
-    })
-  })
-
   describe('reset', () => {
     it('should reset value and selected tone', () => {
       const { result } = renderHook(() => usePinyinInput('nǐ'))
@@ -211,12 +179,7 @@ describe('usePinyinInput', () => {
       })
       expect(result.current.selectedTone).toBe(3)
 
-      // 3. Validate (value should now be 'nǐ' from step 2)
-      const validation = result.current.validate('nǐ')
-      expect(validation.isValid).toBe(true)
-      expect(validation.isCorrect).toBe(true) // 'nǐ' matches 'nǐ'
-
-      // 4. Reset
+      // 3. Reset
       act(() => {
         result.current.reset()
       })

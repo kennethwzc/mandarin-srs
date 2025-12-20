@@ -1,14 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { addToneMark, isValidPinyin, getPinyinSuggestions } from '@/lib/utils/pinyin-utils'
+import { addToneMark } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 import { logger } from '@/lib/utils/logger'
-import { Check, X, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 /**
  * Enhanced Pinyin Input Component
@@ -27,11 +26,9 @@ interface PinyinInputProps {
   onChange: (value: string) => void
   selectedTone: number | null
   onToneChange: (tone: number | null) => void
-  correctAnswer?: string // For validation
   disabled?: boolean
   onSubmit?: () => void
   autoFocus?: boolean
-  showSuggestions?: boolean
 }
 
 export function PinyinInput({
@@ -42,13 +39,8 @@ export function PinyinInput({
   disabled = false,
   onSubmit,
   autoFocus = false,
-  showSuggestions = true,
 }: PinyinInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [isFocused, setIsFocused] = useState(false)
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
-  const [validationState, setValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle')
 
   // Auto-focus on mount
   useEffect(() => {
@@ -80,36 +72,6 @@ export function PinyinInput({
   }, [selectedTone, value, onChange, onToneChange])
 
   /**
-   * Validate input and show suggestions
-   */
-  useEffect(() => {
-    if (!value || !isFocused) {
-      setSuggestions([])
-      setValidationState('idle')
-      return
-    }
-
-    // Debounce validation
-    const timeout = setTimeout(() => {
-      // Check if valid pinyin
-      if (isValidPinyin(value)) {
-        setValidationState('valid')
-        setSuggestions([])
-      } else {
-        setValidationState('invalid')
-
-        // Get suggestions for invalid input
-        if (showSuggestions) {
-          const suggests = getPinyinSuggestions(value)
-          setSuggestions(suggests.slice(0, 5))
-        }
-      }
-    }, 300)
-
-    return () => clearTimeout(timeout)
-  }, [value, isFocused, showSuggestions])
-
-  /**
    * Handle input changes with auto-corrections
    */
   const handleChange = useCallback(
@@ -120,7 +82,6 @@ export function PinyinInput({
       newValue = autoCorrectPinyin(newValue)
 
       onChange(newValue)
-      setSelectedSuggestionIndex(-1)
     },
     [onChange]
   )
@@ -145,36 +106,12 @@ export function PinyinInput({
 
       // Enter submits
       if (e.key === 'Enter') {
-        if (selectedSuggestionIndex >= 0 && suggestions.length > 0) {
-          // Apply selected suggestion
-          e.preventDefault()
-          const selectedSuggestion = suggestions[selectedSuggestionIndex]
-          if (selectedSuggestion) {
-            onChange(selectedSuggestion)
-            setSuggestions([])
-            setSelectedSuggestionIndex(-1)
-          }
-        } else if (onSubmit && value.trim()) {
+        if (onSubmit && value.trim()) {
           // Only submit if value is not empty
           e.preventDefault()
           onSubmit()
         }
         return
-      }
-
-      // Arrow keys navigate suggestions
-      if (suggestions.length > 0) {
-        if (e.key === 'ArrowDown') {
-          e.preventDefault()
-          setSelectedSuggestionIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev))
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault()
-          setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1))
-        } else if (e.key === 'Escape') {
-          e.preventDefault()
-          setSuggestions([])
-          setSelectedSuggestionIndex(-1)
-        }
       }
 
       // Convert 'v' to 'ü' automatically for nv, lv syllables
@@ -203,7 +140,7 @@ export function PinyinInput({
         return
       }
     },
-    [disabled, value, suggestions, selectedSuggestionIndex, onChange, onToneChange, onSubmit]
+    [disabled, value, onChange, onToneChange, onSubmit]
   )
 
   /**
@@ -223,52 +160,13 @@ export function PinyinInput({
     [onChange]
   )
 
-  /**
-   * Handle suggestion click
-   */
-  const handleSuggestionClick = useCallback(
-    (suggestion: string) => {
-      onChange(suggestion)
-      setSuggestions([])
-      setSelectedSuggestionIndex(-1)
-      inputRef.current?.focus()
-    },
-    [onChange]
-  )
-
   // Determine visual state
-  const inputState = disabled
-    ? 'disabled'
-    : validationState === 'valid'
-      ? 'valid'
-      : validationState === 'invalid'
-        ? 'invalid'
-        : 'default'
+  const inputState = disabled ? 'disabled' : 'default'
 
   return (
     <div className="space-y-2">
       <Label htmlFor="pinyin-input" className="flex items-center gap-2 text-base">
         Type the pinyin:
-        {/* Validation indicator */}
-        {!disabled &&
-          value &&
-          (validationState === 'valid' ? (
-            <Badge
-              variant="outline"
-              className="border-green-300 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
-            >
-              <Check className="mr-1 h-3 w-3" />
-              Valid
-            </Badge>
-          ) : validationState === 'invalid' ? (
-            <Badge
-              variant="outline"
-              className="border-red-300 bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200"
-            >
-              <X className="mr-1 h-3 w-3" />
-              Invalid
-            </Badge>
-          ) : null)}
       </Label>
 
       {/* Input field with visual states */}
@@ -281,18 +179,10 @@ export function PinyinInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => {
-            // Delay to allow suggestion clicks
-            setTimeout(() => setIsFocused(false), 200)
-          }}
           disabled={disabled}
           placeholder="Type pinyin here... (e.g., ni3 or nǐ)"
           className={cn(
             'pinyin-input text-center text-2xl transition-colors',
-            inputState === 'valid' &&
-              'border-green-500 focus:border-green-500 focus:ring-green-500',
-            inputState === 'invalid' && 'border-red-500 focus:border-red-500 focus:ring-red-500',
             inputState === 'disabled' && 'cursor-not-allowed opacity-50'
           )}
           autoComplete="off"
@@ -301,31 +191,6 @@ export function PinyinInput({
           spellCheck="false"
           maxLength={20}
         />
-
-        {/* Suggestions dropdown */}
-        {suggestions.length > 0 && isFocused && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-md border bg-background shadow-lg">
-            <div className="border-b p-2 text-xs text-muted-foreground">Did you mean:</div>
-            {suggestions.map((suggestion, index) => (
-              <button
-                key={suggestion}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className={cn(
-                  'w-full px-4 py-2 text-left transition-colors hover:bg-muted',
-                  'flex items-center justify-between',
-                  index === selectedSuggestionIndex && 'bg-muted'
-                )}
-              >
-                <span className="font-mono text-lg">{suggestion}</span>
-                {index === selectedSuggestionIndex && (
-                  <Badge variant="outline" className="text-xs">
-                    Press Enter
-                  </Badge>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Help text */}

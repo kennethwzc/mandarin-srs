@@ -18,7 +18,7 @@ interface CharacterDisplayProps {
   itemType: 'radical' | 'character' | 'vocabulary'
   showMeaning?: boolean
   className?: string
-  feedbackState?: 'correct' | 'incorrect' | 'almost' | null
+  feedbackState?: 'correct' | 'incorrect' | null
 }
 
 export function CharacterDisplay({
@@ -64,9 +64,7 @@ export function CharacterDisplay({
               ? '#22c55e'
               : feedbackState === 'incorrect'
                 ? 'currentColor'
-                : feedbackState === 'almost'
-                  ? '#f59e0b'
-                  : 'currentColor',
+                : 'currentColor',
           opacity: feedbackState === 'incorrect' ? 0.6 : 1,
           filter: feedbackState === 'correct' ? 'brightness(1.1)' : 'brightness(1)',
         }}

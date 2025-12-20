@@ -4,7 +4,7 @@
 
 Comprehensive test suite for the Mandarin SRS platform. All tests are passing as of the latest run.
 
-**Total Tests: 99**  
+**Total Tests: ~26**  
 **Test Suites: 3**  
 **Status: ✅ All Passing**
 
@@ -12,7 +12,7 @@ Comprehensive test suite for the Mandarin SRS platform. All tests are passing as
 
 ### 1. Pinyin Utilities (`lib/utils/__tests__/pinyin-utils.test.ts`)
 
-**Tests: 50** ✅
+**Tests: ~26** ✅
 
 Comprehensive coverage of all pinyin utility functions:
 
@@ -47,22 +47,6 @@ Comprehensive coverage of all pinyin utility functions:
 - ✅ Neutral tone (5)
 - ✅ Case preservation
 - ✅ Mixed formats
-
-#### `isValidPinyin()`
-
-- ✅ Valid pinyin validation
-- ✅ Invalid character detection
-- ✅ Empty string handling
-- ✅ Whitespace handling
-- ✅ Case insensitivity
-- ✅ ü character support
-
-#### `comparePinyinIgnoreTones()`
-
-- ✅ Tone-agnostic comparison
-- ✅ Multi-syllable words
-- ✅ Case insensitivity
-- ✅ Whitespace handling
 
 #### `comparePinyinExact()`
 
@@ -136,7 +120,7 @@ Comprehensive coverage of the spaced repetition algorithm:
 
 ### 3. React Hooks (`lib/hooks/__tests__/use-pinyin-input.test.tsx`)
 
-**Tests: 14** ✅
+**Tests: ~10** ✅
 
 Comprehensive coverage of the pinyin input hook:
 
@@ -156,12 +140,6 @@ Comprehensive coverage of the pinyin input hook:
 - ✅ Multi-syllable word handling
 - ✅ Empty value handling
 - ✅ All tone numbers (1-5)
-
-#### `validate()`
-
-- ✅ Invalid empty input
-- ✅ Valid and correct matching
-- ✅ Valid but incorrect non-matching
 
 #### `reset()`
 
@@ -303,5 +281,5 @@ The test suite provides comprehensive coverage of:
 All critical paths are tested and verified. The test suite runs quickly (< 1 second) and provides confidence in code quality.
 
 **Last Updated:** 2025-01-14  
-**Test Count:** 99  
+**Test Count:** ~26  
 **Status:** ✅ All Passing

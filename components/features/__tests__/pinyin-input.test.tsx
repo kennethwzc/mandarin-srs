@@ -84,15 +84,6 @@ describe('PinyinInput', () => {
     expect(mockOnSubmit).toHaveBeenCalled()
   })
 
-  it('shows validation badge for valid pinyin', () => {
-    render(<PinyinInput {...defaultProps} value="nǐ" />)
-
-    // Should show some validation indicator
-    // (Implementation depends on your component - adjust as needed)
-    const input = screen.getByRole('textbox')
-    expect(input).toBeInTheDocument()
-  })
-
   it('converts v to ü automatically', async () => {
     const user = userEvent.setup()
 
