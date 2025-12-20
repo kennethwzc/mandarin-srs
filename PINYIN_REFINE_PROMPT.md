@@ -1,7 +1,7 @@
 # Cursor Prompt: Refine Pinyin Input Logic
 
 ## Overview
-Refine the pinyin parsing and validation logic to enforce a strict, predictable format: `[romanization][tone_number][separator]` where each syllable must include an explicit tone number (1-5) and syllables are separated by spaces.
+Refine the pinyin parsing and validation logic to enforce a strict, predictable format: `[romanization][tone_number][optional_separator]` where each syllable MUST include an explicit tone number (1-5). Spaces between syllables are OPTIONAL for user flexibility - both `ni3hao3` and `ni3 hao3` are valid.
 
 ## Current Implementation Analysis
 
@@ -35,12 +35,11 @@ Refine the pinyin parsing and validation logic to enforce a strict, predictable 
 - ✅ Auto-converts v↔ü for nv/lv syllables
 
 **Current Issues/Gaps:**
-- ❌ **No space requirement**: `ni3hao3` is accepted (should require `ni3 hao3`)
-- ❌ **Tone numbers optional**: `ni` without tone is accepted as valid (line 608-614 in pinyin-utils.ts)
+- ❌ **Tone numbers optional**: `ni` or `nihao` without tone is accepted as valid (line 608-614 in pinyin-utils.ts)
 - ❌ **Space validation broken**: `isValidPinyin()` at line 587 REJECTS any input with spaces using regex `/[^a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ1-5]/`
 - ❌ **Inconsistent multi-syllable handling**: Database stores `ni3 hao3` with spaces, but validation rejects it
-- ❌ **No separator enforcement**: Format `ni3hao3` vs `ni3 hao3` both work in different contexts
-- ❌ **Missing tone number detection**: No explicit error for missing tone (e.g., `ni hao` without numbers)
+- ❌ **Both formats not supported**: `ni3hao3` works, but `ni3 hao3` is rejected (should accept both)
+- ❌ **Missing tone number detection**: No explicit error for missing tone (e.g., `ni hao` or `nihao` without numbers)
 
 ### Test Coverage
 
@@ -70,24 +69,30 @@ pinyin_numeric: text('pinyin_numeric').notNull(), // ni3 hao3 (WITH SPACE)
 }
 ```
 
-**Critical Finding**: Database and seed data ALREADY use space-separated format `ni3 hao3`, but validation logic doesn't support it.
+**Critical Finding**: Database uses space-separated format `ni3 hao3`, but both formats (with and without spaces) should be accepted for user flexibility.
 
 ---
 
-## Required Changes: Strict Format Enforcement
+## Required Changes: Strict Tone Enforcement with Flexible Spacing
 
 ### New Format Specification
 
 **Input Format Rules:**
-1. **Each syllable**: `[romanization][tone_number]` where tone_number is 1-5 (REQUIRED)
-2. **Separator**: Single space between syllables (REQUIRED for multi-syllable words)
+1. **Each syllable**: `[romanization][tone_number]` where tone_number is 1-5 (REQUIRED - NO EXCEPTIONS)
+2. **Separator**: Space between syllables is OPTIONAL (both `ni3hao3` and `ni3 hao3` are valid)
 3. **Examples**:
-   - ✅ `hao3` → 好 (hǎo)
-   - ✅ `xie4 xie4` → 谢谢 (xièxiè)
-   - ✅ `ni3 hao3` → 你好 (nǐhǎo)
-   - ❌ `ni3hao3` → INVALID (missing space separator)
+   - ✅ `hao3` → 好 (hǎo) - single syllable with tone
+   - ✅ `ni3hao3` → 你好 (nǐhǎo) - no spaces
+   - ✅ `ni3 hao3` → 你好 (nǐhǎo) - with spaces
+   - ✅ `xie4xie4` → 谢谢 (xièxiè) - no spaces
+   - ✅ `xie4 xie4` → 谢谢 (xièxiè) - with spaces
+   - ❌ `ni` → INVALID (missing tone number)
+   - ❌ `nihao` → INVALID (missing tone numbers)
    - ❌ `ni hao` → INVALID (missing tone numbers)
+   - ❌ `ni3hao` → INVALID (second syllable missing tone)
    - ❌ `ni3  hao3` → INVALID (multiple consecutive spaces)
+
+**Critical Rule**: EVERY syllable MUST have a tone number. If user doesn't include tone, the answer is WRONG.
 
 **Tone Numbers:**
 - `1` = first tone (flat) → ā
@@ -98,7 +103,7 @@ pinyin_numeric: text('pinyin_numeric').notNull(), // ni3 hao3 (WITH SPACE)
 
 **Edge Cases to Handle:**
 - Invalid tone numbers (0, 6-9) → Error
-- Missing tone number → Error (not default to tone 5)
+- Missing tone number → Error (REQUIRED - no defaults)
 - Multiple consecutive spaces → Error (not auto-normalize)
 - Capitalization → Normalize to lowercase before processing
 - Empty input → Error
@@ -120,17 +125,18 @@ export function numericToToneMarks(pinyin: string): string {
 }
 ```
 
+**Problem**: This regex approach doesn't validate that ALL syllables have tones - it only converts the ones that do.
+
 **Required Changes**:
-- Add space handling: Split by spaces, process each syllable separately
-- Validate that each syllable has format `[romanization][tone_number]`
-- Preserve spaces in output: `ni3 hao3` → `nǐ hǎo` (with space)
-- Reject if syllable missing tone number
+- Parse input to identify all syllables (handle both `ni3hao3` and `ni3 hao3`)
+- Validate that EVERY syllable has a tone number
+- Reject if any syllable is missing a tone number
+- Preserve spaces in output if present in input
 - Reject if multiple consecutive spaces found
 
 **New Logic**:
 ```typescript
 export function numericToToneMarks(pinyin: string): string {
-  // Trim input and check for empty
   const trimmed = pinyin.trim()
   if (!trimmed) {
     throw new Error('Empty pinyin input')
@@ -138,31 +144,55 @@ export function numericToToneMarks(pinyin: string): string {
 
   // Check for multiple consecutive spaces
   if (/\s{2,}/.test(trimmed)) {
-    throw new Error('Multiple consecutive spaces not allowed')
+    throw new Error('Multiple consecutive spaces not allowed. Use single space to separate syllables.')
   }
 
-  // Split by single space
-  const syllables = trimmed.split(' ')
+  // Split by spaces (if present)
+  const parts = trimmed.split(' ')
+  const converted: string[] = []
 
-  // Process each syllable
-  const converted = syllables.map((syllable, index) => {
-    // Each syllable must match: [romanization][tone_number]
-    const match = syllable.match(/^([a-zü]+)([1-5])$/i)
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]
+    if (!part) continue
 
-    if (!match) {
+    // Parse syllables from this part (may contain multiple syllables like "ni3hao3")
+    // Use regex to extract all [romanization][tone] pairs
+    const syllableMatches = part.matchAll(/([a-zü]+)([1-5])/gi)
+    const syllables = Array.from(syllableMatches)
+
+    if (syllables.length === 0) {
       throw new Error(
-        `Invalid syllable format: "${syllable}" at position ${index + 1}. ` +
-        `Expected format: [romanization][tone_number] (e.g., "ni3", "hao3")`
+        `Invalid format in "${part}" at position ${i + 1}. ` +
+        `Each syllable must have format [romanization][tone_number] (e.g., "ni3", "hao3").`
       )
     }
 
-    const [, romanization, toneStr] = match
-    const tone = parseInt(toneStr, 10)
+    // Check if we consumed the entire part
+    let reconstructed = ''
+    for (const match of syllables) {
+      reconstructed += match[0]
+    }
 
-    return addToneMark(romanization, tone)
-  })
+    if (reconstructed.toLowerCase() !== part.toLowerCase()) {
+      // There are characters left over - missing tone numbers
+      throw new Error(
+        `Missing tone number in "${part}" at position ${i + 1}. ` +
+        `EVERY syllable must end with a tone number (1-5). ` +
+        `Input was interpreted as: ${syllables.map(m => m[0]).join('+')} but didn't match original.`
+      )
+    }
 
-  // Join with spaces
+    // Convert each syllable to tone marks
+    const convertedPart = syllables.map(match => {
+      const romanization = match[1]
+      const tone = parseInt(match[2], 10)
+      return addToneMark(romanization, tone)
+    }).join('')
+
+    converted.push(convertedPart)
+  }
+
+  // Join with spaces (preserves original spacing)
   return converted.join(' ')
 }
 ```
@@ -179,16 +209,14 @@ if (hasInvalidChars) {
 }
 ```
 
-**Problem**: Regex rejects spaces, making `ni3 hao3` invalid.
+**Problem**: Regex rejects spaces, and doesn't enforce that every syllable has a tone.
 
 **Required Changes**:
-- Add space to allowed characters: `/[^a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ1-5 ]/`
-- Split by space and validate each syllable separately
-- Each syllable must:
-  1. Match format `[romanization][tone_number]` OR already have tone marks
-  2. Be a valid syllable from VALID_SYLLABLES set
-- Reject multiple consecutive spaces
-- Reject syllables without tone numbers (unless already has tone marks)
+- Add space to allowed characters
+- Parse syllables (handle both `ni3hao3` and `ni3 hao3` formats)
+- REQUIRE that every syllable has either a numeric tone (1-5) OR already has tone marks
+- Reject syllables without tones
+- Validate against VALID_SYLLABLES dictionary
 
 **New Logic**:
 ```typescript
@@ -210,32 +238,52 @@ export function isValidPinyin(input: string): boolean {
     return false
   }
 
-  // Split by space (supports multi-syllable words)
-  const syllables = trimmed.split(' ')
+  // Split by spaces (if present)
+  const parts = trimmed.split(' ')
 
-  for (const syllable of syllables) {
-    // Each syllable must either:
-    // 1. Have numeric format: [romanization][tone_number] (1-5)
-    // 2. Already have tone marks applied
+  for (const part of parts) {
+    if (!part) continue
 
-    const hasNumericTone = /^[a-zü]+[1-5]$/.test(syllable)
-    const hasToneMark = /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(syllable)
+    // Check if this part has tone marks already
+    const hasToneMarks = /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(part)
 
-    // STRICT: Must have EITHER numeric tone OR tone mark (not neither)
-    if (!hasNumericTone && !hasToneMark) {
-      return false  // Missing tone number
+    if (hasToneMarks) {
+      // Already has tone marks - validate the base syllable(s)
+      // This is complex, so just accept tone-marked input as valid
+      // The comparison functions will handle validation
+      const normalized = removeToneMarks(part)
+      if (!normalized || !/^[a-zü]+$/.test(normalized)) {
+        return false
+      }
+      continue
     }
 
-    // Validate base syllable (without tone)
-    const normalized = removeToneMarks(syllable).replace(/[1-5]/g, '')
+    // Part has numeric tones - extract and validate each syllable
+    const syllableMatches = part.matchAll(/([a-zü]+)([1-5])/gi)
+    const syllables = Array.from(syllableMatches)
 
-    if (!normalized) {
+    if (syllables.length === 0) {
+      // No syllables with tones found - INVALID (tone required)
       return false
     }
 
-    // Must be valid syllable from dictionary
-    if (!VALID_SYLLABLES.has(normalized)) {
+    // Check if we consumed the entire part (no characters left without tones)
+    let reconstructed = ''
+    for (const match of syllables) {
+      reconstructed += match[0]
+    }
+
+    if (reconstructed.toLowerCase() !== part.toLowerCase()) {
+      // There are leftover characters - some syllables missing tones
       return false
+    }
+
+    // Validate each syllable against dictionary
+    for (const match of syllables) {
+      const romanization = match[1]
+      if (!VALID_SYLLABLES.has(romanization.toLowerCase())) {
+        return false
+      }
     }
   }
 
@@ -261,11 +309,11 @@ if (/[1-5]$/.test(normalized)) {  // Only checks LAST character
 }
 ```
 
-**Problem**: Only handles single syllable (checks if last char is tone number).
+**Problem**: Only handles single syllable (checks if last char is tone number). Doesn't handle both spacing formats.
 
 **Required Changes**:
 - Use updated `numericToToneMarks()` to handle multi-syllable inputs
-- Handle space-separated format
+- Handle both `ni3hao3` and `ni3 hao3` formats
 - Preserve error throwing for invalid formats (don't silently return original)
 
 **New Logic**:
@@ -282,14 +330,20 @@ export function normalizePinyin(input: string): string {
   // If contains numeric tones, convert to tone marks
   if (/[1-5]/.test(normalized)) {
     try {
-      return numericToToneMarks(normalized)  // Now handles multi-syllable with spaces
+      return numericToToneMarks(normalized)  // Now handles both formats
     } catch (error) {
       // Re-throw validation errors instead of silently returning
       throw new Error(`Invalid pinyin format: ${(error as Error).message}`)
     }
   }
 
-  return normalized
+  // If no numeric tones, check if it already has tone marks
+  if (/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(normalized)) {
+    return normalized  // Already has tone marks
+  }
+
+  // No tones at all - this is an error
+  throw new Error('Missing tone numbers. Each syllable must have a tone (1-5).')
 }
 ```
 
@@ -301,8 +355,6 @@ export function normalizePinyin(input: string): string {
 // Normalize multiple spaces to single space (preserve spaces for multi-syllable vocabulary)
 corrected = corrected.replace(/\s+/g, ' ')
 ```
-
-**Problem**: Auto-normalizes multiple spaces, but new spec should reject them as errors.
 
 **Required Changes**:
 - **Remove** auto-normalization of multiple spaces
@@ -327,7 +379,7 @@ function autoCorrectPinyin(input: string): string {
   corrected = corrected.replace(/u:/g, 'ü')
 
   // REMOVED: Auto-normalization of multiple spaces
-  // Users must type correctly: single space between syllables
+  // Users can type with or without spaces, but must use single spaces only
 
   // Handle capitalization
   corrected = corrected.toLowerCase()
@@ -361,8 +413,6 @@ if ((e.key === ' ' || e.key === 'Enter') && /[1-5]$/.test(value)) {
 }
 ```
 
-**Problem**: Only converts the ENTIRE input when it ends with a tone number. Doesn't handle multi-syllable incremental input like `hao3 <space>` where user is typing next syllable.
-
 **Required Changes**:
 - When user presses Space after a complete syllable (e.g., `hao3`):
   1. Convert that syllable to tone mark: `hao3` → `hǎo`
@@ -370,6 +420,7 @@ if ((e.key === ' ' || e.key === 'Enter') && /[1-5]$/.test(value)) {
   3. User can continue typing next syllable: `hǎo ni3`
 - Support incremental multi-syllable typing workflow
 - When user presses Enter, convert all remaining numeric syllables
+- Support both with-space and without-space formats
 
 **New Logic**:
 ```typescript
@@ -413,7 +464,7 @@ if (e.key === 'Enter') {
         setTimeout(() => onSubmit(), 0)  // Defer to allow state update
       }
     } catch (error) {
-      // Invalid format, submit as-is (validation will catch)
+      // Invalid format, submit as-is (validation will catch it as wrong)
       if (onSubmit) {
         onSubmit()
       }
@@ -431,9 +482,10 @@ if (e.key === 'Enter') {
 ```typescript
 /**
  * Parse pinyin input with strict format validation
- * Format: [romanization][tone_number][space] for each syllable
+ * Format: [romanization][tone_number] for each syllable (spaces optional)
+ * CRITICAL: Every syllable MUST have a tone number
  *
- * @param input - Raw pinyin input (e.g., "ni3 hao3")
+ * @param input - Raw pinyin input (e.g., "ni3hao3" or "ni3 hao3")
  * @returns Parsed syllables array
  * @throws Error with detailed message if format invalid
  */
@@ -460,58 +512,64 @@ export function parsePinyinInput(input: string): ParsedPinyinSyllable[] {
     throw new Error('Invalid characters. Only a-z, ü, digits 1-5, and single spaces allowed.')
   }
 
-  const syllables = trimmed.toLowerCase().split(' ')
+  // Split by spaces (if present)
+  const parts = trimmed.toLowerCase().split(' ')
   const parsed: ParsedPinyinSyllable[] = []
 
-  for (let i = 0; i < syllables.length; i++) {
-    const syllable = syllables[i]
+  for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+    const part = parts[partIndex]
+    if (!part) continue
 
-    if (!syllable) {
-      throw new Error(`Empty syllable at position ${i + 1}`)
-    }
+    // Extract all [romanization][tone] pairs from this part
+    const syllableMatches = part.matchAll(/([a-zü]+)([1-5])/g)
+    const syllables = Array.from(syllableMatches)
 
-    // Must match: [romanization][tone_number]
-    const match = syllable.match(/^([a-zü]+)([1-5])$/)
-
-    if (!match) {
-      // Determine specific error
-      if (!/[1-5]$/.test(syllable)) {
-        throw new Error(
-          `Missing tone number for syllable "${syllable}" at position ${i + 1}. ` +
-          `Each syllable must end with a tone number (1-5).`
-        )
-      }
-      if (/[0689]/.test(syllable)) {
-        throw new Error(
-          `Invalid tone number in "${syllable}" at position ${i + 1}. ` +
-          `Valid tones: 1 (flat), 2 (rising), 3 (dipping), 4 (falling), 5 (neutral).`
-        )
-      }
+    if (syllables.length === 0) {
       throw new Error(
-        `Invalid syllable format: "${syllable}" at position ${i + 1}. ` +
-        `Expected: [romanization][tone_number] (e.g., "ni3", "hao3")`
+        `Missing tone numbers in "${part}" at position ${partIndex + 1}. ` +
+        `EVERY syllable must end with a tone number (1-5).`
       )
     }
 
-    const [, romanization, toneStr] = match
-    const tone = parseInt(toneStr, 10)
+    // Check if we consumed the entire part (no leftover characters)
+    let reconstructed = ''
+    for (const match of syllables) {
+      reconstructed += match[0]
+    }
 
-    // Validate against dictionary
-    if (!VALID_SYLLABLES.has(romanization)) {
+    if (reconstructed !== part) {
+      // There are characters left over - some syllables missing tones
       throw new Error(
-        `Invalid pinyin syllable: "${romanization}" at position ${i + 1}. ` +
-        `Not found in Mandarin syllable dictionary.`
+        `Incomplete tone marking in "${part}" at position ${partIndex + 1}. ` +
+        `Found syllables: ${syllables.map(m => m[0]).join(', ')}. ` +
+        `All syllables must have tone numbers (1-5).`
       )
     }
 
-    // Convert to tone mark
-    const withToneMark = addToneMark(romanization, tone)
+    // Validate and convert each syllable
+    for (let i = 0; i < syllables.length; i++) {
+      const match = syllables[i]
+      const romanization = match[1]
+      const toneStr = match[2]
+      const tone = parseInt(toneStr, 10)
 
-    parsed.push({
-      romanization,
-      tone,
-      withToneMark,
-    })
+      // Validate against dictionary
+      if (!VALID_SYLLABLES.has(romanization)) {
+        throw new Error(
+          `Invalid pinyin syllable: "${romanization}" (from "${part}"). ` +
+          `Not found in Mandarin syllable dictionary.`
+        )
+      }
+
+      // Convert to tone mark
+      const withToneMark = addToneMark(romanization, tone)
+
+      parsed.push({
+        romanization,
+        tone,
+        withToneMark,
+      })
+    }
   }
 
   return parsed
@@ -531,27 +589,32 @@ describe('numericToToneMarks', () => {
     expect(numericToToneMarks('hao3')).toBe('hǎo')
   })
 
-  it('should handle multiple syllables with spaces', () => {
-    expect(numericToToneMarks('ni3 hao3')).toBe('nǐ hǎo')  // WITH SPACE
-    expect(numericToToneMarks('xie4 xie4')).toBe('xièxiè')  // Note: should this preserve space?
+  it('should handle multiple syllables WITHOUT spaces', () => {
+    expect(numericToToneMarks('ni3hao3')).toBe('nǐhǎo')  // No space preserved
+    expect(numericToToneMarks('xie4xie4')).toBe('xièxiè')
+    expect(numericToToneMarks('zhong1guo2')).toBe('zhōngguó')
+  })
+
+  it('should handle multiple syllables WITH spaces', () => {
+    expect(numericToToneMarks('ni3 hao3')).toBe('nǐ hǎo')  // Space preserved
+    expect(numericToToneMarks('xie4 xie4')).toBe('xiè xiè')
     expect(numericToToneMarks('zhong1 guo2')).toBe('zhōng guó')
   })
 
   it('should reject syllables without tone numbers', () => {
-    expect(() => numericToToneMarks('ni hao')).toThrow('Invalid syllable format')
+    expect(() => numericToToneMarks('ni')).toThrow('Missing tone number')
+    expect(() => numericToToneMarks('nihao')).toThrow('Missing tone number')
+    expect(() => numericToToneMarks('ni hao')).toThrow('Missing tone number')
+    expect(() => numericToToneMarks('ni3hao')).toThrow('Missing tone number') // Second syllable missing tone
   })
 
   it('should reject multiple consecutive spaces', () => {
     expect(() => numericToToneMarks('ni3  hao3')).toThrow('Multiple consecutive spaces')
   })
 
-  it('should reject format without spaces between syllables', () => {
-    expect(() => numericToToneMarks('ni3hao3')).toThrow('Invalid syllable format')
-  })
-
   it('should reject invalid tone numbers', () => {
-    expect(() => numericToToneMarks('ni0')).toThrow('Invalid syllable format')
-    expect(() => numericToToneMarks('ni6')).toThrow('Invalid syllable format')
+    expect(() => numericToToneMarks('ni0')).toThrow()
+    expect(() => numericToToneMarks('ni6')).toThrow()
   })
 }
 ```
@@ -559,34 +622,35 @@ describe('numericToToneMarks', () => {
 2. **Update `isValidPinyin()` tests** (line 224-228):
 ```typescript
 describe('isValidPinyin', () => {
-  it('should accept space-separated syllables with tone numbers', () => {
-    expect(isValidPinyin('ni3 hao3')).toBe(true)  // NOW VALID
+  it('should accept syllables with tone numbers (no spaces)', () => {
+    expect(isValidPinyin('ni3')).toBe(true)
+    expect(isValidPinyin('ni3hao3')).toBe(true)  // No spaces - VALID
+    expect(isValidPinyin('xie4xie4')).toBe(true)
+    expect(isValidPinyin('zhong1guo2')).toBe(true)
+  })
+
+  it('should accept syllables with tone numbers (with spaces)', () => {
+    expect(isValidPinyin('ni3 hao3')).toBe(true)  // With spaces - VALID
     expect(isValidPinyin('xie4 xie4')).toBe(true)
     expect(isValidPinyin('zhong1 guo2')).toBe(true)
   })
 
-  it('should accept single syllable with tone number', () => {
-    expect(isValidPinyin('ni3')).toBe(true)
-    expect(isValidPinyin('hao3')).toBe(true)
-  })
-
   it('should accept syllables with tone marks', () => {
-    expect(isValidPinyin('nǐ hǎo')).toBe(true)
+    expect(isValidPinyin('nǐhǎo')).toBe(true)  // No spaces
+    expect(isValidPinyin('nǐ hǎo')).toBe(true)  // With spaces
     expect(isValidPinyin('nǐ')).toBe(true)
   })
 
-  it('should reject syllables without tone numbers or marks', () => {
-    expect(isValidPinyin('ni hao')).toBe(false)  // No tones
-    expect(isValidPinyin('ni')).toBe(false)      // No tone
+  it('should REJECT syllables without tone numbers or marks', () => {
+    expect(isValidPinyin('ni')).toBe(false)       // No tone - INVALID
+    expect(isValidPinyin('nihao')).toBe(false)    // No tones - INVALID
+    expect(isValidPinyin('ni hao')).toBe(false)   // No tones - INVALID
+    expect(isValidPinyin('ni3hao')).toBe(false)   // Second syllable missing tone - INVALID
   })
 
   it('should reject multiple consecutive spaces', () => {
     expect(isValidPinyin('ni3  hao3')).toBe(false)  // Double space
     expect(isValidPinyin('ni3   hao3')).toBe(false) // Triple space
-  })
-
-  it('should reject format without spaces', () => {
-    expect(isValidPinyin('ni3hao3')).toBe(false)  // Missing space separator
   })
 }
 ```
@@ -601,7 +665,15 @@ describe('parsePinyinInput', () => {
     ])
   })
 
-  it('should parse multi-syllable input', () => {
+  it('should parse multi-syllable input WITHOUT spaces', () => {
+    const result = parsePinyinInput('ni3hao3')
+    expect(result).toEqual([
+      { romanization: 'ni', tone: 3, withToneMark: 'nǐ' },
+      { romanization: 'hao', tone: 3, withToneMark: 'hǎo' }
+    ])
+  })
+
+  it('should parse multi-syllable input WITH spaces', () => {
     const result = parsePinyinInput('ni3 hao3')
     expect(result).toEqual([
       { romanization: 'ni', tone: 3, withToneMark: 'nǐ' },
@@ -610,19 +682,19 @@ describe('parsePinyinInput', () => {
   })
 
   it('should provide detailed error for missing tone', () => {
+    expect(() => parsePinyinInput('ni')).toThrow('Missing tone number')
+    expect(() => parsePinyinInput('nihao')).toThrow('Missing tone number')
     expect(() => parsePinyinInput('ni hao')).toThrow('Missing tone number')
+    expect(() => parsePinyinInput('ni3hao')).toThrow('Incomplete tone marking')
   })
 
   it('should provide detailed error for invalid tone', () => {
-    expect(() => parsePinyinInput('ni6')).toThrow('Invalid tone number')
+    expect(() => parsePinyinInput('ni6')).toThrow()
+    expect(() => parsePinyinInput('ni0')).toThrow()
   })
 
   it('should provide detailed error for multiple spaces', () => {
     expect(() => parsePinyinInput('ni3  hao3')).toThrow('Multiple consecutive spaces')
-  })
-
-  it('should provide position information in errors', () => {
-    expect(() => parsePinyinInput('ni3 hao zhong1')).toThrow('position 2')
   })
 }
 ```
@@ -658,13 +730,32 @@ it('should support incremental multi-syllable input', () => {
   expect(onChange).toHaveBeenCalledWith('nǐ hǎo')
 })
 
+it('should accept input without spaces', () => {
+  const { getByRole } = render(<PinyinInput {...defaultProps} />)
+  const input = getByRole('textbox')
+
+  // Type "ni3hao3" (no spaces)
+  fireEvent.change(input, { target: { value: 'ni3hao3' } })
+
+  // Should show as valid
+  expect(getByText('Valid')).toBeInTheDocument()
+})
+
 it('should show validation error for missing tone', () => {
   const { getByRole, getByText } = render(<PinyinInput {...defaultProps} />)
   const input = getByRole('textbox')
 
-  fireEvent.change(input, { target: { value: 'ni hao' } })  // No tones
+  // Test various formats without tones
+  fireEvent.change(input, { target: { value: 'ni' } })
+  expect(getByText('Invalid')).toBeInTheDocument()
 
-  // Should show "Invalid" badge
+  fireEvent.change(input, { target: { value: 'nihao' } })
+  expect(getByText('Invalid')).toBeInTheDocument()
+
+  fireEvent.change(input, { target: { value: 'ni hao' } })
+  expect(getByText('Invalid')).toBeInTheDocument()
+
+  fireEvent.change(input, { target: { value: 'ni3hao' } })  // Second syllable missing tone
   expect(getByText('Invalid')).toBeInTheDocument()
 })
 ```
@@ -674,45 +765,54 @@ it('should show validation error for missing tone', () => {
 ## Migration Considerations
 
 ### Database Compatibility
-**Good News**: Database already uses correct format!
+**Good News**: Database uses space-separated format, but both will work!
 - `pinyin_numeric` field: `ni3 hao3` (space-separated) ✅
 - `pinyin` field: `nǐ hǎo` (tone marks with space) ✅
-- No schema changes needed
+- User can type either `ni3hao3` or `ni3 hao3` - both valid ✅
+- Comparison functions will normalize for matching
 
 ### User Experience Impact
 **Breaking Changes**:
-1. Users can no longer type `ni3hao3` (without space) - must use `ni3 hao3`
-2. Missing tone numbers now cause validation errors instead of being optional
-3. Multiple spaces no longer auto-normalized - validation will reject
+1. ❌ Missing tone numbers now cause validation errors (REQUIRED - no exceptions)
+2. ❌ Multiple spaces no longer auto-normalized - validation will reject
 
 **Improved Experience**:
-1. ✅ Incremental typing: `hao3 <space>` auto-converts to `hǎo ` and prepares for next syllable
-2. ✅ Clear error messages indicating exactly what's wrong and where
-3. ✅ Consistent format across input, storage, and validation
-4. ✅ Matches real pinyin input method behavior (explicit tone marking)
+1. ✅ Flexible spacing: type `ni3hao3` or `ni3 hao3` - both work!
+2. ✅ Incremental typing: `hao3 <space>` auto-converts to `hǎo ` and prepares for next syllable
+3. ✅ Clear error messages: "Missing tone number" tells exactly what's wrong
+4. ✅ Forces tone awareness: learners must think about tones
+5. ✅ Consistent validation across all formats
 
 ### Backward Compatibility
-**Existing Data**: No issues - database already has correct format
-**User Input**: Users typing old format will get clear validation errors with guidance
+**Existing Data**: No issues - database has correct format
+**User Input**:
+- Users who typed `ni3hao3` before: ✅ Still works
+- Users who want to type `ni3 hao3`: ✅ Now works too
+- Users who typed `nihao` without tones: ❌ Will get validation error (this is intentional - they MUST include tones)
 
 ---
 
 ## Success Criteria
 
 ### Validation Tests
-- ✅ `hao3` → Valid (single syllable)
-- ✅ `ni3 hao3` → Valid (multi-syllable with spaces)
-- ✅ `xie4 xie4` → Valid (repeated syllable)
-- ❌ `ni3hao3` → Invalid (missing space separator)
-- ❌ `ni hao` → Invalid (missing tone numbers)
+- ✅ `hao3` → Valid (single syllable with tone)
+- ✅ `ni3hao3` → Valid (no spaces, all tones present)
+- ✅ `ni3 hao3` → Valid (with spaces, all tones present)
+- ✅ `xie4xie4` → Valid (no spaces)
+- ✅ `xie4 xie4` → Valid (with spaces)
+- ❌ `ni` → Invalid (missing tone)
+- ❌ `nihao` → Invalid (missing tones)
+- ❌ `ni hao` → Invalid (missing tones)
+- ❌ `ni3hao` → Invalid (second syllable missing tone)
 - ❌ `ni3  hao3` → Invalid (multiple spaces)
 - ❌ `ni0` → Invalid (invalid tone 0)
 - ❌ `ni6` → Invalid (invalid tone 6)
 
 ### Conversion Tests
 - `hao3` → `hǎo`
-- `ni3 hao3` → `nǐ hǎo` (preserves space)
-- `xie4 xie4` → `xièxiè` (preserves space)
+- `ni3hao3` → `nǐhǎo` (no space preserved)
+- `ni3 hao3` → `nǐ hǎo` (space preserved)
+- `xie4 xie4` → `xiè xiè` (space preserved)
 
 ### Interactive Workflow
 1. User types `hao3` → Shows as valid
@@ -720,42 +820,49 @@ it('should show validation error for missing tone', () => {
 3. User types `ni3` → Shows `hǎo ni3` as valid
 4. User presses Enter → Converts to `hǎo nǐ` and submits
 
+**Alternative workflow (no spaces)**:
+1. User types `ni3hao3` → Shows as valid
+2. User presses Enter → Converts to `nǐhǎo` and submits
+
 ### Error Messages
-- Missing tone: "Missing tone number for syllable 'ni' at position 1. Each syllable must end with a tone number (1-5)."
-- Invalid tone: "Invalid tone number in 'ni6' at position 1. Valid tones: 1 (flat), 2 (rising), 3 (dipping), 4 (falling), 5 (neutral)."
+- Missing tone: "Missing tone numbers in 'nihao' at position 1. EVERY syllable must end with a tone number (1-5)."
+- Incomplete tones: "Incomplete tone marking in 'ni3hao' at position 1. All syllables must have tone numbers (1-5)."
+- Invalid tone: "Invalid tone number (from validation)."
 - Multiple spaces: "Multiple consecutive spaces not allowed. Use single space to separate syllables."
-- Missing space: "Invalid syllable format: 'ni3hao3' at position 1. Expected: [romanization][tone_number] (e.g., 'ni3', 'hao3')"
 
 ---
 
 ## Implementation Order
 
 1. **Start with core utilities** (`pinyin-utils.ts`):
-   - Update `numericToToneMarks()`
-   - Update `isValidPinyin()`
-   - Update `normalizePinyin()`
-   - Add new `parsePinyinInput()`
+   - Update `numericToToneMarks()` - handle both spacing formats
+   - Update `isValidPinyin()` - accept both formats, enforce tones
+   - Update `normalizePinyin()` - handle both formats
+   - Add new `parsePinyinInput()` - explicit parser
 
 2. **Update tests** (`pinyin-utils.test.ts`):
    - Fix existing tests to expect new behavior
-   - Add new test cases for strict format
+   - Add test cases for both spacing formats
+   - Add tests enforcing tone requirement
 
 3. **Update React component** (`pinyin-input.tsx`):
-   - Update `autoCorrectPinyin()`
+   - Update `autoCorrectPinyin()` - remove space normalization
    - Update space key handler in `handleKeyDown()`
    - Update Enter key handler
 
 4. **Update component tests** (`pinyin-input.test.tsx`):
    - Add space conversion tests
-   - Add multi-syllable incremental input tests
+   - Add no-space format tests
+   - Add missing tone validation tests
 
 5. **Update hook if needed** (`use-pinyin-input.ts`):
-   - Verify `handleToneSelect()` works with new format
+   - Verify `handleToneSelect()` works with both formats
 
 6. **Integration testing**:
-   - Test full review flow with new input format
+   - Test full review flow with both formats
    - Verify database compatibility
    - Check validation feedback displays correctly
+   - Confirm missing tones are rejected
 
 ---
 
@@ -772,12 +879,21 @@ it('should show validation error for missing tone', () => {
 2. **Capitalization**: Always normalize to lowercase (case-insensitive)
 3. **Trailing spaces**: User typing flow adds trailing space after conversion
 4. **Empty input**: Return appropriate error, not silent failure
-5. **Database format**: Already correct - no migration needed
+5. **Both spacing formats**: `ni3hao3` and `ni3 hao3` both valid
+6. **Tone requirement**: EVERY syllable must have tone - no exceptions
+
+### Critical Implementation Detail: Syllable Parsing
+
+The key challenge is parsing input that may not have spaces. For example:
+- `ni3hao3` needs to be parsed as `ni3` + `hao3`
+- `zhong1guo2ren2` needs to be parsed as `zhong1` + `guo2` + `ren2`
+
+**Strategy**: Use regex `([a-zü]+)([1-5])` to match all [romanization][tone] pairs. Then verify that these pairs completely consume the input string (no leftover characters = all syllables have tones).
 
 ### User Guidance
 When validation fails, provide helpful error messages that:
-- Identify the exact position (syllable number) with the error
-- Explain what was wrong
+- Identify the exact position with the error
+- Clearly state "EVERY syllable must have a tone number"
 - Show the expected format with examples
 - Suggest valid tone numbers (1-5)
 
@@ -785,25 +901,20 @@ When validation fails, provide helpful error messages that:
 
 ## Questions to Consider
 
-1. **Space preservation in output**: Should `ni3 hao3` → `nǐ hǎo` (with space) or `nǐhǎo` (no space)?
-   - **Recommendation**: Preserve space (matches database format)
+1. **Space preservation in output**: Should `ni3 hao3` → `nǐ hǎo` (with space) and `ni3hao3` → `nǐhǎo` (no space)?
+   - **Answer**: YES - preserve the user's spacing choice
 
-2. **Neutral tone (5)**: Should tone 5 be required explicitly or optional?
-   - **Current spec**: Required (user must type `de5` for 的)
-   - **Alternative**: Could default missing tone to 5 (but less explicit)
-   - **Recommendation**: Keep explicit requirement
+2. **Neutral tone (5)**: Should tone 5 be required explicitly?
+   - **Answer**: YES - user must type `de5` for 的, never just `de`
 
 3. **Case handling**: Should `NI3` be accepted?
-   - **Current**: Auto-converts to lowercase ✅
-   - **Recommendation**: Keep auto-conversion
+   - **Answer**: YES - auto-convert to lowercase
 
-4. **Paste behavior**: What if user pastes `ni3hao3` (no space)?
-   - **Current**: `autoCorrectPinyin()` doesn't add spaces
-   - **Recommendation**: Validation should reject and show error
+4. **Comparison**: How to compare `nǐhǎo` vs `nǐ hǎo`?
+   - **Answer**: `comparePinyinFlexible()` should strip spaces before comparing
 
-5. **Mixed formats**: Should `ni3 hǎo` (mixed numeric and tone marks) be valid?
-   - **Current**: Likely not handled consistently
-   - **Recommendation**: Accept it - normalize to all tone marks
+5. **Database storage**: Should we store both formats?
+   - **Answer**: Keep current format (with spaces), but accept both on input
 
 ---
 
@@ -811,16 +922,23 @@ When validation fails, provide helpful error messages that:
 
 ### Real-world Pinyin Input Methods
 This format matches how professional pinyin input methods work:
-- **Sogou Pinyin**: Requires explicit tone marking
-- **Google Pinyin**: Each syllable typed separately
-- **Numbered pinyin**: Standard in linguistics and textbooks
+- **Sogou Pinyin**: Users can type continuously without spaces
+- **Google Pinyin**: Supports both continuous and spaced input
+- **Numbered pinyin**: Standard in linguistics - tones always required
 
 ### Educational Value
 Requiring explicit tone numbers:
-- ✅ Forces learners to think about tones
+- ✅ Forces learners to think about EVERY tone
 - ✅ Prevents "lazy" input without tone consideration
 - ✅ Matches academic/professional standards
 - ✅ Makes errors immediately visible
+- ✅ No ambiguity - answer is right or wrong
+
+Allowing flexible spacing:
+- ✅ Faster typing (no need to press space)
+- ✅ More natural for some users
+- ✅ Matches how native speakers think (continuous speech)
+- ✅ But still supports spaced input for those who prefer it
 
 ### Performance
-No performance concerns - all operations are O(n) where n = number of syllables, typically 1-5.
+No performance concerns - regex matching is O(n) where n = input length, typically 5-20 characters.
