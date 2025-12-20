@@ -161,7 +161,7 @@ export const LEECH_THRESHOLD = 8
  */
 export const TIME_THRESHOLDS = {
   /** Under this = EASY grade (seconds per character) */
-  EASY_MAX: 4,
+  EASY_MAX: 5,
   /** Under or equal to this = GOOD grade, above = HARD (seconds per character) */
-  GOOD_MAX: 8,
+  GOOD_MAX: 10,
 } as const

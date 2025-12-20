@@ -458,9 +458,9 @@ export function isDueForReview(nextReviewDate: Date, now: Date = new Date()): bo
  * Calculate grade automatically based on response time
  *
  * Grade is determined by seconds per character:
- * - EASY (3): < 4 seconds per character (fast recall)
- * - GOOD (2): 4-8 seconds per character (normal recall)
- * - HARD (1): > 8 seconds per character (slow recall)
+ * - EASY (3): 0-5 seconds per character (fast recall)
+ * - GOOD (2): 5-10 seconds per character (normal recall)
+ * - HARD (1): > 10 seconds per character (slow recall)
  * - AGAIN (0): Wrong answer or skip
  *
  * @param responseTimeMs - Response time in milliseconds
