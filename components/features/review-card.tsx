@@ -29,8 +29,9 @@ type ReviewCardPropsInternal = import('./review-card.types').ReviewCardProps
  * 2. User types pinyin + selects tone
  * 3. User submits answer
  * 4. Show feedback (correct/incorrect)
- * 5. User grades themselves
- * 6. Card flips/transitions to next item
+ * 5. Grade auto-calculated from response time (0-5s/char = Easy, 5-10s/char = Good, >10s/char = Hard)
+ * 6. User clicks "Next" to continue
+ * 7. Card transitions to next item
  *
  * @example
  * ```tsx
