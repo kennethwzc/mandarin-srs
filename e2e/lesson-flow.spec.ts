@@ -53,8 +53,8 @@ test.describe('Lesson Flow', () => {
     if (await startButton.isVisible()) {
       await startButton.click()
 
-      // Should redirect to reviews
-      await expect(page).toHaveURL('/reviews', { timeout: 10000 })
+      // Should redirect to practice mode
+      await expect(page).toHaveURL(/\/lessons\/\d+\/practice/, { timeout: 10000 })
     }
   })
 

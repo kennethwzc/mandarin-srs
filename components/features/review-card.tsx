@@ -81,6 +81,17 @@ export const ReviewCard = memo(function ReviewCard({
     // Check if answer is correct (exact comparison)
     const answeredCorrectly = comparePinyinExact(userInput, correctPinyin)
 
+    // Debug logging to verify state updates
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 ReviewCard state:', {
+        userInput,
+        correctPinyin,
+        answeredCorrectly,
+        isAnswerSubmitted: true,
+        component: 'ReviewCard',
+      })
+    }
+
     setIsCorrect(answeredCorrectly)
     setIsAnswerSubmitted(true)
 
