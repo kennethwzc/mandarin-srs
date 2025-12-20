@@ -10,6 +10,7 @@
 
 import { NextRequest } from 'next/server'
 import { POST } from '../submit/route'
+import { deleteCached } from '@/lib/cache/server'
 
 // Mock Supabase
 jest.mock('@/lib/supabase/server', () => ({
@@ -42,10 +43,16 @@ jest.mock('@/lib/db/srs-operations', () => ({
   ),
 }))
 
+// Mock cache operations
+jest.mock('@/lib/cache/server', () => ({
+  deleteCached: jest.fn().mockResolvedValue(undefined),
+}))
+
 describe('POST /api/reviews/submit', () => {
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks()
+    ;(deleteCached as jest.Mock).mockClear()
 
     // Re-establish default authenticated user mock
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -122,6 +129,16 @@ describe('POST /api/reviews/submit', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
+
+    // Verify cache invalidation was called
+    const deleteCachedMock = deleteCached as jest.Mock
+    expect(deleteCachedMock).toHaveBeenCalled()
+    // Should invalidate review queue caches and dashboard stats
+    expect(deleteCachedMock).toHaveBeenCalledWith('reviews:queue:test-user-id:10')
+    expect(deleteCachedMock).toHaveBeenCalledWith('reviews:queue:test-user-id:20')
+    expect(deleteCachedMock).toHaveBeenCalledWith('reviews:queue:test-user-id:50')
+    expect(deleteCachedMock).toHaveBeenCalledWith('reviews:queue:test-user-id:100')
+    expect(deleteCachedMock).toHaveBeenCalledWith('dashboard:stats:test-user-id')
   })
 
   it('returns correct response format', async () => {

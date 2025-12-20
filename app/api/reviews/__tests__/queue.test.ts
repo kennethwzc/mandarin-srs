@@ -18,15 +18,19 @@ jest.mock('@/lib/cache/server', () => ({
   deleteCached: jest.fn(),
   getCached: jest.fn().mockResolvedValue(null),
   setCached: jest.fn(),
+  clearAllCache: jest.fn(),
 }))
 
 import { GET } from '../queue/route'
 import { createClient } from '@/lib/supabase/server'
 import { getReviewQueue } from '@/lib/db/srs-operations'
+import { withCache } from '@/lib/cache/server'
 
 describe('GET /api/reviews/queue', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // Reset cache mocks
+    ;(withCache as jest.Mock).mockImplementation((key, fn) => fn())
   })
 
   it('requires authentication', async () => {
