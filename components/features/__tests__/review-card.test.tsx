@@ -66,7 +66,7 @@ describe('ReviewCard', () => {
     })
   })
 
-  it('calls onSubmit with grade', async () => {
+  it('calls onSubmit with auto-calculated grade', async () => {
     const user = userEvent.setup()
 
     render(<ReviewCard {...defaultProps} />)
@@ -81,19 +81,29 @@ describe('ReviewCard', () => {
       expect(correctTexts.length).toBeGreaterThan(0)
     })
 
-    // Click grade button
-    const goodButton = screen.getByRole('button', { name: /good/i })
-    await user.click(goodButton)
+    // Wait for Next button to appear (component auto-calculates grade)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
+    })
 
-    // Should call onSubmit
+    // Click Next button (grade is auto-calculated based on response time)
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    await user.click(nextButton)
+
+    // Should call onSubmit with auto-calculated grade
     expect(mockOnSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         userAnswer: expect.any(String),
         isCorrect: true,
-        grade: expect.any(Number),
+        grade: expect.any(Number), // Auto-calculated based on response time
         responseTimeMs: expect.any(Number),
       })
     )
+
+    // Verify grade is a valid number (0-3)
+    const callArgs = mockOnSubmit.mock.calls[0][0]
+    expect(callArgs.grade).toBeGreaterThanOrEqual(0)
+    expect(callArgs.grade).toBeLessThanOrEqual(3)
   })
 
   it('resets state when character changes', () => {
