@@ -30,7 +30,7 @@ export interface ReviewResult {
   userAnswer: string
   /** Whether answer was correct */
   isCorrect: boolean
-  /** Self-assessment grade (0-3: Again, Hard, Good, Easy) */
+  /** Auto-calculated grade based on response time (0-3: Again, Hard, Good, Easy) */
   grade: number
   /** Time taken to answer in milliseconds */
   responseTimeMs: number
