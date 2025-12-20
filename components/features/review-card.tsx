@@ -69,18 +69,6 @@ export const ReviewCard = memo(function ReviewCard({
     setStartTime(Date.now()) // Reset start time for accurate response time calculation
   }, [character])
 
-  // Debug: Log state changes in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 ReviewCard render state:', {
-        isAnswerSubmitted,
-        isCorrect,
-        character,
-        userInput,
-      })
-    }
-  }, [isAnswerSubmitted, isCorrect, character, userInput])
-
   /**
    * Handle answer submission
    * Checks if answer is correct and shows feedback
@@ -95,28 +83,17 @@ export const ReviewCard = memo(function ReviewCard({
 
     // Debug logging to verify state updates
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 ReviewCard submit:', {
+      console.log('🔍 ReviewCard state:', {
         userInput,
         correctPinyin,
         answeredCorrectly,
+        isAnswerSubmitted: true,
         component: 'ReviewCard',
       })
     }
 
     setIsCorrect(answeredCorrectly)
     setIsAnswerSubmitted(true)
-
-    // Debug logging after state update
-    if (process.env.NODE_ENV === 'development') {
-      // Use setTimeout to log after state has updated
-      setTimeout(() => {
-        console.log('🔍 ReviewCard state after update:', {
-          isAnswerSubmitted: true,
-          isCorrect: answeredCorrectly,
-          shouldShowFeedback: true,
-        })
-      }, 0)
-    }
 
     // Remove focus from input to allow Enter key to continue to next card
     if (document.activeElement instanceof HTMLElement) {
@@ -192,11 +169,15 @@ export const ReviewCard = memo(function ReviewCard({
           'duration-[400ms] transition-all ease-out',
           // Card-level feedback styling
           isAnswerSubmitted &&
-            isCorrect === true &&
-            'bg-green-50/40 shadow-[0_0_20px_rgba(34,197,94,0.25)] ring-2 ring-green-500/60 dark:bg-green-950/20',
+            isCorrect && [
+              'shadow-[0_0_20px_rgba(34,197,94,0.25)] ring-2 ring-green-500/60',
+              'bg-green-50/40 dark:bg-green-950/20',
+            ],
           isAnswerSubmitted &&
-            isCorrect === false &&
-            'bg-red-50/30 shadow-[0_0_15px_rgba(239,68,68,0.2)] ring-2 ring-red-500/50 dark:bg-red-950/15'
+            isCorrect === false && [
+              'shadow-[0_0_15px_rgba(239,68,68,0.2)] ring-2 ring-red-500/50',
+              'bg-red-50/30 dark:bg-red-950/15',
+            ]
         )}
       >
         <CardContent className="space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8">
@@ -206,15 +187,7 @@ export const ReviewCard = memo(function ReviewCard({
             meaning={meaning}
             itemType={itemType}
             showMeaning={!isAnswerSubmitted} // Hide meaning after submission
-            feedbackState={
-              !isAnswerSubmitted
-                ? null
-                : isCorrect === true
-                  ? 'correct'
-                  : isCorrect === false
-                    ? 'incorrect'
-                    : null
-            }
+            feedbackState={!isAnswerSubmitted ? null : isCorrect ? 'correct' : 'incorrect'}
           />
 
           {/* Pinyin Input Section */}
