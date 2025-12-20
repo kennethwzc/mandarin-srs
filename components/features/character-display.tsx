@@ -1,12 +1,15 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
+import { useMotionPreference } from '@/lib/utils/motion-config'
 
 /**
  * Character Display Component
  *
  * Shows the Chinese character in large, readable font.
  * Also shows English meaning for context.
+ * Supports visual feedback states for answer correctness.
  */
 
 interface CharacterDisplayProps {
@@ -15,6 +18,7 @@ interface CharacterDisplayProps {
   itemType: 'radical' | 'character' | 'vocabulary'
   showMeaning?: boolean
   className?: string
+  feedbackState?: 'correct' | 'incorrect' | 'almost' | null
 }
 
 export function CharacterDisplay({
@@ -23,7 +27,10 @@ export function CharacterDisplay({
   itemType,
   showMeaning = true,
   className,
+  feedbackState = null,
 }: CharacterDisplayProps) {
+  const prefersReducedMotion = useMotionPreference()
+
   return (
     <div className={cn('space-y-2 text-center', className)}>
       {/* Item type badge */}
@@ -43,16 +50,33 @@ export function CharacterDisplay({
         </span>
       </div>
 
-      {/* Character */}
-      <div
+      {/* Character with smooth feedback transitions */}
+      <motion.div
         className={cn(
           'character-display chinese-text',
           'select-none', // Prevent accidental copying
-          'py-8'
+          'py-8',
+          'duration-[400ms] transition-all ease-out'
         )}
+        animate={{
+          color:
+            feedbackState === 'correct'
+              ? '#22c55e'
+              : feedbackState === 'incorrect'
+                ? 'currentColor'
+                : feedbackState === 'almost'
+                  ? '#f59e0b'
+                  : 'currentColor',
+          opacity: feedbackState === 'incorrect' ? 0.6 : 1,
+          filter: feedbackState === 'correct' ? 'brightness(1.1)' : 'brightness(1)',
+        }}
+        transition={{
+          duration: prefersReducedMotion ? 0.15 : 0.4,
+          ease: 'easeOut',
+        }}
       >
         {character}
-      </div>
+      </motion.div>
 
       {/* Meaning */}
       {showMeaning && <div className="text-lg text-muted-foreground">{meaning}</div>}

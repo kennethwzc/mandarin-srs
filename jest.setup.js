@@ -61,6 +61,26 @@ jest.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
+// Mock window.matchMedia for prefers-reduced-motion (only in jsdom environment)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: jest.fn().mockImplementation((query) => {
+      const matches = query === '(prefers-reduced-motion: reduce)'
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(), // deprecated
+        removeListener: jest.fn(), // deprecated
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }
+    }),
+  })
+}
+
 // Suppress console errors in tests (optional)
 const originalError = console.error
 const originalWarn = console.warn

@@ -1,17 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, X, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useMotionPreference, getFeedbackVariant, getIconVariant } from '@/lib/utils/motion-config'
 
 /**
  * Pinyin Feedback Component
  *
- * Shows visual feedback for pinyin input:
- * - Correct: Green checkmark
- * - Incorrect: Red X with correct answer
- * - Close: Orange warning with hint
+ * Shows visual feedback for pinyin input with smooth, elegant animations:
+ * - Correct: Green checkmark with subtle radial gradient
+ * - Incorrect: Red X with correct answer emphasis
+ * - Close: Orange warning with tone hint
  */
 
 interface PinyinFeedbackProps {
@@ -29,137 +29,192 @@ export function PinyinFeedback({
   isClose = false,
   show,
 }: PinyinFeedbackProps) {
-  const [showConfetti, setShowConfetti] = useState(false)
-
-  useEffect(() => {
-    if (isCorrect && show) {
-      setShowConfetti(true)
-      setTimeout(() => setShowConfetti(false), 2000)
-    }
-  }, [isCorrect, show])
+  const prefersReducedMotion = useMotionPreference()
+  const feedbackVariant = getFeedbackVariant(prefersReducedMotion)
 
   if (!show || isCorrect === null) {
     return null
   }
 
+  // Screen reader announcement text
+  const announcementText = isCorrect
+    ? `Correct! You answered ${userAnswer}`
+    : !isClose
+      ? `Incorrect. The correct answer is ${correctAnswer}`
+      : `Almost correct! Check the tone. The correct answer is ${correctAnswer}`
+
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: -10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-        transition={{ duration: 0.2 }}
-        className="space-y-3"
-      >
+      <motion.div {...feedbackVariant} className="space-y-3">
+        {/* Screen reader announcement */}
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {announcementText}
+        </div>
         {/* Correct */}
         {isCorrect && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.15 : 0.4,
+              ease: [0.16, 1, 0.3, 1] as const,
+            }}
             className={cn(
-              'rounded-lg p-4',
-              'bg-green-100 dark:bg-green-900/20',
-              'border-2 border-green-500',
+              'relative overflow-hidden rounded-lg p-4',
+              'bg-gradient-to-br from-green-50 to-green-100/50',
+              'dark:from-green-950/30 dark:to-green-900/20',
+              'border-2 border-green-500/60 shadow-lg',
               'text-green-800 dark:text-green-200',
               'flex items-center justify-center gap-3'
             )}
           >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-            >
+            {/* Subtle background glow */}
+            <div className="absolute inset-0 bg-gradient-radial from-green-500/10 to-transparent" />
+
+            <motion.div {...getIconVariant(prefersReducedMotion, 0.15)} className="relative z-10">
               <Check className="h-6 w-6" />
             </motion.div>
-            <div className="text-lg font-semibold">Correct! {userAnswer}</div>
-          </div>
+            <motion.div
+              className="relative z-10 text-lg font-semibold"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                delay: prefersReducedMotion ? 0 : 0.2,
+                duration: prefersReducedMotion ? 0.15 : 0.3,
+              }}
+            >
+              Correct! {userAnswer}
+            </motion.div>
+          </motion.div>
         )}
 
         {/* Incorrect */}
         {!isCorrect && !isClose && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.15 : 0.4,
+              ease: [0.16, 1, 0.3, 1] as const,
+            }}
             className={cn(
-              'rounded-lg p-4',
-              'bg-red-100 dark:bg-red-900/20',
-              'border-2 border-red-500',
+              'relative overflow-hidden rounded-lg p-4',
+              'bg-gradient-to-br from-red-50 to-red-100/30',
+              'dark:from-red-950/20 dark:to-red-900/10',
+              'border-2 border-red-500/50 shadow-md',
               'text-red-800 dark:text-red-200',
               'space-y-2'
             )}
           >
-            <div className="flex items-center justify-center gap-3">
-              <X className="h-6 w-6" />
+            <motion.div
+              className="flex items-center justify-center gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                delay: prefersReducedMotion ? 0 : 0.1,
+                duration: prefersReducedMotion ? 0.15 : 0.3,
+              }}
+            >
+              <motion.div {...getIconVariant(prefersReducedMotion, 0.15)}>
+                <X className="h-6 w-6" />
+              </motion.div>
               <div className="text-lg font-semibold">Not quite right</div>
-            </div>
+            </motion.div>
 
-            <div className="space-y-1 text-center">
+            <motion.div
+              className="space-y-1 text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: prefersReducedMotion ? 0 : 0.25,
+                duration: prefersReducedMotion ? 0.15 : 0.3,
+              }}
+            >
               <div className="text-sm">
                 You typed: <span className="font-mono font-bold">{userAnswer}</span>
               </div>
-              <div className="text-sm">
-                Correct answer: <span className="font-mono text-xl font-bold">{correctAnswer}</span>
-              </div>
-            </div>
-          </div>
+              <motion.div
+                className="text-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  delay: prefersReducedMotion ? 0 : 0.35,
+                  duration: prefersReducedMotion ? 0.15 : 0.3,
+                }}
+              >
+                Correct answer:{' '}
+                <span className="font-mono text-xl font-bold text-red-600 dark:text-red-400">
+                  {correctAnswer}
+                </span>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         )}
 
         {/* Close but not exact */}
         {!isCorrect && isClose && (
-          <div
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{
+              duration: prefersReducedMotion ? 0.15 : 0.4,
+              ease: [0.16, 1, 0.3, 1] as const,
+            }}
             className={cn(
-              'rounded-lg p-4',
-              'bg-orange-100 dark:bg-orange-900/20',
-              'border-2 border-orange-500',
+              'relative overflow-hidden rounded-lg p-4',
+              'bg-gradient-to-br from-orange-50 to-orange-100/30',
+              'dark:from-orange-950/20 dark:to-orange-900/10',
+              'border-2 border-orange-500/50 shadow-md',
               'text-orange-800 dark:text-orange-200',
               'space-y-2'
             )}
           >
-            <div className="flex items-center justify-center gap-3">
-              <AlertCircle className="h-6 w-6" />
+            <motion.div
+              className="flex items-center justify-center gap-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                delay: prefersReducedMotion ? 0 : 0.1,
+                duration: prefersReducedMotion ? 0.15 : 0.3,
+              }}
+            >
+              <motion.div {...getIconVariant(prefersReducedMotion, 0.15)}>
+                <AlertCircle className="h-6 w-6" />
+              </motion.div>
               <div className="text-lg font-semibold">Almost! Check the tone</div>
-            </div>
+            </motion.div>
 
-            <div className="space-y-1 text-center">
+            <motion.div
+              className="space-y-1 text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: prefersReducedMotion ? 0 : 0.25,
+                duration: prefersReducedMotion ? 0.15 : 0.3,
+              }}
+            >
               <div className="text-sm">
                 You typed: <span className="font-mono font-bold">{userAnswer}</span>
               </div>
-              <div className="text-sm">
-                Correct: <span className="font-mono text-xl font-bold">{correctAnswer}</span>
-              </div>
+              <motion.div
+                className="text-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{
+                  delay: prefersReducedMotion ? 0 : 0.35,
+                  duration: prefersReducedMotion ? 0.15 : 0.3,
+                }}
+              >
+                Correct:{' '}
+                <span className="font-mono text-xl font-bold text-orange-600 dark:text-orange-400">
+                  {correctAnswer}
+                </span>
+              </motion.div>
               <div className="mt-2 text-xs text-muted-foreground">
                 The pinyin is right, but the tone is different
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Confetti effect */}
-        {showConfetti && (
-          <div className="pointer-events-none fixed inset-0">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute h-2 w-2 rounded-full bg-primary"
-                initial={{
-                  x: typeof window !== 'undefined' ? window.innerWidth / 2 : 400,
-                  y: typeof window !== 'undefined' ? window.innerHeight / 2 : 300,
-                  opacity: 1,
-                }}
-                animate={{
-                  x:
-                    typeof window !== 'undefined'
-                      ? Math.random() * window.innerWidth
-                      : Math.random() * 800,
-                  y:
-                    typeof window !== 'undefined'
-                      ? Math.random() * window.innerHeight
-                      : Math.random() * 600,
-                  opacity: 0,
-                }}
-                transition={{
-                  duration: 1,
-                  ease: 'easeOut',
-                }}
-              />
-            ))}
-          </div>
+            </motion.div>
+          </motion.div>
         )}
       </motion.div>
     </AnimatePresence>
