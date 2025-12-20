@@ -15,12 +15,7 @@ import { prefetchRouteAndData, prefetchOnHover } from '@/lib/utils/prefetch'
  * Check if we're in a test environment
  */
 function isTestEnvironment(): boolean {
-  return (
-    process.env.NODE_ENV === 'test' ||
-    process.env.CI === 'true' ||
-    typeof jest !== 'undefined' ||
-    typeof describe !== 'undefined'
-  )
+  return process.env.NODE_ENV === 'test' || process.env.CI === 'true'
 }
 
 /**

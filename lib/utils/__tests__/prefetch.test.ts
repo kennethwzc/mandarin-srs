@@ -192,6 +192,7 @@ describe('prefetch utilities', () => {
     it('correctly skips in test environment (expected behavior)', () => {
       // In test environment, prefetchOnHover should return undefined
       // This is the expected behavior - we don't want prefetching during tests
+      process.env.NODE_ENV = 'test'
       const element = document.createElement('div')
       const prefetchFn = jest.fn()
       const cleanup = prefetchOnHover(element, prefetchFn, 150)

@@ -13,12 +13,7 @@ import { preload } from '@/lib/hooks/use-swr'
  * Prefetch utilities should skip execution during tests
  */
 function isTestEnvironment(): boolean {
-  return (
-    process.env.NODE_ENV === 'test' ||
-    process.env.CI === 'true' ||
-    typeof jest !== 'undefined' ||
-    typeof describe !== 'undefined'
-  )
+  return process.env.NODE_ENV === 'test' || process.env.CI === 'true'
 }
 
 /**
