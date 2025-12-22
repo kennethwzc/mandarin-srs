@@ -142,7 +142,146 @@ function LoginForm() {
       toast.success('Logged in successfully')
 
       // Determine redirect destination
-      const redirectToParam = searchParams.get('redirectTo')
+      // Fallback to window.location.search if searchParams not available (e.g., in test environments)
+      let redirectToParam: string | null = null
+      try {
+        redirectToParam = searchParams.get('redirectTo')
+      } catch {
+        // If searchParams throws (e.g., Suspense didn't resolve), use window.location.search
+        const urlParams = new URLSearchParams(window.location.search)
+        redirectToParam = urlParams.get('redirectTo')
+      }
+      const redirectTo = redirectToParam ? decodeURIComponent(redirectToParam) : '/dashboard'
+      const finalRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
+
+      // Refresh auth store
+      await initialize()
+
+      // Verify session
+      const sessionVerified = await verifySession()
+
+      if (!sessionVerified) {
+        toast.error('Session verification failed. Please try again.')
+        setIsLoading(false)
+        return
+      }
+
+      // Prefetch dashboard if redirecting there
+      if (finalRedirect === '/dashboard' || finalRedirect.startsWith('/dashboard')) {
+        prefetchDashboard()
+      }
+
+      // Execute redirect
+      window.location.href = new URL(finalRedirect, window.location.origin).href
+    } catch (error) {
+      logger.error('Login error', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      toast.error('An unexpected error occurred')
+      setIsLoading(false)
+    }
+  }
+
+  const isDisabled = isLoading || authLoading
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Welcome back</CardTitle>
+          <CardDescription>Sign in to continue learning pinyin</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit} data-testid="login-form">
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                data-testid="email-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isDisabled}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/reset-password"
+                  className="text-sm text-muted-foreground hover:text-primary"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isDisabled}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" className="w-full" disabled={isDisabled}>
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
+  )
+}
+
+/**
+ * Login form that works even if Suspense doesn't resolve
+ * This is a fallback version that doesn't use useSearchParams
+ */
+function LoginFormFallback() {
+  const { signIn, isLoading: authLoading } = useAuth()
+  const { initialize } = useAuthStore()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsLoading(true)
+
+    try {
+      const { error, session } = await signIn(email, password)
+
+      if (error) {
+        toast.error('Login failed', { description: error })
+        setIsLoading(false)
+        return
+      }
+
+      if (!session) {
+        toast.error('Login failed', { description: 'No session created. Please try again.' })
+        setIsLoading(false)
+        return
+      }
+
+      toast.success('Logged in successfully')
+
+      // Use window.location.search as fallback
+      const urlParams = new URLSearchParams(window.location.search)
+      const redirectToParam = urlParams.get('redirectTo')
       const redirectTo = redirectToParam ? decodeURIComponent(redirectToParam) : '/dashboard'
       const finalRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
 
@@ -239,21 +378,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Welcome back</CardTitle>
-              <CardDescription>Sign in to continue learning pinyin</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center text-muted-foreground">Loading...</div>
-            </CardContent>
-          </Card>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoginFormFallback />}>
       <LoginForm />
     </Suspense>
   )

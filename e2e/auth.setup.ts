@@ -169,42 +169,89 @@ setup('authenticate', async ({ page }) => {
   await page.waitForLoadState('domcontentloaded')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
 
-  // Wait for Suspense to resolve - the fallback shows "Loading..." text
-  // In Next.js App Router, useSearchParams() requires Suspense, which can sometimes
-  // take time to resolve, especially in test environments
-  console.log('[Auth Setup] Waiting for Suspense to resolve and form to render...')
-
-  // Wait for email input to exist in DOM with a very long timeout
-  // Suspense resolution can be slow in test environments
+  // Wait for Next.js to hydrate - look for the React root
   try {
     await page.waitForFunction(
       () => {
-        // Check if email input exists in DOM (even if hidden)
-        const emailInput =
-          document.querySelector('#email') || document.querySelector('[data-testid="email-input"]')
-        return emailInput !== null
+        // Check if Next.js has hydrated by looking for React root or any interactive elements
+        return (
+          document.querySelector('#__next') !== null ||
+          document.querySelector('[data-testid="login-form"]') !== null ||
+          document.querySelector('#email') !== null
+        )
       },
-      { timeout: 60000 } // 60 second timeout for Suspense to resolve
+      { timeout: 30000 }
     )
-    console.log('[Auth Setup] Email input found in DOM - Suspense resolved')
+    console.log('[Auth Setup] Next.js hydration detected')
   } catch (e) {
-    console.log('[Auth Setup] Email input not found after 60s, checking page state...')
-    const bodyText = await page.locator('body').textContent()
-    console.log('[Auth Setup] Body text preview:', bodyText?.substring(0, 500))
+    console.log('[Auth Setup] Next.js hydration wait timed out, continuing...')
+  }
 
-    // Check if we're on a different page (redirected)
-    const currentUrl = page.url()
-    console.log('[Auth Setup] Current URL:', currentUrl)
+  // Wait for Suspense to resolve - the fallback now renders the actual form
+  // so we should be able to find it even if Suspense doesn't resolve
+  console.log('[Auth Setup] Waiting for login form to render...')
 
-    if (currentUrl.includes('/dashboard')) {
-      console.log('[Auth Setup] Redirected to dashboard - already authenticated')
-      await page.context().storageState({ path: authFile })
-      return
+  // Collect any JavaScript errors
+  const jsErrors: string[] = []
+  page.on('pageerror', (error) => {
+    jsErrors.push(error.message)
+    console.log('[Auth Setup] JavaScript error detected:', error.message)
+  })
+
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      jsErrors.push(msg.text())
+      console.log('[Auth Setup] Console error:', msg.text())
     }
+  })
 
-    throw new Error(
-      'Email input not found in DOM after 60s - Suspense may not be resolving. Check for JavaScript errors.'
-    )
+  // Wait for the form - the fallback should render it immediately
+  // Try multiple selectors to find the form
+  try {
+    // Wait for form by data-testid (most reliable)
+    await page.waitForSelector('[data-testid="login-form"]', {
+      state: 'attached',
+      timeout: 30000,
+    })
+    console.log('[Auth Setup] Login form found by data-testid')
+  } catch (e) {
+    console.log('[Auth Setup] Form not found by data-testid, trying email input...')
+    try {
+      // Wait for email input (should be in both fallback and main form)
+      await page.waitForSelector('#email, [data-testid="email-input"]', {
+        state: 'attached',
+        timeout: 30000,
+      })
+      console.log('[Auth Setup] Email input found - form should be present')
+    } catch (e2) {
+      console.log('[Auth Setup] Email input not found, trying form element...')
+      try {
+        await page.waitForSelector('form', { state: 'attached', timeout: 10000 })
+        console.log('[Auth Setup] Form element found')
+      } catch (e3) {
+        // Last resort: check page state
+        const currentUrl = page.url()
+        console.log('[Auth Setup] Current URL:', currentUrl)
+
+        if (currentUrl.includes('/dashboard')) {
+          console.log('[Auth Setup] Redirected to dashboard - already authenticated')
+          await page.context().storageState({ path: authFile })
+          return
+        }
+
+        // Check for JavaScript errors
+        if (jsErrors.length > 0) {
+          console.error('[Auth Setup] JavaScript errors detected:', jsErrors)
+          throw new Error(
+            `Login form not rendering due to JavaScript errors: ${jsErrors.join('; ')}. Check browser console.`
+          )
+        }
+
+        throw new Error(
+          'Login form not found after 30s. The page may not be loading correctly. Check for JavaScript errors or network issues.'
+        )
+      }
+    }
   }
 
   // Now wait for it to be visible and enabled
