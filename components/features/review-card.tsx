@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, memo } from 'react'
+import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useMotionPreference } from '@/lib/utils/motion-config'
 
@@ -60,6 +60,9 @@ export const ReviewCard = memo(function ReviewCard({
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [startTime, setStartTime] = useState(Date.now())
 
+  // Refs to prevent double-submission
+  const isSubmittingRef = useRef(false)
+
   // Reset state when character changes
   useEffect(() => {
     setUserInput('')
@@ -67,6 +70,7 @@ export const ReviewCard = memo(function ReviewCard({
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
     setStartTime(Date.now()) // Reset start time for accurate response time calculation
+    isSubmittingRef.current = false // Reset submission guard
   }, [character])
 
   /**
@@ -74,9 +78,17 @@ export const ReviewCard = memo(function ReviewCard({
    * Checks if answer is correct and shows feedback
    */
   const handleSubmitAnswer = useCallback(() => {
+    // Prevent double-submission
+    if (isSubmittingRef.current || isAnswerSubmitted) {
+      return
+    }
+
     if (!userInput.trim()) {
       return // Don't submit empty answers
     }
+
+    // Mark as submitting to prevent double-submission
+    isSubmittingRef.current = true
 
     // Check if answer is correct (exact comparison)
     const answeredCorrectly = comparePinyinExact(userInput, correctPinyin)
@@ -99,13 +111,24 @@ export const ReviewCard = memo(function ReviewCard({
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
-  }, [userInput, correctPinyin])
+
+    // Reset submission guard after state update completes
+    // Use setTimeout to ensure state update has been processed
+    setTimeout(() => {
+      isSubmittingRef.current = false
+    }, 100)
+  }, [userInput, correctPinyin, isAnswerSubmitted])
 
   /**
    * Handle continue/next - automatically calculates grade based on response time
    * Called when user clicks "Next" after seeing feedback
    */
   const handleContinue = useCallback(() => {
+    // Guard: Only allow continuing if feedback has been shown
+    if (!isAnswerSubmitted || isCorrect === null) {
+      return
+    }
+
     const responseTime = Date.now() - startTime
     const correct = isCorrect ?? false
 
@@ -120,13 +143,22 @@ export const ReviewCard = memo(function ReviewCard({
     })
 
     // Reset for next card (parent will provide new character)
-  }, [userInput, isCorrect, startTime, onSubmit, character.length])
+  }, [userInput, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
 
   /**
    * Keyboard shortcuts
+   * Only handles window-level events when input is not focused
    */
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't handle if input is focused (PinyinInput handles it)
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return
+      }
+
       // Enter to submit answer or continue to next card
       if (e.key === 'Enter') {
         if (!isAnswerSubmitted) {

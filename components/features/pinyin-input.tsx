@@ -109,6 +109,7 @@ export function PinyinInput({
         if (onSubmit && value.trim()) {
           // Only submit if value is not empty
           e.preventDefault()
+          e.stopPropagation() // Prevent event from bubbling to window-level handlers
           onSubmit()
         }
         return
@@ -135,6 +136,7 @@ export function PinyinInput({
         }
 
         if (e.key === 'Enter' && onSubmit) {
+          e.stopPropagation() // Prevent event from bubbling to window-level handlers
           onSubmit()
         }
         return
