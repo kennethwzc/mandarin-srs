@@ -183,12 +183,13 @@ function LoginForm() {
           <CardTitle>Welcome back</CardTitle>
           <CardDescription>Sign in to continue learning pinyin</CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} data-testid="login-form">
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                data-testid="email-input"
                 type="email"
                 placeholder="you@example.com"
                 value={email}

@@ -99,11 +99,28 @@ setup('authenticate', async ({ page }) => {
     )
   }
 
-  // Navigate to login
+  // Clear any existing auth state first (cookies, localStorage, etc.)
+  // This ensures we start with a clean slate
+  await page.context().clearCookies()
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
 
-  // Wait for page to be interactive
+  // Check if we got redirected (means we're already authenticated)
   await page.waitForLoadState('networkidle', { timeout: 30000 })
+  const currentUrl = page.url()
+
+  if (currentUrl.includes('/dashboard')) {
+    console.log('[Auth Setup] Already authenticated, skipping login')
+    // Save auth state and return early
+    await page.context().storageState({ path: authFile })
+    console.log('[Auth Setup] Using existing authentication state')
+    return
+  }
+
+  // Ensure we're on the login page
+  if (!currentUrl.includes('/login')) {
+    console.log('[Auth Setup] Unexpected redirect, navigating to login...')
+    await page.goto('/login', { waitUntil: 'networkidle', timeout: 30000 })
+  }
 
   // Dismiss cookie banner if it appears (blocks login button)
   try {
@@ -152,29 +169,61 @@ setup('authenticate', async ({ page }) => {
   await page.waitForLoadState('domcontentloaded')
   await page.waitForLoadState('networkidle', { timeout: 30000 })
 
-  // Try to find the email input with multiple strategies
-  console.log('[Auth Setup] Looking for email input...')
+  // Wait for Suspense to resolve - the fallback shows "Loading..." text
+  // In Next.js App Router, useSearchParams() requires Suspense, which can sometimes
+  // take time to resolve, especially in test environments
+  console.log('[Auth Setup] Waiting for Suspense to resolve and form to render...')
 
-  // Strategy 1: Wait for any input field first
+  // Wait for email input to exist in DOM with a very long timeout
+  // Suspense resolution can be slow in test environments
   try {
-    await page.waitForSelector('input[type="email"], input[id="email"]', {
+    await page.waitForFunction(
+      () => {
+        // Check if email input exists in DOM (even if hidden)
+        const emailInput =
+          document.querySelector('#email') || document.querySelector('[data-testid="email-input"]')
+        return emailInput !== null
+      },
+      { timeout: 60000 } // 60 second timeout for Suspense to resolve
+    )
+    console.log('[Auth Setup] Email input found in DOM - Suspense resolved')
+  } catch (e) {
+    console.log('[Auth Setup] Email input not found after 60s, checking page state...')
+    const bodyText = await page.locator('body').textContent()
+    console.log('[Auth Setup] Body text preview:', bodyText?.substring(0, 500))
+
+    // Check if we're on a different page (redirected)
+    const currentUrl = page.url()
+    console.log('[Auth Setup] Current URL:', currentUrl)
+
+    if (currentUrl.includes('/dashboard')) {
+      console.log('[Auth Setup] Redirected to dashboard - already authenticated')
+      await page.context().storageState({ path: authFile })
+      return
+    }
+
+    throw new Error(
+      'Email input not found in DOM after 60s - Suspense may not be resolving. Check for JavaScript errors.'
+    )
+  }
+
+  // Now wait for it to be visible and enabled
+  console.log('[Auth Setup] Waiting for email input to be visible...')
+
+  try {
+    // Try data-testid first (most reliable)
+    await page.waitForSelector('[data-testid="email-input"]', {
       state: 'visible',
       timeout: 30000,
     })
-    console.log('[Auth Setup] Email input found')
+    console.log('[Auth Setup] Email input visible by data-testid')
   } catch (e) {
-    console.log('[Auth Setup] Email input not found, checking page content...')
-    // Debug: Get page HTML to see what's actually there
-    const bodyText = await page.locator('body').textContent()
-    console.log('[Auth Setup] Body text preview:', bodyText?.substring(0, 200))
-
-    // Try waiting for submit button as alternative
-    try {
-      await page.waitForSelector('button[type="submit"]', { timeout: 10000 })
-      console.log('[Auth Setup] Submit button found, form should be ready')
-    } catch {
-      throw new Error('Login form not loading - neither email input nor submit button found')
-    }
+    console.log('[Auth Setup] Email input not visible by data-testid, trying ID...')
+    await page.waitForSelector('#email', {
+      state: 'visible',
+      timeout: 30000,
+    })
+    console.log('[Auth Setup] Email input visible by ID')
   }
 
   // Wait for the email input to be enabled (not disabled)
@@ -188,8 +237,12 @@ setup('authenticate', async ({ page }) => {
   )
   console.log('[Auth Setup] Email input enabled')
 
-  // Fill in test credentials
-  await page.fill('#email', email)
+  // Fill in test credentials - use data-testid if available, fallback to ID
+  try {
+    await page.fill('[data-testid="email-input"]', email)
+  } catch {
+    await page.fill('#email', email)
+  }
   await page.fill('#password', password)
 
   // Submit login form
