@@ -34,8 +34,11 @@ test.describe('Review Flow', () => {
     // Submit
     await page.keyboard.press('Enter')
 
+    // Wait for feedback to appear (state update + animation)
+    await page.waitForTimeout(300)
+
     // Should show feedback (correct or incorrect)
-    await expect(page.locator('text=/Correct|Incorrect/i').first()).toBeVisible({
+    await expect(page.locator('text=/Correct!|Not quite right/i').first()).toBeVisible({
       timeout: 5000,
     })
 
@@ -59,8 +62,11 @@ test.describe('Review Flow', () => {
     await input.fill('wrong')
     await page.keyboard.press('Enter')
 
+    // Wait for feedback to appear (state update + animation)
+    await page.waitForTimeout(300)
+
     // Should show incorrect feedback
-    await expect(page.locator('text=/Not quite|Incorrect/i')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('text=/Not quite right/i')).toBeVisible({ timeout: 5000 })
   })
 
   test('keyboard shortcuts work', async ({ page }) => {
@@ -84,8 +90,11 @@ test.describe('Review Flow', () => {
     // Enter to submit
     await page.keyboard.press('Enter')
 
+    // Wait for feedback to appear (state update + animation)
+    await page.waitForTimeout(300)
+
     // Should show feedback
-    await expect(page.locator('text=/Correct|Incorrect/i').first()).toBeVisible({
+    await expect(page.locator('text=/Correct!|Not quite right/i').first()).toBeVisible({
       timeout: 5000,
     })
   })

@@ -38,17 +38,20 @@ test.describe('Practice Mode Visual Feedback', () => {
     // Submit answer
     await page.keyboard.press('Enter')
 
+    // Wait for feedback to appear (state update + animation)
+    await page.waitForTimeout(300) // Small delay for state update
+
     // VERIFY VISUAL FEEDBACK:
-    // 1. Feedback text appears
-    await expect(page.locator('text=/Correct|Not quite/i')).toBeVisible({ timeout: 2000 })
+    // 1. Feedback text appears - check for "Correct!" text
+    await expect(page.locator('text=/Correct!/i')).toBeVisible({ timeout: 3000 })
 
     // 2. Card has visual styling (green glow for correct)
     const card = page.locator('.mx-auto.w-full.max-w-2xl').first()
-    await expect(card).toHaveClass(/ring-green-500|ring-red-500/)
+    await expect(card).toHaveClass(/ring-green-500/, { timeout: 3000 })
 
-    // 3. Feedback component is visible
-    const feedback = page.locator('.space-y-3 >> text=/Correct|Not quite/i')
-    await expect(feedback).toBeVisible()
+    // 3. Feedback component is visible - check for the feedback container
+    const feedback = page.locator('text=/Correct!/i').first()
+    await expect(feedback).toBeVisible({ timeout: 3000 })
   })
 
   test('shows visual feedback for incorrect answer in practice mode', async ({ page }) => {
@@ -73,12 +76,15 @@ test.describe('Practice Mode Visual Feedback', () => {
     await input.fill('wronganswer')
     await page.keyboard.press('Enter')
 
+    // Wait for feedback to appear (state update + animation)
+    await page.waitForTimeout(300) // Small delay for state update
+
     // VERIFY VISUAL FEEDBACK FOR INCORRECT:
-    await expect(page.locator('text=/Not quite right/i')).toBeVisible({ timeout: 2000 })
-    await expect(page.locator('text=/Correct answer:/i')).toBeVisible()
+    await expect(page.locator('text=/Not quite right/i')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('text=/Correct answer:/i')).toBeVisible({ timeout: 3000 })
 
     const card = page.locator('.mx-auto.w-full.max-w-2xl').first()
-    await expect(card).toHaveClass(/ring-red-500/)
+    await expect(card).toHaveClass(/ring-red-500/, { timeout: 3000 })
   })
 
   test('practice mode redirects correctly from lesson page', async ({ page }) => {
