@@ -100,8 +100,10 @@ setup('authenticate', async ({ page }) => {
   }
 
   // Navigate to login
-  await page.goto('/login')
-  await page.waitForLoadState('networkidle')
+  await page.goto('/login', { waitUntil: 'domcontentloaded' })
+
+  // Wait for page to be interactive
+  await page.waitForLoadState('networkidle', { timeout: 30000 })
 
   // Dismiss cookie banner if it appears (blocks login button)
   try {
@@ -124,19 +126,67 @@ setup('authenticate', async ({ page }) => {
     console.log('[Auth Setup] No cookie banner to dismiss or error:', e)
   }
 
-  // Wait for login form to be ready - both visible AND enabled
-  // The inputs might be initially disabled while auth state initializes
-  await page.waitForSelector('#email', { state: 'visible' })
+  // Wait for Suspense to resolve and form to be visible
+  // The login page uses Suspense, so we need to wait for the actual form content
+  // NOTE: The Suspense fallback also shows "Welcome back", so we need to wait for
+  // something that's ONLY in the actual form (like the email input or submit button)
+  console.log('[Auth Setup] Waiting for login form to load...')
+
+  // Debug: Check page content and any errors
+  const pageTitle = await page.title()
+  console.log('[Auth Setup] Page title:', pageTitle)
+
+  // Check for console errors
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      console.log('[Auth Setup] Console error:', msg.text())
+    }
+  })
+
+  // Check for page errors
+  page.on('pageerror', (error) => {
+    console.log('[Auth Setup] Page error:', error.message)
+  })
+
+  // Wait for page to be fully loaded
+  await page.waitForLoadState('domcontentloaded')
+  await page.waitForLoadState('networkidle', { timeout: 30000 })
+
+  // Try to find the email input with multiple strategies
+  console.log('[Auth Setup] Looking for email input...')
+
+  // Strategy 1: Wait for any input field first
+  try {
+    await page.waitForSelector('input[type="email"], input[id="email"]', {
+      state: 'visible',
+      timeout: 30000,
+    })
+    console.log('[Auth Setup] Email input found')
+  } catch (e) {
+    console.log('[Auth Setup] Email input not found, checking page content...')
+    // Debug: Get page HTML to see what's actually there
+    const bodyText = await page.locator('body').textContent()
+    console.log('[Auth Setup] Body text preview:', bodyText?.substring(0, 200))
+
+    // Try waiting for submit button as alternative
+    try {
+      await page.waitForSelector('button[type="submit"]', { timeout: 10000 })
+      console.log('[Auth Setup] Submit button found, form should be ready')
+    } catch {
+      throw new Error('Login form not loading - neither email input nor submit button found')
+    }
+  }
 
   // Wait for the email input to be enabled (not disabled)
   // This ensures the auth loading state has completed
   await page.waitForFunction(
     () => {
-      const emailInput = document.querySelector('#email') as HTMLInputElement
-      return emailInput && !emailInput.disabled
+      const input = document.querySelector('#email') as HTMLInputElement
+      return input && !input.disabled
     },
-    { timeout: 10000 }
+    { timeout: 15000 }
   )
+  console.log('[Auth Setup] Email input enabled')
 
   // Fill in test credentials
   await page.fill('#email', email)
