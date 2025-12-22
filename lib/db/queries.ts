@@ -251,6 +251,49 @@ export async function getUpcomingReviewsForecast(userId: string): Promise<string
 // ============================================================================
 
 /**
+ * Get all radicals
+ *
+ * @returns All radicals ordered by sort_order
+ */
+export async function getAllRadicals() {
+  return await db.select().from(schema.radicals).orderBy(schema.radicals.sort_order)
+}
+
+/**
+ * Get all characters
+ *
+ * @param hskLevel - Optional HSK level filter
+ * @returns All characters ordered by frequency_rank
+ */
+export async function getAllCharacters(hskLevel?: '1' | '2' | '3' | '4' | '5' | '6') {
+  if (hskLevel) {
+    return await db
+      .select()
+      .from(schema.characters)
+      .where(eq(schema.characters.hsk_level, hskLevel))
+      .orderBy(schema.characters.frequency_rank)
+  }
+  return await db.select().from(schema.characters).orderBy(schema.characters.frequency_rank)
+}
+
+/**
+ * Get all vocabulary
+ *
+ * @param hskLevel - Optional HSK level filter
+ * @returns All vocabulary ordered by HSK level
+ */
+export async function getAllVocabulary(hskLevel?: '1' | '2' | '3' | '4' | '5' | '6') {
+  if (hskLevel) {
+    return await db
+      .select()
+      .from(schema.vocabulary)
+      .where(eq(schema.vocabulary.hsk_level, hskLevel))
+      .orderBy(schema.vocabulary.hsk_level)
+  }
+  return await db.select().from(schema.vocabulary).orderBy(schema.vocabulary.hsk_level)
+}
+
+/**
  * Get all published lessons
  *
  * @param limit - Maximum number of lessons to return (default: all lessons)

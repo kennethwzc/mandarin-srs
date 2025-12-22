@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { BookOpen, Home, Settings, TrendingUp } from 'lucide-react'
+import { BookOpen, Home, Settings, TrendingUp, Puzzle, Type, Languages } from 'lucide-react'
 
 import { cn } from '@/lib/utils/cn'
 import { PrefetchLink } from '@/components/ui/prefetch-link'
@@ -32,6 +32,24 @@ const navigation = [
       }
       return response.json()
     },
+  },
+  {
+    name: 'Radicals',
+    href: '/radicals',
+    icon: Puzzle,
+    // Don't prefetch - static content loaded on page
+  },
+  {
+    name: 'Characters',
+    href: '/characters',
+    icon: Type,
+    // Don't prefetch - static content loaded on page
+  },
+  {
+    name: 'Vocabulary',
+    href: '/vocabulary',
+    icon: Languages,
+    // Don't prefetch - static content loaded on page
   },
   {
     name: 'Reviews',

@@ -20,7 +20,7 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY
 export const stripe =
   isFeatureEnabled.stripe && STRIPE_SECRET_KEY
     ? new Stripe(STRIPE_SECRET_KEY, {
-        apiVersion: '2025-11-17.clover',
+        apiVersion: '2025-12-15.clover',
         typescript: true,
         appInfo: {
           name: 'Mandarin SRS',
