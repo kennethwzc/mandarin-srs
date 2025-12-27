@@ -19,7 +19,7 @@
 
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -95,27 +95,6 @@ export function ReviewSession({ initialQueue }: ReviewSessionProps) {
   const pendingSubmissions = useRef<PendingSubmission[]>([])
   const isProcessingQueue = useRef(false)
   const hasAdvancedRef = useRef(false)
-  const hasRefreshedRef = useRef(false)
-
-  /**
-   * Refresh router cache when session completes
-   * This ensures dashboard stats are fresh when user navigates back
-   * Guards prevent refresh in test environments and duplicate calls
-   */
-  useEffect(() => {
-    if (sessionComplete && totalReviewed > 0 && !hasRefreshedRef.current) {
-      // Skip refresh in test environments to prevent test failures
-      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.CI === 'true'
-      const hasRefreshMethod = typeof router.refresh === 'function'
-
-      if (!isTestEnv && hasRefreshMethod) {
-        // Refresh Next.js router cache to pull fresh server component data
-        // This updates dashboard stats automatically without manual refresh
-        router.refresh()
-        hasRefreshedRef.current = true
-      }
-    }
-  }, [sessionComplete, totalReviewed, router])
 
   /**
    * Process pending submissions in background
@@ -235,7 +214,11 @@ export function ReviewSession({ initialQueue }: ReviewSessionProps) {
   }
 
   // Navigation handlers
-  const goToDashboard = () => router.push('/dashboard')
+  const goToDashboard = () => {
+    // Refresh router cache before navigation to ensure fresh dashboard data
+    router.refresh()
+    router.push('/dashboard')
+  }
   const goToLessons = () => router.push('/lessons')
 
   // Session complete or no reviews
