@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, memo, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { useMotionPreference } from '@/lib/utils/motion-config'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { CharacterDisplay } from './character-display'
@@ -20,29 +18,17 @@ export type { ReviewCardProps, ReviewResult } from './review-card.types'
 type ReviewCardPropsInternal = import('./review-card.types').ReviewCardProps
 
 /**
- * Review Card Component (Optimized with React.memo)
+ * Review Card Component (Apple-inspired minimal design)
  *
  * Main component for reviewing items. Shows character and collects pinyin answer.
- * Memoized to prevent unnecessary re-renders.
+ * Clean, minimal design with generous spacing and subtle feedback.
  *
  * Flow:
  * 1. Show character
  * 2. User types pinyin + selects tone
  * 3. User submits answer
  * 4. Show feedback (correct/incorrect)
- * 5. Grade auto-calculated from response time (0-5s/char = Easy, 5-10s/char = Good, >10s/char = Hard)
- * 6. User clicks "Next" to continue
- * 7. Card transitions to next item
- *
- * @example
- * ```tsx
- * <ReviewCard
- *   character="你"
- *   meaning="you"
- *   correctPinyin="nǐ"
- *   onSubmit={handleSubmit}
- * />
- * ```
+ * 5. User clicks "Next" to continue
  */
 
 export const ReviewCard = memo(function ReviewCard({
@@ -69,70 +55,49 @@ export const ReviewCard = memo(function ReviewCard({
     setSelectedTone(null)
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
-    setStartTime(Date.now()) // Reset start time for accurate response time calculation
-    isSubmittingRef.current = false // Reset submission guard
+    setStartTime(Date.now())
+    isSubmittingRef.current = false
   }, [character])
 
   /**
    * Handle answer submission
-   * Checks if answer is correct and shows feedback
    */
   const handleSubmitAnswer = useCallback(() => {
-    // Prevent double-submission
     if (isSubmittingRef.current || isAnswerSubmitted) {
       return
     }
 
     if (!userInput.trim()) {
-      return // Don't submit empty answers
+      return
     }
 
-    // Mark as submitting to prevent double-submission
     isSubmittingRef.current = true
 
-    // Check if answer is correct (exact comparison)
     const answeredCorrectly = comparePinyinExact(userInput, correctPinyin)
-
-    // Debug logging to verify state updates
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 ReviewCard state:', {
-        userInput,
-        correctPinyin,
-        answeredCorrectly,
-        isAnswerSubmitted: true,
-        component: 'ReviewCard',
-      })
-    }
 
     setIsCorrect(answeredCorrectly)
     setIsAnswerSubmitted(true)
 
-    // Remove focus from input to allow Enter key to continue to next card
+    // Remove focus from input to allow Enter key to continue
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur()
     }
 
-    // Reset submission guard after state update completes
-    // Use setTimeout to ensure state update has been processed
     setTimeout(() => {
       isSubmittingRef.current = false
     }, 100)
   }, [userInput, correctPinyin, isAnswerSubmitted])
 
   /**
-   * Handle continue/next - automatically calculates grade based on response time
-   * Called when user clicks "Next" after seeing feedback
+   * Handle continue/next - auto-calculates grade based on response time
    */
   const handleContinue = useCallback(() => {
-    // Guard: Only allow continuing if feedback has been shown
     if (!isAnswerSubmitted || isCorrect === null) {
       return
     }
 
     const responseTime = Date.now() - startTime
     const correct = isCorrect ?? false
-
-    // Auto-calculate grade based on response time and character count
     const autoGrade = calculateGradeFromTime(responseTime, character.length, correct)
 
     onSubmit({
@@ -141,17 +106,13 @@ export const ReviewCard = memo(function ReviewCard({
       grade: autoGrade,
       responseTimeMs: responseTime,
     })
-
-    // Reset for next card (parent will provide new character)
   }, [userInput, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
 
   /**
-   * Keyboard shortcuts
-   * Only handles window-level events when input is not focused
+   * Keyboard shortcuts (window-level when input not focused)
    */
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't handle if input is focused (PinyinInput handles it)
       if (
         document.activeElement?.tagName === 'INPUT' ||
         document.activeElement?.tagName === 'TEXTAREA'
@@ -159,7 +120,6 @@ export const ReviewCard = memo(function ReviewCard({
         return
       }
 
-      // Enter to submit answer or continue to next card
       if (e.key === 'Enter') {
         if (!isAnswerSubmitted) {
           handleSubmitAnswer()
@@ -168,7 +128,6 @@ export const ReviewCard = memo(function ReviewCard({
         }
       }
 
-      // Escape to skip (if enabled)
       if (e.key === 'Escape' && onSkip && !isAnswerSubmitted) {
         onSkip()
       }
@@ -178,53 +137,36 @@ export const ReviewCard = memo(function ReviewCard({
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [isAnswerSubmitted, handleSubmitAnswer, handleContinue, onSkip])
 
-  const prefersReducedMotion = useMotionPreference()
-
   return (
-    <motion.div
-      initial={false}
-      animate={
-        isAnswerSubmitted
-          ? {
-              scale: prefersReducedMotion ? 1 : 1.01,
-              transition: {
-                duration: prefersReducedMotion ? 0.15 : 0.3,
-                ease: 'easeOut',
-              },
-            }
-          : { scale: 1 }
-      }
-    >
+    <div className="w-full">
       <Card
         className={cn(
-          'mx-auto w-full max-w-2xl overflow-hidden',
-          'duration-[400ms] transition-all ease-out',
-          // Card-level feedback styling
+          'mx-auto w-full max-w-2xl',
+          'rounded-2xl border-2 shadow-soft-lg',
+          'transition-all duration-300',
+
+          // Clean feedback states - subtle backgrounds only
           isAnswerSubmitted &&
-            isCorrect && [
-              'shadow-[0_0_20px_rgba(34,197,94,0.25)] ring-2 ring-green-500/60',
-              'bg-green-50/40 dark:bg-green-950/20',
-            ],
+            isCorrect &&
+            'border-green-500/50 bg-green-50/50 dark:bg-green-950/20',
           isAnswerSubmitted &&
-            isCorrect === false && [
-              'shadow-[0_0_15px_rgba(239,68,68,0.2)] ring-2 ring-red-500/50',
-              'bg-red-50/30 dark:bg-red-950/15',
-            ]
+            isCorrect === false &&
+            'border-red-500/50 bg-red-50/50 dark:bg-red-950/20'
         )}
       >
-        <CardContent className="space-y-4 p-4 sm:space-y-6 sm:p-6 md:p-8">
+        <CardContent className="space-y-6 p-6 sm:space-y-8 sm:p-8 md:p-12">
           {/* Character Display */}
           <CharacterDisplay
             character={character}
             meaning={meaning}
             itemType={itemType}
-            showMeaning={!isAnswerSubmitted} // Hide meaning after submission
+            showMeaning={!isAnswerSubmitted}
             feedbackState={!isAnswerSubmitted ? null : isCorrect ? 'correct' : 'incorrect'}
           />
 
-          {/* Pinyin Input Section */}
+          {/* Input Section */}
           {!isAnswerSubmitted ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <PinyinInput
                 value={userInput}
                 onChange={setUserInput}
@@ -241,33 +183,29 @@ export const ReviewCard = memo(function ReviewCard({
                 disabled={isAnswerSubmitted}
               />
 
-              <div className="flex justify-center">
-                <motion.button
+              {/* Check Answer Button */}
+              <div className="flex justify-center pt-4">
+                <button
                   onClick={handleSubmitAnswer}
                   disabled={!userInput.trim()}
-                  whileHover={
-                    !prefersReducedMotion ? { scale: 1.02, transition: { duration: 0.2 } } : {}
-                  }
-                  whileTap={
-                    !prefersReducedMotion ? { scale: 0.98, transition: { duration: 0.1 } } : {}
-                  }
                   className={cn(
-                    'min-h-[48px] w-full rounded-lg px-6 py-3 font-medium sm:w-auto sm:px-8',
-                    'bg-primary text-primary-foreground shadow-md',
-                    'transition-all duration-200 hover:bg-primary/90 hover:shadow-lg',
+                    'rounded-xl px-8 py-3 font-medium',
+                    'bg-primary text-primary-foreground',
+                    'hover:bg-primary/90 hover:shadow-soft-md',
+                    'transition-all duration-200 active:scale-95',
+                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                     'disabled:cursor-not-allowed disabled:opacity-50',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                    'min-h-[48px] min-w-[200px]'
                   )}
                 >
                   Check Answer
-                  <span className="ml-2 text-sm opacity-70 max-sm:hidden">(Enter)</span>
-                </motion.button>
+                  <span className="ml-2 hidden text-sm opacity-70 sm:inline">(Enter)</span>
+                </button>
               </div>
             </div>
           ) : (
-            /* Answer Feedback */
+            /* Feedback Section */
             <div className="space-y-6">
-              {/* Pinyin Feedback Component */}
               <PinyinFeedback
                 isCorrect={isCorrect}
                 userAnswer={userInput}
@@ -275,50 +213,39 @@ export const ReviewCard = memo(function ReviewCard({
                 show={isAnswerSubmitted}
               />
 
-              {/* Next button */}
-              <div className="flex justify-center">
-                <motion.button
+              {/* Next Button */}
+              <div className="flex justify-center pt-4">
+                <button
                   onClick={handleContinue}
-                  whileHover={
-                    !prefersReducedMotion ? { scale: 1.03, transition: { duration: 0.2 } } : {}
-                  }
-                  whileTap={
-                    !prefersReducedMotion ? { scale: 0.98, transition: { duration: 0.1 } } : {}
-                  }
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    delay: prefersReducedMotion ? 0 : 0.3,
-                    duration: prefersReducedMotion ? 0.15 : 0.3,
-                    ease: 'easeOut',
-                  }}
                   className={cn(
-                    'min-h-[48px] w-full rounded-lg px-6 py-3 font-medium sm:w-auto sm:px-12',
-                    'bg-primary text-primary-foreground shadow-md',
-                    'transition-all duration-200 hover:bg-primary/90 hover:shadow-lg',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                    'rounded-xl px-12 py-3 font-medium',
+                    'bg-primary text-primary-foreground',
+                    'hover:bg-primary/90 hover:shadow-soft-md',
+                    'transition-all duration-200 active:scale-95',
+                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    'min-h-[48px] min-w-[200px]'
                   )}
                 >
                   Next
-                  <span className="ml-2 text-sm opacity-70 max-sm:hidden">(Enter)</span>
-                </motion.button>
+                  <span className="ml-2 hidden text-sm opacity-70 sm:inline">(Enter)</span>
+                </button>
               </div>
             </div>
           )}
 
           {/* Skip button (optional) */}
           {onSkip && !isAnswerSubmitted && (
-            <div className="text-center">
+            <div className="pt-2 text-center">
               <button
                 onClick={onSkip}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                Skip (Esc)
+                Skip
               </button>
             </div>
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 })

@@ -6,19 +6,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { addToneMark } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
-import { logger } from '@/lib/utils/logger'
-import { AlertCircle } from 'lucide-react'
 
 /**
- * Enhanced Pinyin Input Component
+ * Pinyin Input Component (Apple-inspired minimal design)
  *
- * Professional-grade pinyin input with:
+ * Clean, prominent pinyin input with:
+ * - Large, centered text
  * - Multiple input formats (ni3, nǐ, ni + tone button)
  * - Smart ü/v conversion (nv → nü)
- * - Real-time validation
- * - Autocomplete suggestions
  * - Full keyboard accessibility
- * - Visual feedback states
+ * - Minimal help text
  */
 
 interface PinyinInputProps {
@@ -55,18 +52,15 @@ export function PinyinInput({
   useEffect(() => {
     if (selectedTone !== null && value) {
       try {
-        // Apply tone mark to current input
         const withTone = addToneMark(value, selectedTone)
         onChange(withTone)
-        onToneChange(null) // Reset tone selection
+        onToneChange(null)
 
-        // Re-focus input
         setTimeout(() => {
           inputRef.current?.focus()
         }, 0)
-      } catch (error) {
+      } catch {
         // Invalid syllable - ignore
-        logger.warn('Could not apply tone mark', { error, value, selectedTone })
       }
     }
   }, [selectedTone, value, onChange, onToneChange])
@@ -78,7 +72,7 @@ export function PinyinInput({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       let newValue = e.target.value.toLowerCase()
 
-      // Auto-correct common patterns (this will normalize spaces)
+      // Auto-correct common patterns
       newValue = autoCorrectPinyin(newValue)
 
       onChange(newValue)
@@ -91,7 +85,6 @@ export function PinyinInput({
    */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // Don't handle keyboard events when disabled (allows grading shortcuts to work)
       if (disabled) {
         return
       }
@@ -99,19 +92,15 @@ export function PinyinInput({
       // Numbers 1-5 select tones
       if (e.key >= '1' && e.key <= '5') {
         e.preventDefault()
-        const tone = parseInt(e.key, 10)
-        onToneChange(tone)
+        onToneChange(parseInt(e.key, 10))
         return
       }
 
       // Enter submits
-      if (e.key === 'Enter') {
-        if (onSubmit && value.trim()) {
-          // Only submit if value is not empty
-          e.preventDefault()
-          e.stopPropagation() // Prevent event from bubbling to window-level handlers
-          onSubmit()
-        }
+      if (e.key === 'Enter' && onSubmit && value.trim()) {
+        e.preventDefault()
+        e.stopPropagation()
+        onSubmit()
         return
       }
 
@@ -122,7 +111,7 @@ export function PinyinInput({
         return
       }
 
-      // Handle tone number input (convert ni3 → nǐ on space/enter)
+      // Handle tone number input (ni3 + space → nǐ)
       if ((e.key === ' ' || e.key === 'Enter') && /[1-5]$/.test(value)) {
         e.preventDefault()
         const tone = parseInt(value.slice(-1), 10)
@@ -131,12 +120,12 @@ export function PinyinInput({
         try {
           const withTone = addToneMark(syllable, tone)
           onChange(withTone)
-        } catch (error) {
+        } catch {
           // Keep original if invalid
         }
 
         if (e.key === 'Enter' && onSubmit) {
-          e.stopPropagation() // Prevent event from bubbling to window-level handlers
+          e.stopPropagation()
           onSubmit()
         }
         return
@@ -153,8 +142,6 @@ export function PinyinInput({
       e.preventDefault()
 
       let pastedText = e.clipboardData.getData('text').toLowerCase().trim()
-
-      // Auto-correct pasted text
       pastedText = autoCorrectPinyin(pastedText)
 
       onChange(pastedText)
@@ -162,47 +149,40 @@ export function PinyinInput({
     [onChange]
   )
 
-  // Determine visual state
-  const inputState = disabled ? 'disabled' : 'default'
-
   return (
-    <div className="space-y-2">
-      <Label htmlFor="pinyin-input" className="flex items-center gap-2 text-base">
+    <div className="space-y-3">
+      <Label htmlFor="pinyin-input" className="block text-center text-base font-medium">
         Type the pinyin:
       </Label>
 
-      {/* Input field with visual states */}
-      <div className="relative">
-        <Input
-          ref={inputRef}
-          id="pinyin-input"
-          type="text"
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          disabled={disabled}
-          placeholder="Type pinyin here... (e.g., ni3 or nǐ)"
-          className={cn(
-            'pinyin-input text-center text-2xl transition-colors',
-            inputState === 'disabled' && 'cursor-not-allowed opacity-50'
-          )}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          maxLength={20}
-        />
-      </div>
+      <Input
+        ref={inputRef}
+        id="pinyin-input"
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        disabled={disabled}
+        placeholder="e.g., ni3 or nǐ"
+        className={cn(
+          'h-auto px-6 py-4 text-center text-2xl sm:text-3xl',
+          'rounded-xl border-2 border-border bg-background',
+          'focus:border-primary focus:ring-2 focus:ring-primary/20',
+          'transition-all duration-200',
+          'placeholder:text-muted-foreground/40',
+          disabled && 'cursor-not-allowed opacity-50'
+        )}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
+        maxLength={20}
+      />
 
-      {/* Help text */}
-      <div className="flex items-start gap-1 text-xs text-muted-foreground">
-        <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" />
-        <div className="space-y-1">
-          <p>Press 1-5 to add tone marks, or type ni3 and press Space</p>
-          <p>Use ü or v for ü sound (nü, lü, nv, lv)</p>
-        </div>
-      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        Type pinyin with numbers (ni3) or use tone buttons
+      </p>
     </div>
   )
 }
@@ -223,10 +203,10 @@ function autoCorrectPinyin(input: string): string {
   // Convert u: to ü (alternative notation)
   corrected = corrected.replace(/u:/g, 'ü')
 
-  // Normalize multiple spaces to single space (preserve spaces for multi-syllable vocabulary)
+  // Normalize multiple spaces to single space
   corrected = corrected.replace(/\s+/g, ' ')
 
-  // Handle capitalization (shouldn't happen but just in case)
+  // Handle capitalization
   corrected = corrected.toLowerCase()
 
   return corrected

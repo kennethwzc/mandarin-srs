@@ -31,7 +31,7 @@ describe('PinyinInput', () => {
 
     const input = screen.getByRole('textbox')
     expect(input).toBeInTheDocument()
-    expect(input).toHaveAttribute('placeholder', expect.stringMatching(/type pinyin/i))
+    expect(input).toHaveAttribute('placeholder', expect.stringMatching(/ni3|nǐ/i))
   })
 
   it('accepts text input', async () => {
