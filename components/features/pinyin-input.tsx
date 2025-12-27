@@ -1,42 +1,40 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useRef, useEffect } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils/cn'
 
 /**
- * Pinyin Input Component
+ * Pinyin Input Component (KISS - Keep It Simple, Stupid)
  *
- * Clean, prominent pinyin input with:
- * - Large, centered text
- * - Multiple input formats (ni3, nǐ, ni + tone button)
- * - Smart ü/v conversion (nv → nü)
- * - Keyboard shortcuts for tones (1-5)
- * - Tone numbers converted on submit (NOT on space)
+ * This is a NORMAL text input with minimal magic:
+ * - Space works naturally
+ * - Backspace works naturally
+ * - Typing works naturally
+ * - No auto-conversion during typing
+ * - Conversion happens on SUBMIT only
+ *
+ * Accepts both formats:
+ * - "ni3 hao3" (tone numbers)
+ * - "nǐ hǎo" (tone marks)
  */
 
 interface PinyinInputProps {
   value: string
   onChange: (value: string) => void
-  selectedTone: number | null
-  onToneChange: (tone: number | null) => void
   disabled?: boolean
   onSubmit?: () => void
   autoFocus?: boolean
-  onCursorChange?: (position: number) => void
 }
 
 export function PinyinInput({
   value,
   onChange,
-  selectedTone,
-  onToneChange,
   disabled = false,
   onSubmit,
   autoFocus = false,
-  onCursorChange,
 }: PinyinInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -47,128 +45,80 @@ export function PinyinInput({
     }
   }, [autoFocus])
 
-  // Apply tone mark when tone is selected from ToneSelector
-  useEffect(() => {
-    if (selectedTone !== null) {
-      onToneChange(selectedTone)
+  /**
+   * SIMPLIFIED: Just handle basic input
+   * No space interception, no number key interception, no magic
+   */
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let newValue = e.target.value.toLowerCase()
+
+    // Only basic normalization:
+    // 1. Convert v to ü (standard pinyin convention)
+    newValue = newValue.replace(/v/g, 'ü')
+
+    // 2. Remove invalid characters
+    // Keep: a-z, ü, tone-marked vowels, spaces, numbers 1-5
+    newValue = newValue.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+
+    // 3. Normalize multiple spaces to single (gently)
+    newValue = newValue.replace(/  +/g, ' ')
+
+    onChange(newValue)
+  }
+
+  /**
+   * SIMPLIFIED: Only handle Enter for submit
+   * NO space interception, NO number key interception
+   * Let the browser handle everything else naturally
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (disabled) {
+      return
     }
-  }, [selectedTone, onToneChange])
 
-  /**
-   * Handle input changes with auto-corrections and normalization
-   */
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      let newValue = e.target.value.toLowerCase()
-
-      // Auto-correct v to ü in specific contexts
-      newValue = newValue
-        .replace(/nv([1-5]?)/g, 'nü$1')
-        .replace(/lv([1-5]?)/g, 'lü$1')
-        .replace(/nue/g, 'nüe')
-        .replace(/lue/g, 'lüe')
-
-      // Remove any unexpected characters (periods, commas, etc.)
-      // Keep only: letters, tone-marked vowels, numbers 1-5, spaces, and ü
-      newValue = newValue.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
-
-      // Normalize multiple consecutive spaces to single space
-      newValue = newValue.replace(/  +/g, ' ')
-
-      onChange(newValue)
-    },
-    [onChange]
-  )
-
-  /**
-   * Handle keyboard shortcuts
-   */
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (disabled) {
-        return
-      }
-
-      // Numbers 1-5 select tones (apply to current syllable immediately)
-      if (e.key >= '1' && e.key <= '5') {
-        e.preventDefault()
-        onToneChange(parseInt(e.key, 10))
-        return
-      }
-
-      // Space: Just add space - NO auto-conversion
-      // Users can type "zai4 jian4" format naturally
-      // Conversion happens on submit via getFinalValue()
-      if (e.key === ' ') {
-        const input = e.currentTarget
-        const cursorPos = input.selectionStart ?? 0
-        const charBeforeCursor = value.charAt(cursorPos - 1)
-
-        // Prevent double spaces
-        if (charBeforeCursor === ' ') {
-          e.preventDefault()
-          return
-        }
-
-        // Otherwise, let space through naturally (don't preventDefault)
-        // Browser will handle adding the space character
-      }
-
-      // Enter submits
-      if (e.key === 'Enter' && onSubmit && value.trim()) {
-        e.preventDefault()
-        e.stopPropagation()
-        onSubmit()
-        return
-      }
-
-      // Convert 'v' to 'ü' automatically for nv, lv syllables
-      if (e.key === 'v' && /[nl]$/.test(value)) {
-        e.preventDefault()
-        onChange(value + 'ü')
-        return
-      }
-    },
-    [disabled, value, onChange, onToneChange, onSubmit]
-  )
-
-  /**
-   * Track cursor position for syllable detection
-   */
-  const handleSelect = useCallback(
-    (e: React.SyntheticEvent<HTMLInputElement>) => {
-      const target = e.target as HTMLInputElement
-      onCursorChange?.(target.selectionStart ?? 0)
-    },
-    [onCursorChange]
-  )
-
-  /**
-   * Handle paste with auto-format
-   */
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent<HTMLInputElement>) => {
+    // ONLY handle Enter for submit
+    if (e.key === 'Enter' && onSubmit && value.trim()) {
       e.preventDefault()
+      onSubmit()
+      return
+    }
 
-      let pastedText = e.clipboardData.getData('text').toLowerCase().trim()
+    // Everything else: let browser handle naturally
+    // Space → adds space (browser default)
+    // Backspace → deletes character (browser default)
+    // Numbers → types numbers (browser default)
+  }
 
-      // Auto-correct pasted text
-      pastedText = pastedText
-        .replace(/nv([1-5]?)/g, 'nü$1')
-        .replace(/lv([1-5]?)/g, 'lü$1')
-        .replace(/nue/g, 'nüe')
-        .replace(/lue/g, 'lüe')
+  /**
+   * Handle paste - just basic cleanup
+   */
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
 
-      // Remove unexpected characters
-      pastedText = pastedText.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+    let pastedText = e.clipboardData.getData('text').toLowerCase()
 
-      // Normalize spaces
-      pastedText = pastedText.replace(/\s+/g, ' ')
+    // Same normalization as handleChange
+    pastedText = pastedText.replace(/v/g, 'ü')
+    pastedText = pastedText.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+    pastedText = pastedText.replace(/\s+/g, ' ')
 
-      onChange(pastedText)
-    },
-    [onChange]
-  )
+    // Insert at cursor position
+    const input = inputRef.current
+    if (input) {
+      const start = input.selectionStart ?? 0
+      const end = input.selectionEnd ?? 0
+      const newValue = value.slice(0, start) + pastedText + value.slice(end)
+      onChange(newValue)
+
+      // Set cursor after pasted text
+      setTimeout(() => {
+        const newCursorPos = start + pastedText.length
+        input.setSelectionRange(newCursorPos, newCursorPos)
+      }, 0)
+    } else {
+      onChange(value + pastedText)
+    }
+  }
 
   // Count syllables for display
   const syllables = value
@@ -190,17 +140,15 @@ export function PinyinInput({
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        onSelect={handleSelect}
-        onClick={handleSelect}
         onPaste={handlePaste}
         disabled={disabled}
-        placeholder="e.g., ni3 or nǐ"
+        placeholder="Type pinyin (e.g., ni3 hao3 or nǐ hǎo)"
         className={cn(
           'h-auto px-6 py-4 text-center text-2xl sm:text-3xl',
           'rounded-xl border-2 border-border bg-background',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'transition-all duration-200',
-          'placeholder:text-muted-foreground/40',
+          'placeholder:text-base placeholder:text-muted-foreground/40',
           disabled && 'cursor-not-allowed opacity-50'
         )}
         autoComplete="off"
@@ -209,12 +157,12 @@ export function PinyinInput({
         spellCheck={false}
         data-form-type="other"
         data-lpignore="true"
-        maxLength={50}
+        maxLength={100}
       />
 
       <div className="space-y-1 text-center">
         <p className="text-xs text-muted-foreground">
-          Type pinyin with numbers (ni3) or use tone buttons
+          Type with numbers (ni3 hao3) or use tone buttons below
         </p>
         {syllableCount > 0 && (
           <p className="text-xs text-muted-foreground/70">

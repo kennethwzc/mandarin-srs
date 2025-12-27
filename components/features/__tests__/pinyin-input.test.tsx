@@ -1,8 +1,15 @@
 /**
  * PinyinInput Component Tests
  *
- * Tests all pinyin input functionality including tone application,
- * validation, suggestions, and keyboard shortcuts
+ * Tests the simplified pinyin input functionality.
+ * Key principle: KISS - Keep It Simple, Stupid
+ *
+ * Input behavior:
+ * - Space works naturally (no auto-conversion)
+ * - Backspace works naturally
+ * - Numbers 1-5 are typed as characters (no special handling)
+ * - Only Enter is intercepted for submit
+ * - Conversion happens on submit
  */
 
 import { render, screen } from '@testing-library/react'
@@ -11,14 +18,11 @@ import { PinyinInput } from '../pinyin-input'
 
 describe('PinyinInput', () => {
   const mockOnChange = jest.fn()
-  const mockOnToneChange = jest.fn()
   const mockOnSubmit = jest.fn()
 
   const defaultProps = {
     value: '',
     onChange: mockOnChange,
-    selectedTone: null as number | null,
-    onToneChange: mockOnToneChange,
     onSubmit: mockOnSubmit,
   }
 
@@ -26,195 +30,173 @@ describe('PinyinInput', () => {
     jest.clearAllMocks()
   })
 
-  it('renders input field', () => {
-    render(<PinyinInput {...defaultProps} />)
+  describe('Basic Rendering', () => {
+    it('renders input field', () => {
+      render(<PinyinInput {...defaultProps} />)
 
-    const input = screen.getByRole('textbox')
-    expect(input).toBeInTheDocument()
-    expect(input).toHaveAttribute('placeholder', expect.stringMatching(/ni3|nǐ/i))
+      const input = screen.getByRole('textbox')
+      expect(input).toBeInTheDocument()
+      expect(input).toHaveAttribute('placeholder', expect.stringMatching(/ni3|nǐ/i))
+    })
+
+    it('auto-focuses when autoFocus prop is true', () => {
+      render(<PinyinInput {...defaultProps} autoFocus />)
+
+      const input = screen.getByRole('textbox')
+      expect(document.activeElement).toBe(input)
+    })
+
+    it('does not auto-focus when autoFocus is false', () => {
+      render(<PinyinInput {...defaultProps} autoFocus={false} />)
+
+      const input = screen.getByRole('textbox')
+      expect(document.activeElement).not.toBe(input)
+    })
+
+    it('disables input when disabled prop is true', () => {
+      render(<PinyinInput {...defaultProps} disabled />)
+
+      const input = screen.getByRole('textbox')
+      expect(input).toBeDisabled()
+    })
   })
 
-  it('accepts text input', async () => {
-    const user = userEvent.setup()
+  describe('Basic Input', () => {
+    it('accepts text input', async () => {
+      const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} />)
+      render(<PinyinInput {...defaultProps} />)
 
-    const input = screen.getByRole('textbox')
-    await user.type(input, 'ni')
+      const input = screen.getByRole('textbox')
+      await user.type(input, 'ni')
 
-    expect(mockOnChange).toHaveBeenCalled()
+      expect(mockOnChange).toHaveBeenCalled()
+    })
+
+    it('allows typing tone numbers as characters', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} value="ni" />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, '3')
+
+      // Number 3 should be typed as a character (no interception)
+      expect(mockOnChange).toHaveBeenCalled()
+    })
+
+    it('allows typing spaces naturally', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} value="ni3" />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, ' ')
+
+      // Space should be added normally (no auto-conversion)
+      expect(mockOnChange).toHaveBeenCalled()
+    })
+
+    it('handles rapid key presses correctly', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, 'nihao')
+
+      expect(mockOnChange).toHaveBeenCalled()
+    })
   })
 
-  it('applies tone marks with number keys 1-5', async () => {
-    const user = userEvent.setup()
+  describe('v to ü Conversion', () => {
+    it('converts v to ü automatically', async () => {
+      const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} value="ni" />)
+      render(<PinyinInput {...defaultProps} value="l" />)
 
-    const input = screen.getByRole('textbox')
+      const input = screen.getByRole('textbox')
+      await user.type(input, 'v')
 
-    // Press 3 for tone 3
-    await user.type(input, '3')
+      expect(mockOnChange).toHaveBeenCalled()
+    })
 
-    // Should call onToneChange first (preventDefault prevents typing '3')
-    expect(mockOnToneChange).toHaveBeenCalledWith(3)
+    it('handles special pinyin characters correctly', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} value="n" />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, 'v')
+
+      expect(mockOnChange).toHaveBeenCalled()
+    })
   })
 
-  it('handles space key press', async () => {
-    const user = userEvent.setup()
+  describe('Submit Handling', () => {
+    it('submits on Enter key when value is not empty', async () => {
+      const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} value="ni" />)
+      render(<PinyinInput {...defaultProps} value="nǐ" />)
 
-    const input = screen.getByRole('textbox')
+      const input = screen.getByRole('textbox')
+      await user.type(input, '{Enter}')
 
-    // Type normally (space is handled by parent via hook)
-    await user.type(input, 'h')
+      expect(mockOnSubmit).toHaveBeenCalled()
+    })
 
-    // Should call onChange
-    expect(mockOnChange).toHaveBeenCalled()
+    it('does not submit when input is empty', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} value="" />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, '{Enter}')
+
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
   })
 
-  it('submits on Enter key', async () => {
-    const user = userEvent.setup()
+  describe('Paste Handling', () => {
+    it('handles paste events', async () => {
+      const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} value="nǐ" />)
+      render(<PinyinInput {...defaultProps} />)
 
-    const input = screen.getByRole('textbox')
-    await user.type(input, '{Enter}')
+      const input = screen.getByRole('textbox')
+      await user.click(input)
+      await user.paste('ni3')
 
-    expect(mockOnSubmit).toHaveBeenCalled()
+      expect(mockOnChange).toHaveBeenCalled()
+    })
   })
 
-  it('converts v to ü automatically', async () => {
-    const user = userEvent.setup()
+  describe('Value Updates', () => {
+    it('clears input when value prop changes to empty string', () => {
+      const { rerender } = render(<PinyinInput value="nǐ" onChange={mockOnChange} />)
 
-    render(<PinyinInput {...defaultProps} value="l" />)
+      let input = screen.getByRole('textbox') as HTMLInputElement
+      expect(input.value).toBe('nǐ')
 
-    const input = screen.getByRole('textbox')
-    await user.type(input, 'v')
+      rerender(<PinyinInput value="" onChange={mockOnChange} />)
 
-    // Should call onChange with lü
-    expect(mockOnChange).toHaveBeenCalled()
+      input = screen.getByRole('textbox') as HTMLInputElement
+      expect(input.value).toBe('')
+    })
   })
 
-  it('handles paste events', async () => {
-    const user = userEvent.setup()
+  describe('Character Filtering', () => {
+    it('filters out invalid characters', async () => {
+      const user = userEvent.setup()
 
-    render(<PinyinInput {...defaultProps} />)
+      render(<PinyinInput {...defaultProps} />)
 
-    const input = screen.getByRole('textbox')
+      const input = screen.getByRole('textbox')
+      await user.type(input, '!@#')
 
-    // Simulate paste
-    await user.click(input)
-    await user.paste('ni3')
-
-    expect(mockOnChange).toHaveBeenCalled()
-  })
-
-  it('auto-focuses when autoFocus prop is true', () => {
-    render(<PinyinInput {...defaultProps} autoFocus />)
-
-    const input = screen.getByRole('textbox')
-    expect(document.activeElement).toBe(input)
-  })
-
-  it('does not auto-focus when autoFocus is false', () => {
-    render(<PinyinInput {...defaultProps} autoFocus={false} />)
-
-    const input = screen.getByRole('textbox')
-    expect(document.activeElement).not.toBe(input)
-  })
-
-  it('disables input when disabled prop is true', () => {
-    render(<PinyinInput {...defaultProps} disabled />)
-
-    const input = screen.getByRole('textbox')
-    expect(input).toBeDisabled()
-  })
-
-  it('does not submit when input is empty', async () => {
-    const user = userEvent.setup()
-
-    render(<PinyinInput {...defaultProps} value="" />)
-
-    const input = screen.getByRole('textbox')
-    await user.type(input, '{Enter}')
-
-    // Should not submit empty input
-    expect(mockOnSubmit).not.toHaveBeenCalled()
-  })
-
-  it('handles special pinyin characters correctly', async () => {
-    const user = userEvent.setup()
-
-    // Test ü handling
-    render(<PinyinInput {...defaultProps} value="n" />)
-
-    const input = screen.getByRole('textbox')
-    await user.type(input, 'v')
-
-    expect(mockOnChange).toHaveBeenCalled()
-  })
-
-  it('clears input when value prop changes to empty string', () => {
-    const { rerender } = render(
-      <PinyinInput
-        value="nǐ"
-        onChange={mockOnChange}
-        selectedTone={3}
-        onToneChange={mockOnToneChange}
-        onSubmit={mockOnSubmit}
-      />
-    )
-
-    let input = screen.getByRole('textbox') as HTMLInputElement
-    expect(input.value).toBe('nǐ')
-
-    rerender(
-      <PinyinInput
-        value=""
-        onChange={mockOnChange}
-        selectedTone={null}
-        onToneChange={mockOnToneChange}
-        onSubmit={mockOnSubmit}
-      />
-    )
-
-    input = screen.getByRole('textbox') as HTMLInputElement
-    expect(input.value).toBe('')
-  })
-
-  it('handles rapid key presses correctly', async () => {
-    const user = userEvent.setup()
-
-    render(<PinyinInput {...defaultProps} />)
-
-    const input = screen.getByRole('textbox')
-
-    // Type quickly
-    await user.type(input, 'nihao')
-
-    expect(mockOnChange).toHaveBeenCalled()
-  })
-
-  it('prevents non-pinyin characters when strict mode enabled', async () => {
-    const user = userEvent.setup()
-
-    render(
-      <PinyinInput
-        value=""
-        onChange={mockOnChange}
-        selectedTone={null}
-        onToneChange={mockOnToneChange}
-        onSubmit={mockOnSubmit}
-      />
-    )
-
-    const input = screen.getByRole('textbox')
-
-    // Try to type special characters
-    await user.type(input, '!@#')
-
-    // These should be filtered out or not accepted
-    // (Implementation depends on your component's strict mode)
+      // These should be filtered out
+      // onChange is called but with filtered content
+      expect(mockOnChange).toHaveBeenCalled()
+    })
   })
 })

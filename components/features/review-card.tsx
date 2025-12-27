@@ -7,9 +7,14 @@ import { CharacterDisplay } from './character-display'
 import { PinyinInput } from './pinyin-input'
 import { ToneSelector } from './tone-selector'
 import { PinyinFeedback } from './pinyin-feedback'
-import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
+import {
+  comparePinyinExact,
+  addToneMark,
+  removeToneMarks,
+  convertToneNumbers,
+  normalizeSpaces,
+} from '@/lib/utils/pinyin-utils'
 import { calculateGradeFromTime } from '@/lib/utils/srs-algorithm'
-import { usePinyinInput } from '@/lib/hooks/use-pinyin-input'
 import { cn } from '@/lib/utils/cn'
 
 // Re-export types for external use
@@ -19,17 +24,77 @@ export type { ReviewCardProps, ReviewResult } from './review-card.types'
 type ReviewCardPropsInternal = import('./review-card.types').ReviewCardProps
 
 /**
- * Review Card Component (Apple-inspired minimal design)
+ * Apply tone to the last syllable in the input
+ * Simple, predictable, no cursor tracking needed
+ */
+function applyToneToLastSyllable(input: string, tone: number): string {
+  if (!input.trim()) {
+    return input
+  }
+
+  // Split by spaces
+  const parts = input.trim().split(/\s+/)
+
+  if (parts.length === 0) {
+    return input
+  }
+
+  // Get last part
+  const lastPart = parts[parts.length - 1]
+  if (!lastPart) {
+    return input
+  }
+
+  // Remove any existing tone number (e.g., "zai4" → "zai")
+  const baseSyllable = lastPart.replace(/[1-5]$/, '')
+
+  // Remove any existing tone marks
+  const cleanSyllable = removeToneMarks(baseSyllable)
+
+  // Apply tone mark
+  let withTone: string
+  try {
+    withTone = addToneMark(cleanSyllable, tone)
+  } catch {
+    // Invalid syllable, return original
+    return input
+  }
+
+  // Replace last part
+  parts[parts.length - 1] = withTone
+
+  // Preserve trailing space if original had it
+  const hadTrailingSpace = input.endsWith(' ')
+  return parts.join(' ') + (hadTrailingSpace ? ' ' : '')
+}
+
+/**
+ * Normalize input for submission
+ * Converts all tone numbers to tone marks
+ */
+function normalizeForSubmit(input: string): string {
+  // 1. Trim and normalize spaces
+  let normalized = normalizeSpaces(input)
+
+  // 2. Convert all tone numbers to tone marks
+  normalized = convertToneNumbers(normalized)
+
+  return normalized
+}
+
+/**
+ * Review Card Component (KISS - Keep It Simple, Stupid)
  *
  * Main component for reviewing items. Shows character and collects pinyin answer.
- * Uses smart pinyin input hook for cursor-aware tone application.
+ * Uses simple state management - no complex hooks or cursor tracking.
  *
  * Flow:
  * 1. Show character
- * 2. User types pinyin + selects tone (tones replace, not add)
- * 3. User submits answer
- * 4. Show feedback (correct/incorrect)
- * 5. User clicks "Next" to continue
+ * 2. User types pinyin (numbers or marks)
+ * 3. User optionally clicks tone buttons
+ * 4. User submits answer
+ * 5. Show feedback (correct/incorrect)
+ * 6. User clicks "Next" to continue
  */
 
 export const ReviewCard = memo(function ReviewCard({
@@ -40,48 +105,38 @@ export const ReviewCard = memo(function ReviewCard({
   onSubmit,
   onSkip,
 }: ReviewCardPropsInternal) {
-  // Use smart pinyin input hook
-  const {
-    value: userInput,
-    setValue: setUserInput,
-    applyTone,
-    handleCursorChange,
-    getFinalValue,
-    reset: resetInput,
-  } = usePinyinInput()
-
-  // Local state for UI
+  // Simple state - just the input value
+  const [userInput, setUserInput] = useState('')
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [startTime, setStartTime] = useState(Date.now())
-  const [selectedTone, setSelectedTone] = useState<number | null>(null)
 
   // Refs to prevent double-submission
   const isSubmittingRef = useRef(false)
 
   // Reset state when character changes
   useEffect(() => {
-    resetInput()
+    setUserInput('')
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
     setStartTime(Date.now())
-    setSelectedTone(null)
     isSubmittingRef.current = false
-  }, [character, resetInput])
+  }, [character])
 
   /**
    * Handle tone selection from ToneSelector
-   * Uses the hook's applyTone which replaces existing tone
+   * Applies to last syllable - simple and predictable
    */
-  const handleToneSelect = useCallback(
-    (tone: number | null) => {
-      if (tone !== null) {
-        applyTone(tone)
-      }
-      setSelectedTone(tone)
-    },
-    [applyTone]
-  )
+  const handleToneSelect = useCallback((tone: number) => {
+    setUserInput((prev) => applyToneToLastSyllable(prev, tone))
+  }, [])
+
+  /**
+   * Get final normalized value for comparison
+   */
+  const getFinalValue = useCallback(() => {
+    return normalizeForSubmit(userInput)
+  }, [userInput])
 
   /**
    * Handle answer submission
@@ -91,7 +146,7 @@ export const ReviewCard = memo(function ReviewCard({
       return
     }
 
-    const finalInput = getFinalValue()
+    const finalInput = normalizeForSubmit(userInput)
     if (!finalInput.trim()) {
       return
     }
@@ -111,7 +166,7 @@ export const ReviewCard = memo(function ReviewCard({
     setTimeout(() => {
       isSubmittingRef.current = false
     }, 100)
-  }, [getFinalValue, correctPinyin, isAnswerSubmitted])
+  }, [userInput, correctPinyin, isAnswerSubmitted])
 
   /**
    * Handle continue/next - auto-calculates grade based on response time
@@ -124,7 +179,7 @@ export const ReviewCard = memo(function ReviewCard({
     const responseTime = Date.now() - startTime
     const correct = isCorrect ?? false
     const autoGrade = calculateGradeFromTime(responseTime, character.length, correct)
-    const finalInput = getFinalValue()
+    const finalInput = normalizeForSubmit(userInput)
 
     onSubmit({
       userAnswer: finalInput,
@@ -132,7 +187,7 @@ export const ReviewCard = memo(function ReviewCard({
       grade: autoGrade,
       responseTimeMs: responseTime,
     })
-  }, [getFinalValue, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
+  }, [userInput, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
 
   /**
    * Keyboard shortcuts (window-level when input not focused)
@@ -196,16 +251,13 @@ export const ReviewCard = memo(function ReviewCard({
               <PinyinInput
                 value={userInput}
                 onChange={setUserInput}
-                selectedTone={selectedTone}
-                onToneChange={handleToneSelect}
                 disabled={isAnswerSubmitted}
                 onSubmit={handleSubmitAnswer}
-                onCursorChange={handleCursorChange}
                 autoFocus
               />
 
               <ToneSelector
-                selectedTone={selectedTone}
+                selectedTone={null}
                 onToneSelect={handleToneSelect}
                 disabled={isAnswerSubmitted}
               />

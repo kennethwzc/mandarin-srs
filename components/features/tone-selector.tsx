@@ -76,7 +76,7 @@ export function ToneSelector({ selectedTone, onToneSelect, disabled = false }: T
       </div>
 
       {/* Simplified help text */}
-      <p className="text-center text-xs text-muted-foreground">Press 1-5 or click a tone</p>
+      <p className="text-center text-xs text-muted-foreground">Applies tone to last syllable</p>
     </div>
   )
 }
