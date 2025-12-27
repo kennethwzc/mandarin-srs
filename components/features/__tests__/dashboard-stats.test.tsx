@@ -24,7 +24,7 @@ describe('DashboardStats', () => {
     expect(screen.getByText('Reviews Due')).toBeInTheDocument()
     expect(screen.getByText('Current Streak')).toBeInTheDocument()
     expect(screen.getByText('Accuracy')).toBeInTheDocument()
-    expect(screen.getByText('Today Reviews')).toBeInTheDocument()
+    expect(screen.getByText('Today')).toBeInTheDocument()
     expect(screen.getByText('Momentum')).toBeInTheDocument()
   })
 
@@ -71,7 +71,7 @@ describe('DashboardStats', () => {
 
     // Should render without errors
     expect(screen.getByText('Items Learned')).toBeInTheDocument()
-    // There are 6 cards total: Items Learned, Reviews Due, Current Streak, Accuracy, Today Reviews, Momentum
+    // There are 6 cards total: Items Learned, Reviews Due, Current Streak, Accuracy, Today, Momentum
     // Current Streak and Accuracy have suffixes, so "0" appears standalone in 4 cards, plus 2 with suffixes
     const allZeros = screen.getAllByText('0')
     expect(allZeros.length).toBeGreaterThanOrEqual(4)

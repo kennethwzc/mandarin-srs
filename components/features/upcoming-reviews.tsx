@@ -1,12 +1,10 @@
 'use client'
 
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import Link from 'next/link'
-
 import { Clock } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface UpcomingReviewsProps {
   /**
@@ -17,12 +15,12 @@ interface UpcomingReviewsProps {
 }
 
 /**
- * Upcoming Reviews Component
+ * Upcoming Reviews Component (Apple-inspired minimalist design)
  *
  * Shows when reviews are due in the next 24 hours.
  * Uses client-side local time to display hours correctly for the user's timezone.
  */
-export function UpcomingReviews({ forecast }: UpcomingReviewsProps) {
+export const UpcomingReviews = memo(function UpcomingReviews({ forecast }: UpcomingReviewsProps) {
   // Calculate current hour in user's local timezone
   const currentHour = useMemo(() => new Date().getHours(), [])
 
@@ -55,31 +53,46 @@ export function UpcomingReviews({ forecast }: UpcomingReviewsProps) {
   const maxCount = Math.max(...upcomingHours.map((item) => item.count), 1)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Upcoming Reviews
-        </CardTitle>
-        <CardDescription>{totalUpcoming} reviews due in the next 6 hours</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
+    <div className="rounded-xl border border-border bg-card shadow-soft-md">
+      {/* Header */}
+      <div className="border-b border-border p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <h3 className="text-lg font-semibold text-foreground">Upcoming Reviews</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {totalUpcoming} review{totalUpcoming !== 1 ? 's' : ''} due in the next 6 hours
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="space-y-4 p-6">
+        {/* Hour breakdown */}
+        <div className="space-y-3">
           {upcomingHours.map((item, index) => {
             const percentage = (item.count / maxCount) * 100
 
             return (
-              <div key={`${item.hour}-${index}`} className="space-y-1">
+              <div key={`${item.hour}-${index}`} className="space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {item.hour}:00
-                    {index === 0 && ' (now)'}
+                    {item.hour.toString().padStart(2, '0')}:00
+                    {index === 0 && (
+                      <span className="ml-1 text-xs text-muted-foreground/70">(now)</span>
+                    )}
                   </span>
-                  <span className="font-medium">{item.count}</span>
+                  <span className="font-medium text-foreground">{item.count}</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-1 w-full overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={item.count}
+                  aria-valuemin={0}
+                  aria-valuemax={maxCount}
+                  aria-label={`${item.count} reviews at ${item.hour}:00`}
+                >
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="h-full bg-primary transition-all duration-slow"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -88,12 +101,23 @@ export function UpcomingReviews({ forecast }: UpcomingReviewsProps) {
           })}
         </div>
 
+        {/* Action button */}
         {totalUpcoming > 0 && (
-          <Button asChild className="w-full">
+          <Button
+            asChild
+            className="w-full transition-all duration-base hover:opacity-90 active:scale-95"
+          >
             <Link href="/reviews">Start Reviewing</Link>
           </Button>
         )}
-      </CardContent>
-    </Card>
+
+        {/* Empty state */}
+        {totalUpcoming === 0 && (
+          <p className="py-2 text-center text-sm text-muted-foreground">
+            No reviews scheduled for the next 6 hours.
+          </p>
+        )}
+      </div>
+    </div>
   )
-}
+})

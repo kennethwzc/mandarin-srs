@@ -92,8 +92,19 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
-        soft: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        soft: '0 1px 3px rgba(0, 0, 0, 0.06)',
+        'soft-md': '0 2px 8px rgba(0, 0, 0, 0.08)',
         'soft-lg': '0 4px 16px rgba(0, 0, 0, 0.12)',
+        'soft-xl': '0 8px 24px rgba(0, 0, 0, 0.15)',
+      },
+      transitionDuration: {
+        fast: '100ms',
+        base: '200ms',
+        slow: '300ms',
+      },
+      transitionTimingFunction: {
+        smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

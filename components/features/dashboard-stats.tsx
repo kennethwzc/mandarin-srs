@@ -1,47 +1,50 @@
 'use client'
 
-import { memo, useMemo, useCallback } from 'react'
+import { memo, useMemo } from 'react'
 import { BookOpen, Brain, Calendar, Flame, Target, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils/cn'
 
 import type { DashboardStatsProps } from './dashboard-stats.types'
 
 /**
- * Get text color class based on accuracy percentage
- * @param percentage - Accuracy percentage (0-100)
- * @returns Tailwind color class
+ * Stat card content - shared between link and div versions
  */
-function getAccuracyTextColor(percentage: number): string {
-  if (percentage >= 80) {
-    return 'text-green-600 dark:text-green-400'
-  }
-  if (percentage >= 60) {
-    return 'text-yellow-600 dark:text-yellow-400'
-  }
-  return 'text-red-600 dark:text-red-400'
+interface StatCardContentProps {
+  title: string
+  value: number
+  suffix?: string
+  description: string
+  icon: React.ElementType
+}
+
+function StatCardContent({ title, value, suffix, description, icon: Icon }: StatCardContentProps) {
+  return (
+    <>
+      {/* Header with title and icon */}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      </div>
+
+      {/* Value */}
+      <p className="mb-1 text-3xl font-bold text-foreground">
+        {value}
+        {suffix && <span className="ml-1 text-sm font-normal text-muted-foreground">{suffix}</span>}
+      </p>
+
+      {/* Description */}
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </>
+  )
 }
 
 /**
- * Get background color class based on accuracy percentage
- * @param percentage - Accuracy percentage (0-100)
- * @returns Tailwind background color class
- */
-function getAccuracyBgColor(percentage: number): string {
-  if (percentage >= 80) {
-    return 'bg-green-100 dark:bg-green-900/20'
-  }
-  if (percentage >= 60) {
-    return 'bg-yellow-100 dark:bg-yellow-900/20'
-  }
-  return 'bg-red-100 dark:bg-red-900/20'
-}
-
-/**
- * Dashboard Stats Component (Optimized with React.memo)
+ * Dashboard Stats Component (Apple-inspired minimalist design)
  *
- * Displays key learning metrics in card format.
+ * Displays key learning metrics in clean, minimal card format.
+ * Uses typography and spacing for hierarchy, not colors.
  * Only re-renders when stats actually change.
  */
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
@@ -62,16 +65,12 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         value: totalItemsLearned,
         description: 'Total characters & vocabulary',
         icon: BookOpen,
-        color: 'text-blue-600 dark:text-blue-400',
-        bgColor: 'bg-blue-100 dark:bg-blue-900/20',
       },
       {
         title: 'Reviews Due',
         value: reviewsDue,
         description: 'Ready to review now',
         icon: Brain,
-        color: 'text-purple-600 dark:text-purple-400',
-        bgColor: 'bg-purple-100 dark:bg-purple-900/20',
         action: reviewsDue > 0 ? '/reviews' : undefined,
       },
       {
@@ -80,11 +79,6 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         suffix: currentStreak === 1 ? 'day' : 'days',
         description: `Longest: ${longestStreak} days`,
         icon: Flame,
-        color: currentStreak > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-400',
-        bgColor:
-          currentStreak > 0
-            ? 'bg-orange-100 dark:bg-orange-900/20'
-            : 'bg-gray-100 dark:bg-gray-800',
       },
       {
         title: 'Accuracy',
@@ -92,24 +86,18 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         suffix: '%',
         description: 'Overall correctness rate',
         icon: Target,
-        color: getAccuracyTextColor(accuracyPercentage),
-        bgColor: getAccuracyBgColor(accuracyPercentage),
       },
       {
-        title: 'Today Reviews',
+        title: 'Today',
         value: reviewsCompletedToday,
-        description: 'Completed today',
+        description: 'Reviews completed',
         icon: Calendar,
-        color: 'text-sky-600 dark:text-sky-400',
-        bgColor: 'bg-sky-100 dark:bg-sky-900/20',
       },
       {
         title: 'Momentum',
         value: Math.max(currentStreak, reviewsCompletedToday),
-        description: 'Keep the streak alive',
+        description: 'Keep learning daily',
         icon: TrendingUp,
-        color: 'text-emerald-600 dark:text-emerald-400',
-        bgColor: 'bg-emerald-100 dark:bg-emerald-900/20',
       },
     ],
     [
@@ -122,45 +110,47 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ]
   )
 
-  // Memoize click handler
-  const handleCardClick = useCallback((action?: string) => {
-    if (action) {
-      window.location.href = action
-    }
-  }, [])
+  const baseCardClasses =
+    'rounded-xl border border-border bg-card p-6 shadow-soft-md transition-all duration-base'
+  const interactiveClasses =
+    'cursor-pointer hover:-translate-y-0.5 hover:shadow-soft-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-      {statCards.map((stat, index) => (
-        <Card
-          key={index}
-          className={cn(
-            'transition-all duration-200',
-            stat.action && 'cursor-pointer hover:shadow-lg'
-          )}
-          onClick={() => handleCardClick(stat.action)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-            <div className={cn('rounded-lg p-2', stat.bgColor)}>
-              <stat.icon className={cn('h-4 w-4', stat.color)} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stat.value}
-              {stat.suffix && (
-                <span className="ml-1 text-sm font-normal text-muted-foreground">
-                  {stat.suffix}
-                </span>
-              )}
-            </div>
-            <CardDescription className="text-xs text-muted-foreground">
-              {stat.description}
-            </CardDescription>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+      {statCards.map((stat, index) => {
+        const ariaLabel = `${stat.title}: ${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}. ${stat.description}`
+
+        if (stat.action) {
+          return (
+            <Link
+              key={index}
+              href={stat.action}
+              className={cn(baseCardClasses, interactiveClasses)}
+              aria-label={ariaLabel}
+            >
+              <StatCardContent
+                title={stat.title}
+                value={stat.value}
+                suffix={stat.suffix}
+                description={stat.description}
+                icon={stat.icon}
+              />
+            </Link>
+          )
+        }
+
+        return (
+          <div key={index} className={baseCardClasses} aria-label={ariaLabel}>
+            <StatCardContent
+              title={stat.title}
+              value={stat.value}
+              suffix={stat.suffix}
+              description={stat.description}
+              icon={stat.icon}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 })

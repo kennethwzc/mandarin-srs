@@ -9,7 +9,6 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import dynamicImport from 'next/dynamic'
 
-import { Card } from '@/components/ui/card'
 import { StartReviewsButton } from '@/components/ui/start-reviews-button'
 import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { VerificationSuccess } from './_components/verification-success'
@@ -150,12 +149,10 @@ async function DashboardHeader({ userId }: { userId: string }) {
   )
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground sm:text-base">
-          Track your Mandarin learning progress
-        </p>
+        <h1 className="mb-2 text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Track your Mandarin learning progress</p>
       </div>
       {stats.reviewsDue > 0 && <StartReviewsButton reviewsCount={stats.reviewsDue} />}
     </div>
@@ -234,9 +231,9 @@ async function DashboardStatsSection({ userId }: { userId: string }) {
   return (
     <>
       {isStale && (
-        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+        <div className="rounded-xl border border-border bg-muted/50 px-4 py-2 text-center text-sm text-muted-foreground">
           Showing cached data.{' '}
-          <a href="/dashboard" className="underline">
+          <a href="/dashboard" className="underline hover:text-foreground">
             Refresh
           </a>{' '}
           for latest stats.
@@ -317,15 +314,15 @@ async function DashboardChartsSection({ userId }: { userId: string }) {
   return (
     <>
       {isStale && (
-        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+        <div className="rounded-xl border border-border bg-muted/50 px-4 py-2 text-center text-sm text-muted-foreground">
           Showing cached charts.{' '}
-          <a href="/dashboard" className="underline">
+          <a href="/dashboard" className="underline hover:text-foreground">
             Refresh
           </a>{' '}
           for latest data.
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         <ReviewsChart data={charts.reviewsOverTime} />
         <AccuracyChart data={charts.accuracyOverTime} />
       </div>
@@ -390,15 +387,15 @@ async function DashboardSecondarySection({ userId }: { userId: string }) {
   return (
     <>
       {isStale && (
-        <div className="rounded-md bg-yellow-100 px-4 py-2 text-center text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
+        <div className="rounded-xl border border-border bg-muted/50 px-4 py-2 text-center text-sm text-muted-foreground">
           Showing cached data.{' '}
-          <a href="/dashboard" className="underline">
+          <a href="/dashboard" className="underline hover:text-foreground">
             Refresh
           </a>{' '}
           for latest.
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         <LessonProgress lessons={lessons} />
         <UpcomingReviews forecast={upcomingForecast} />
       </div>
@@ -490,7 +487,7 @@ async function DashboardContent() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 md:space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header - loads immediately */}
       <DashboardHeader userId={user.id} />
 
@@ -520,46 +517,44 @@ async function DashboardContent() {
  */
 function MinimalDashboard() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground sm:text-base">
-          Track your Mandarin learning progress
-        </p>
+    <div className="space-y-6 md:space-y-8">
+      <div className="mb-8">
+        <h1 className="mb-2 text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Track your Mandarin learning progress</p>
       </div>
 
-      <Card className="p-6 text-center">
-        <p className="mb-4 text-muted-foreground">
+      <div className="rounded-xl border border-border bg-card p-8 text-center shadow-soft-md">
+        <p className="mb-6 text-muted-foreground">
           Unable to load dashboard data. This might be a temporary issue.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           <a
             href="/dashboard"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-base hover:opacity-90 active:scale-95"
           >
             Try Again
           </a>
           <a
             href="/lessons"
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            className="rounded-lg border border-border bg-background px-6 py-3 text-sm font-medium transition-all duration-base hover:bg-muted"
           >
             Go to Lessons
           </a>
           <a
             href="/reviews"
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            className="rounded-lg border border-border bg-background px-6 py-3 text-sm font-medium transition-all duration-base hover:bg-muted"
           >
             Start Reviews
           </a>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
 
 export default function DashboardPage() {
   return (
-    <div className="container mx-auto px-4 py-4 sm:py-6 md:py-8">
+    <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
       <VerificationSuccess />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />
@@ -569,19 +564,19 @@ export default function DashboardPage() {
 }
 
 function ChartSkeleton() {
-  return <div className="h-[400px] animate-pulse rounded-lg bg-muted" />
+  return <div className="h-[400px] animate-pulse rounded-xl border border-border bg-muted" />
 }
 
 function CalendarSkeleton() {
-  return <Card className="h-[220px] animate-pulse bg-muted" />
+  return <div className="h-[220px] animate-pulse rounded-xl border border-border bg-muted" />
 }
 
 function WidgetSkeleton() {
-  return <div className="h-[200px] animate-pulse rounded-lg bg-muted" />
+  return <div className="h-[200px] animate-pulse rounded-xl border border-border bg-muted" />
 }
 
 function StreakSkeleton() {
-  return <div className="h-[100px] animate-pulse rounded-lg bg-muted" />
+  return <div className="h-[100px] animate-pulse rounded-xl border border-border bg-muted" />
 }
 
 /**
@@ -590,9 +585,12 @@ function StreakSkeleton() {
 function StatsSkeleton() {
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, index) => (
-          <div key={index} className="h-32 animate-pulse rounded-lg bg-muted" />
+      <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+        {[...Array(6)].map((_, index) => (
+          <div
+            key={index}
+            className="h-32 animate-pulse rounded-xl border border-border bg-muted"
+          />
         ))}
       </div>
       <StreakSkeleton />
@@ -606,7 +604,7 @@ function StatsSkeleton() {
 function ChartsSkeleton() {
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         <ChartSkeleton />
         <ChartSkeleton />
       </div>
@@ -620,7 +618,7 @@ function ChartsSkeleton() {
  */
 function SecondarySkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 md:gap-6">
       <WidgetSkeleton />
       <WidgetSkeleton />
     </div>
@@ -629,10 +627,10 @@ function SecondarySkeleton() {
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-64 animate-pulse rounded bg-muted" />
+    <div className="space-y-6 md:space-y-8">
+      <div className="mb-8">
+        <div className="mb-2 h-9 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="h-5 w-64 animate-pulse rounded-lg bg-muted" />
       </div>
 
       <StatsSkeleton />
