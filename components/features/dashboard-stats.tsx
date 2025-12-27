@@ -32,24 +32,23 @@ const iconColors: Record<ColorScheme, string> = {
 }
 
 /**
- * Stat card content - Professional layout with perfect number alignment
+ * Stat card content - Clean layout with perfect number alignment
  *
  * Layout structure:
  * ┌────────────────────────────────────┐
- * │ [Icon] │ Title            │  123  │ ← row 1, number aligned right
- * │        │ Description...   │ days  │ ← row 2, suffix below number
+ * │ [Icon] │ Title               │ 123 │
+ * │        │ Description...      │     │
  * └────────────────────────────────────┘
  *
  * Key features:
- * - Title never truncates (flex-1 allows wrapping)
- * - Number has fixed-width container (56px) for perfect alignment
- * - Suffix positioned below number, doesn't affect number position
- * - Description flows below title, can wrap to 2 lines
+ * - NO suffixes on numbers (clean alignment)
+ * - Context info goes in description
+ * - Numbers always align at exact same position
+ * - Tabular nums for consistent digit width
  */
 interface StatCardContentProps {
   title: string
   value: number
-  suffix?: string
   description: string
   icon: React.ElementType
   colorScheme: ColorScheme
@@ -58,19 +57,18 @@ interface StatCardContentProps {
 function StatCardContent({
   title,
   value,
-  suffix,
   description,
   icon: Icon,
   colorScheme,
 }: StatCardContentProps) {
   return (
-    <div className="flex h-full items-start gap-3.5">
-      {/* Icon Container - Compact, professional */}
-      <div className="flex-shrink-0 pt-0.5">
+    <div className="flex items-start gap-3">
+      {/* Icon */}
+      <div className="flex-shrink-0">
         <div
           className={cn(
             'flex h-11 w-11 items-center justify-center rounded-xl',
-            'transition-transform duration-200 ease-out',
+            'transition-transform duration-200',
             'group-hover:scale-110 motion-reduce:group-hover:scale-100',
             iconBackgrounds[colorScheme]
           )}
@@ -80,28 +78,20 @@ function StatCardContent({
         </div>
       </div>
 
-      {/* Content Grid - Perfect flow and alignment */}
-      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-start gap-x-4 gap-y-1.5">
-        {/* Title - Grid position: row 1, col 1 - Never truncates */}
-        <h3 className="self-start text-sm font-semibold leading-tight text-foreground">{title}</h3>
+      {/* Content - Simple two-column grid */}
+      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] gap-x-4 gap-y-0.5">
+        {/* Title - Row 1, Col 1 */}
+        <h3 className="text-sm font-semibold leading-snug text-foreground">{title}</h3>
 
-        {/* Number Container - Grid position: row 1-2, col 2 (spans both rows) */}
-        <div className="row-span-2 flex flex-col items-end justify-start pt-0.5">
-          {/* Fixed-width container for perfect alignment across cards */}
-          <div className="flex min-w-14 flex-col items-end">
-            <span className="text-2xl font-bold tabular-nums leading-none text-foreground">
-              {value}
-            </span>
-            {suffix && (
-              <span className="mt-1 text-[10px] font-semibold leading-none text-muted-foreground/70">
-                {suffix}
-              </span>
-            )}
-          </div>
+        {/* Number - Row 1, Col 2 - ALWAYS at same position */}
+        <div className="row-span-2 flex items-start justify-end pt-px">
+          <span className="text-[28px] font-bold tabular-nums leading-none tracking-tight text-foreground">
+            {value}
+          </span>
         </div>
 
-        {/* Description - Grid position: row 2, col 1 - Can wrap to 2 lines */}
-        <p className="line-clamp-2 pr-1 text-xs leading-relaxed text-muted-foreground">
+        {/* Description - Row 2, Col 1 */}
+        <p className="line-clamp-2 pt-0.5 text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>
@@ -113,16 +103,11 @@ function StatCardContent({
  * Dashboard Stats Component (Professional design)
  *
  * Features:
- * - CSS Grid for perfect number alignment across cards
- * - Fixed-width number containers (56px min) ensure alignment
- * - Suffix below number, doesn't affect positioning
- * - Titles never truncate
- * - Descriptions can wrap to 2 lines
- * - Consistent card heights with auto-rows-fr
- * - Smooth micro-interactions
- * - Color-coded icons for visual interest
- * - Accessibility compliant (WCAG AA)
- * - Dark mode optimized
+ * - NO suffixes on numbers (clean, perfect alignment)
+ * - Context info in descriptions (e.g., "7 days • Longest: 7 days")
+ * - CSS Grid for consistent alignment
+ * - Tabular nums for uniform digit width
+ * - Clean, uncluttered appearance
  */
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
   const {
@@ -134,7 +119,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     reviewsCompletedToday,
   } = stats
 
-  // Memoize stat cards to prevent re-creation on every render
+  // Memoize stat cards - NO suffixes, context in descriptions
   const statCards = useMemo(
     () => [
       {
@@ -155,15 +140,13 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
       {
         title: 'Current Streak',
         value: currentStreak,
-        suffix: currentStreak === 1 ? 'day' : 'days',
-        description: `Longest: ${longestStreak} days`,
+        description: `${currentStreak} ${currentStreak === 1 ? 'day' : 'days'} • Longest: ${longestStreak}`,
         icon: Flame,
         colorScheme: 'orange' as const,
       },
       {
         title: 'Accuracy',
         value: accuracyPercentage,
-        suffix: '%',
         description: 'Overall correctness rate',
         icon: Target,
         colorScheme: 'green' as const,
@@ -171,7 +154,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
       {
         title: 'Today',
         value: reviewsCompletedToday,
-        description: 'Reviews completed',
+        description: 'Reviews completed today',
         icon: Calendar,
         colorScheme: 'cyan' as const,
       },
@@ -200,17 +183,17 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
   const baseCardClasses = cn(
     // Structure
     'group relative overflow-hidden rounded-2xl',
-    // Height
-    'h-full',
-    // Borders
+    // Consistent height
+    'min-h-[100px]',
+    // Border
     'border border-border/40',
     // Background
     'bg-card',
-    // Spacing
+    // Padding
     'p-4',
-    // Shadows
+    // Shadow
     'shadow-sm',
-    // Transitions
+    // Transition
     'transition-all duration-200 ease-out motion-reduce:transition-none'
   )
 
@@ -225,14 +208,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
   return (
     <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-4">
       {statCards.map((stat, index) => {
-        const ariaLabel = [
-          stat.title,
-          `${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}`,
-          stat.description,
-          stat.action ? 'Click to navigate' : '',
-        ]
-          .filter(Boolean)
-          .join('. ')
+        const ariaLabel = `${stat.title}: ${stat.value}. ${stat.description}`
 
         if (stat.action) {
           return (
@@ -245,7 +221,6 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
               <StatCardContent
                 title={stat.title}
                 value={stat.value}
-                suffix={stat.suffix}
                 description={stat.description}
                 icon={stat.icon}
                 colorScheme={stat.colorScheme}
@@ -259,7 +234,6 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
             <StatCardContent
               title={stat.title}
               value={stat.value}
-              suffix={stat.suffix}
               description={stat.description}
               icon={stat.icon}
               colorScheme={stat.colorScheme}

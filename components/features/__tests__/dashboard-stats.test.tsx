@@ -2,8 +2,8 @@
  * Dashboard Stats Component Tests
  *
  * Tests all functionality of the dashboard stats cards.
- * Note: Cards have responsive layouts (mobile horizontal, desktop vertical)
- * so text elements appear twice in the DOM.
+ * Note: Numbers are displayed without suffixes (clean alignment).
+ * Context info like "days" is shown in descriptions.
  */
 
 import { render, screen } from '@testing-library/react'
@@ -22,7 +22,6 @@ describe('DashboardStats', () => {
   it('renders all stat cards', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    // Each title appears twice (mobile + desktop layouts)
     expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Reviews Due').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Current Streak').length).toBeGreaterThanOrEqual(1)
@@ -34,32 +33,31 @@ describe('DashboardStats', () => {
   it('displays correct values', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    // Values appear twice (mobile + desktop layouts)
     expect(screen.getAllByText('150').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('25').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('7').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('85').length).toBeGreaterThanOrEqual(1)
-    // "10" appears in Today and Momentum cards, each with 2 layouts
+    // "10" appears in Today and Momentum cards
     const allTens = screen.getAllByText('10')
     expect(allTens.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('shows correct suffixes', () => {
+  it('shows context in descriptions', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    // Should show "days" plural
+    // "days" appears in descriptions, not as suffix
     const daysText = screen.getAllByText(/days/i)
     expect(daysText.length).toBeGreaterThan(0)
 
-    // Should show percentage (appears in both layouts)
-    const percentSigns = screen.getAllByText('%')
-    expect(percentSigns.length).toBeGreaterThanOrEqual(1)
+    // Accuracy description should be present
+    expect(screen.getAllByText(/correctness rate/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('displays streak description correctly', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    const longestTexts = screen.getAllByText(/Longest: 14 days/i)
+    // Description includes "7 days • Longest: 14"
+    const longestTexts = screen.getAllByText(/Longest:/i)
     expect(longestTexts.length).toBeGreaterThanOrEqual(1)
   })
 
@@ -77,27 +75,28 @@ describe('DashboardStats', () => {
 
     // Should render without errors
     expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
-    // Zeros appear in multiple cards with dual layouts
+    // Zeros appear in multiple cards
     const allZeros = screen.getAllByText('0')
     expect(allZeros.length).toBeGreaterThanOrEqual(4)
   })
 
-  it('shows plural for multiple days', () => {
+  it('shows plural for multiple days in description', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    // Should show "days" text somewhere (appears in multiple places)
+    // "days" should appear in description
     const daysTexts = screen.getAllByText(/days/i)
     expect(daysTexts.length).toBeGreaterThan(0)
   })
 
-  it('shows singular for one day', () => {
-    const singleDayStats = { ...mockStats, currentStreak: 1 }
+  it('shows singular for one day in description', () => {
+    const singleDayStats = { ...mockStats, currentStreak: 1, longestStreak: 1 }
 
     render(<DashboardStats stats={singleDayStats} />)
 
-    // Should show "1" and "day" singular
+    // Should show "1" in the number
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('day').length).toBeGreaterThanOrEqual(1)
+    // Description should have "1 day"
+    expect(screen.getAllByText(/1 day/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('calculates momentum correctly', () => {
