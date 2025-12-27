@@ -32,19 +32,15 @@ const iconColors: Record<ColorScheme, string> = {
 }
 
 /**
- * Stat card content - Clean layout with perfect number alignment
+ * Stat card content - Vertically centered layout
  *
- * Layout structure:
- * ┌────────────────────────────────────┐
- * │ [Icon] │ Title               │ 123 │
- * │        │ Description...      │     │
- * └────────────────────────────────────┘
- *
- * Key features:
- * - NO suffixes on numbers (clean alignment)
- * - Context info goes in description
- * - Numbers always align at exact same position
- * - Tabular nums for consistent digit width
+ * Layout:
+ * ┌─────────────────────────────────────┐
+ * │                                     │ ← Equal top space
+ * │ 📊  Title                      8    │ ← Everything centered
+ * │     Description                     │
+ * │                                     │ ← Equal bottom space
+ * └─────────────────────────────────────┘
  */
 interface StatCardContentProps {
   title: string
@@ -52,6 +48,7 @@ interface StatCardContentProps {
   description: string
   icon: React.ElementType
   colorScheme: ColorScheme
+  showDaysLabel?: boolean
 }
 
 function StatCardContent({
@@ -60,10 +57,12 @@ function StatCardContent({
   description,
   icon: Icon,
   colorScheme,
+  showDaysLabel = false,
 }: StatCardContentProps) {
   return (
-    <div className="flex items-start gap-3">
-      {/* Icon */}
+    // Main container - VERTICALLY CENTER EVERYTHING
+    <div className="flex h-full items-center gap-3">
+      {/* Icon - Vertically centered with content */}
       <div className="flex-shrink-0">
         <div
           className={cn(
@@ -78,19 +77,26 @@ function StatCardContent({
         </div>
       </div>
 
-      {/* Content - Simple two-column grid */}
-      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] gap-x-4 gap-y-0.5">
-        {/* Title - Row 1, Col 1 */}
+      {/* Content Grid - gap-x-6 (24px) for more right spacing */}
+      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] gap-x-6 gap-y-0.5">
+        {/* Title */}
         <h3 className="text-sm font-semibold leading-snug text-foreground">{title}</h3>
 
-        {/* Number - Row 1, Col 2 - ALWAYS at same position */}
-        <div className="row-span-2 flex items-start justify-end pt-px">
-          <span className="text-[28px] font-bold tabular-nums leading-none tracking-tight text-foreground">
-            {value}
-          </span>
+        {/* Number Container */}
+        <div className="row-span-2 flex items-start justify-end">
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-[28px] font-bold tabular-nums leading-none tracking-tight text-foreground">
+              {value}
+            </span>
+            {showDaysLabel && (
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/50">
+                days
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Description - Row 2, Col 1 */}
+        {/* Description */}
         <p className="line-clamp-2 pt-0.5 text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
@@ -103,11 +109,10 @@ function StatCardContent({
  * Dashboard Stats Component (Professional design)
  *
  * Features:
- * - NO suffixes on numbers (clean, perfect alignment)
- * - Context info in descriptions (e.g., "7 days • Longest: 7 days")
- * - CSS Grid for consistent alignment
- * - Tabular nums for uniform digit width
- * - Clean, uncluttered appearance
+ * - Vertically centered content in fixed-height cards
+ * - 24px right spacing for numbers (gap-x-6)
+ * - Optional "days" label for streak card
+ * - Clean, aligned number display
  */
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
   const {
@@ -119,7 +124,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     reviewsCompletedToday,
   } = stats
 
-  // Memoize stat cards - NO suffixes, context in descriptions
+  // Memoize stat cards
   const statCards = useMemo(
     () => [
       {
@@ -140,9 +145,10 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
       {
         title: 'Current Streak',
         value: currentStreak,
-        description: `${currentStreak} ${currentStreak === 1 ? 'day' : 'days'} • Longest: ${longestStreak}`,
+        description: `Longest: ${longestStreak} days`,
         icon: Flame,
         colorScheme: 'orange' as const,
+        showDaysLabel: true,
       },
       {
         title: 'Accuracy',
@@ -179,21 +185,15 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ]
   )
 
-  // Professional card styling
+  // Professional card styling with fixed height for vertical centering
   const baseCardClasses = cn(
-    // Structure
     'group relative overflow-hidden rounded-2xl',
-    // Consistent height
-    'min-h-[100px]',
-    // Border
+    // Fixed height for consistent vertical centering
+    'h-[110px]',
     'border border-border/40',
-    // Background
     'bg-card',
-    // Padding
     'p-4',
-    // Shadow
     'shadow-sm',
-    // Transition
     'transition-all duration-200 ease-out motion-reduce:transition-none'
   )
 
@@ -206,7 +206,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
   )
 
   return (
-    <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-4">
       {statCards.map((stat, index) => {
         const ariaLabel = `${stat.title}: ${stat.value}. ${stat.description}`
 
@@ -224,6 +224,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
                 description={stat.description}
                 icon={stat.icon}
                 colorScheme={stat.colorScheme}
+                showDaysLabel={stat.showDaysLabel}
               />
             </Link>
           )
@@ -237,6 +238,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
               description={stat.description}
               icon={stat.icon}
               colorScheme={stat.colorScheme}
+              showDaysLabel={stat.showDaysLabel}
             />
           </div>
         )
