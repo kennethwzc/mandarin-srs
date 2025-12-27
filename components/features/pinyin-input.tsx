@@ -1,21 +1,20 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { addToneMark } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
 /**
- * Pinyin Input Component (Apple-inspired minimal design)
+ * Pinyin Input Component (Simplified - controlled by parent)
  *
  * Clean, prominent pinyin input with:
  * - Large, centered text
  * - Multiple input formats (ni3, nǐ, ni + tone button)
  * - Smart ü/v conversion (nv → nü)
- * - Full keyboard accessibility
- * - Minimal help text
+ * - Keyboard shortcuts for tones (1-5)
+ * - Space auto-converts tone numbers
  */
 
 interface PinyinInputProps {
@@ -26,6 +25,7 @@ interface PinyinInputProps {
   disabled?: boolean
   onSubmit?: () => void
   autoFocus?: boolean
+  onCursorChange?: (position: number) => void
 }
 
 export function PinyinInput({
@@ -36,6 +36,7 @@ export function PinyinInput({
   disabled = false,
   onSubmit,
   autoFocus = false,
+  onCursorChange,
 }: PinyinInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -46,24 +47,13 @@ export function PinyinInput({
     }
   }, [autoFocus])
 
-  /**
-   * Apply tone mark when tone is selected
-   */
+  // Apply tone mark when tone is selected from ToneSelector
   useEffect(() => {
-    if (selectedTone !== null && value) {
-      try {
-        const withTone = addToneMark(value, selectedTone)
-        onChange(withTone)
-        onToneChange(null)
-
-        setTimeout(() => {
-          inputRef.current?.focus()
-        }, 0)
-      } catch {
-        // Invalid syllable - ignore
-      }
+    if (selectedTone !== null) {
+      // Notify parent to apply tone via the hook
+      onToneChange(selectedTone)
     }
-  }, [selectedTone, value, onChange, onToneChange])
+  }, [selectedTone, onToneChange])
 
   /**
    * Handle input changes with auto-corrections
@@ -72,8 +62,12 @@ export function PinyinInput({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       let newValue = e.target.value.toLowerCase()
 
-      // Auto-correct common patterns
-      newValue = autoCorrectPinyin(newValue)
+      // Auto-correct v to ü in specific contexts
+      newValue = newValue
+        .replace(/nv([1-5]?)/g, 'nü$1')
+        .replace(/lv([1-5]?)/g, 'lü$1')
+        .replace(/nue/g, 'nüe')
+        .replace(/lue/g, 'lüe')
 
       onChange(newValue)
     },
@@ -89,7 +83,7 @@ export function PinyinInput({
         return
       }
 
-      // Numbers 1-5 select tones
+      // Numbers 1-5 select tones (apply to current syllable)
       if (e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         onToneChange(parseInt(e.key, 10))
@@ -110,28 +104,19 @@ export function PinyinInput({
         onChange(value + 'ü')
         return
       }
-
-      // Handle tone number input (ni3 + space → nǐ)
-      if ((e.key === ' ' || e.key === 'Enter') && /[1-5]$/.test(value)) {
-        e.preventDefault()
-        const tone = parseInt(value.slice(-1), 10)
-        const syllable = value.slice(0, -1)
-
-        try {
-          const withTone = addToneMark(syllable, tone)
-          onChange(withTone)
-        } catch {
-          // Keep original if invalid
-        }
-
-        if (e.key === 'Enter' && onSubmit) {
-          e.stopPropagation()
-          onSubmit()
-        }
-        return
-      }
     },
     [disabled, value, onChange, onToneChange, onSubmit]
+  )
+
+  /**
+   * Track cursor position for syllable detection
+   */
+  const handleSelect = useCallback(
+    (e: React.SyntheticEvent<HTMLInputElement>) => {
+      const target = e.target as HTMLInputElement
+      onCursorChange?.(target.selectionStart ?? 0)
+    },
+    [onCursorChange]
   )
 
   /**
@@ -142,12 +127,26 @@ export function PinyinInput({
       e.preventDefault()
 
       let pastedText = e.clipboardData.getData('text').toLowerCase().trim()
-      pastedText = autoCorrectPinyin(pastedText)
+
+      // Auto-correct pasted text
+      pastedText = pastedText
+        .replace(/nv([1-5]?)/g, 'nü$1')
+        .replace(/lv([1-5]?)/g, 'lü$1')
+        .replace(/nue/g, 'nüe')
+        .replace(/lue/g, 'lüe')
+        .replace(/\s+/g, ' ')
 
       onChange(pastedText)
     },
     [onChange]
   )
+
+  // Count syllables for display
+  const syllables = value
+    .trim()
+    .split(/\s+/)
+    .filter((s) => s.length > 0)
+  const syllableCount = syllables.length
 
   return (
     <div className="space-y-3">
@@ -162,6 +161,8 @@ export function PinyinInput({
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onSelect={handleSelect}
+        onClick={handleSelect}
         onPaste={handlePaste}
         disabled={disabled}
         placeholder="e.g., ni3 or nǐ"
@@ -177,37 +178,19 @@ export function PinyinInput({
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        maxLength={20}
+        maxLength={50}
       />
 
-      <p className="text-center text-xs text-muted-foreground">
-        Type pinyin with numbers (ni3) or use tone buttons
-      </p>
+      <div className="space-y-1 text-center">
+        <p className="text-xs text-muted-foreground">
+          Type pinyin with numbers (ni3) or use tone buttons
+        </p>
+        {syllableCount > 0 && (
+          <p className="text-xs text-muted-foreground/70">
+            {syllableCount} syllable{syllableCount > 1 ? 's' : ''} detected
+          </p>
+        )}
+      </div>
     </div>
   )
-}
-
-/**
- * Auto-correct common pinyin patterns
- */
-function autoCorrectPinyin(input: string): string {
-  let corrected = input
-
-  // Convert v to ü in specific contexts
-  corrected = corrected
-    .replace(/nv([1-5]?)/g, 'nü$1')
-    .replace(/lv([1-5]?)/g, 'lü$1')
-    .replace(/nue/g, 'nüe')
-    .replace(/lue/g, 'lüe')
-
-  // Convert u: to ü (alternative notation)
-  corrected = corrected.replace(/u:/g, 'ü')
-
-  // Normalize multiple spaces to single space
-  corrected = corrected.replace(/\s+/g, ' ')
-
-  // Handle capitalization
-  corrected = corrected.toLowerCase()
-
-  return corrected
 }

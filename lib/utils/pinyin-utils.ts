@@ -157,5 +157,140 @@ export function numericToToneMarks(pinyin: string): string {
  * @returns True if they match exactly
  */
 export function comparePinyinExact(pinyin1: string, pinyin2: string): boolean {
-  return pinyin1.toLowerCase().trim() === pinyin2.toLowerCase().trim()
+  return normalizeSpaces(pinyin1.toLowerCase()) === normalizeSpaces(pinyin2.toLowerCase())
+}
+
+/**
+ * Split pinyin string into syllables
+ * Handles space-separated input
+ *
+ * @example
+ * splitSyllables("ni hao") → ["ni", "hao"]
+ * splitSyllables("nǐ hǎo") → ["nǐ", "hǎo"]
+ * splitSyllables("  ni   hao  ") → ["ni", "hao"]
+ */
+export function splitSyllables(pinyin: string): string[] {
+  return pinyin
+    .trim()
+    .split(/\s+/)
+    .filter((s) => s.length > 0)
+}
+
+/**
+ * Check if a syllable has a tone mark (tones 1-4)
+ *
+ * @example
+ * hasToneMark("nǐ") → true
+ * hasToneMark("ni") → false
+ * hasToneMark("ni3") → false (number doesn't count)
+ */
+export function hasToneMark(syllable: string): boolean {
+  const toneNumber = getToneNumber(syllable)
+  return toneNumber >= 1 && toneNumber <= 4
+}
+
+/**
+ * Replace tone on a syllable (removes existing tone, adds new one)
+ *
+ * @example
+ * replaceTone("nǐ", 2) → "ní"
+ * replaceTone("ni", 3) → "nǐ"
+ * replaceTone("hǎo", 4) → "hào"
+ */
+export function replaceTone(syllable: string, newTone: number): string {
+  const withoutTone = removeToneMarks(syllable)
+  return addToneMark(withoutTone, newTone)
+}
+
+/**
+ * Check if a syllable ends with a tone number (like "ni3")
+ *
+ * @example
+ * hasToneNumber("ni3") → true
+ * hasToneNumber("nǐ") → false
+ * hasToneNumber("ni") → false
+ */
+export function hasToneNumber(syllable: string): boolean {
+  return /[1-5]$/.test(syllable)
+}
+
+/**
+ * Extract tone number from end of syllable
+ *
+ * @example
+ * extractToneNumber("ni3") → { syllable: "ni", tone: 3 }
+ * extractToneNumber("hao4") → { syllable: "hao", tone: 4 }
+ * extractToneNumber("ni") → { syllable: "ni", tone: null }
+ */
+export function extractToneNumber(syllable: string): {
+  syllable: string
+  tone: number | null
+} {
+  const match = syllable.match(/^([a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]+)([1-5])$/i)
+
+  if (match && match[1] && match[2]) {
+    return {
+      syllable: match[1],
+      tone: parseInt(match[2], 10),
+    }
+  }
+
+  return { syllable, tone: null }
+}
+
+/**
+ * Normalize spaces in pinyin input
+ * - Trim leading/trailing spaces
+ * - Replace multiple spaces with single space
+ *
+ * @example
+ * normalizeSpaces("  ni   hao  ") → "ni hao"
+ * normalizeSpaces("ni    hao    ma") → "ni hao ma"
+ */
+export function normalizeSpaces(pinyin: string): string {
+  return pinyin.trim().replace(/\s+/g, ' ')
+}
+
+/**
+ * Validate if a string is a valid pinyin syllable
+ *
+ * @example
+ * isValidSyllable("ni") → true
+ * isValidSyllable("nǐ") → true
+ * isValidSyllable("xyz") → false
+ */
+export function isValidSyllable(syllable: string): boolean {
+  // Remove tone marks and numbers for validation
+  const normalized = removeToneMarks(syllable)
+    .replace(/[1-5]$/, '')
+    .toLowerCase()
+
+  // Must contain at least one vowel (including ü)
+  const hasVowel = /[aeiouü]/.test(normalized)
+
+  // Must be reasonable length (1-6 chars typical for pinyin)
+  const reasonableLength = normalized.length >= 1 && normalized.length <= 6
+
+  // Must only contain valid pinyin characters
+  const validChars = /^[a-zü]+$/i.test(normalized)
+
+  return hasVowel && reasonableLength && validChars
+}
+
+/**
+ * Convert all tone numbers in a pinyin string to tone marks
+ *
+ * @example
+ * convertToneNumbers("ni3 hao3") → "nǐ hǎo"
+ * convertToneNumbers("zai4jian4") → "zàijiàn"
+ */
+export function convertToneNumbers(pinyin: string): string {
+  return pinyin.replace(
+    /([a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]+)([1-5])/gi,
+    (_, syllable: string, tone: string) => {
+      // First remove any existing tone marks to prevent double-marking
+      const baseSyllable = removeToneMarks(syllable)
+      return addToneMark(baseSyllable, parseInt(tone, 10))
+    }
+  )
 }

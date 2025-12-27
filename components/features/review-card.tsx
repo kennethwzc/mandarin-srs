@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, memo, useRef } from 'react'
+import React, { useEffect, useCallback, memo, useRef, useState } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { CharacterDisplay } from './character-display'
@@ -9,6 +9,7 @@ import { ToneSelector } from './tone-selector'
 import { PinyinFeedback } from './pinyin-feedback'
 import { comparePinyinExact } from '@/lib/utils/pinyin-utils'
 import { calculateGradeFromTime } from '@/lib/utils/srs-algorithm'
+import { usePinyinInput } from '@/lib/hooks/use-pinyin-input'
 import { cn } from '@/lib/utils/cn'
 
 // Re-export types for external use
@@ -21,11 +22,11 @@ type ReviewCardPropsInternal = import('./review-card.types').ReviewCardProps
  * Review Card Component (Apple-inspired minimal design)
  *
  * Main component for reviewing items. Shows character and collects pinyin answer.
- * Clean, minimal design with generous spacing and subtle feedback.
+ * Uses smart pinyin input hook for cursor-aware tone application.
  *
  * Flow:
  * 1. Show character
- * 2. User types pinyin + selects tone
+ * 2. User types pinyin + selects tone (tones replace, not add)
  * 3. User submits answer
  * 4. Show feedback (correct/incorrect)
  * 5. User clicks "Next" to continue
@@ -39,25 +40,48 @@ export const ReviewCard = memo(function ReviewCard({
   onSubmit,
   onSkip,
 }: ReviewCardPropsInternal) {
-  // State
-  const [userInput, setUserInput] = useState('')
-  const [selectedTone, setSelectedTone] = useState<number | null>(null)
+  // Use smart pinyin input hook
+  const {
+    value: userInput,
+    setValue: setUserInput,
+    applyTone,
+    handleCursorChange,
+    getFinalValue,
+    reset: resetInput,
+  } = usePinyinInput()
+
+  // Local state for UI
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [startTime, setStartTime] = useState(Date.now())
+  const [selectedTone, setSelectedTone] = useState<number | null>(null)
 
   // Refs to prevent double-submission
   const isSubmittingRef = useRef(false)
 
   // Reset state when character changes
   useEffect(() => {
-    setUserInput('')
-    setSelectedTone(null)
+    resetInput()
     setIsAnswerSubmitted(false)
     setIsCorrect(null)
     setStartTime(Date.now())
+    setSelectedTone(null)
     isSubmittingRef.current = false
-  }, [character])
+  }, [character, resetInput])
+
+  /**
+   * Handle tone selection from ToneSelector
+   * Uses the hook's applyTone which replaces existing tone
+   */
+  const handleToneSelect = useCallback(
+    (tone: number | null) => {
+      if (tone !== null) {
+        applyTone(tone)
+      }
+      setSelectedTone(tone)
+    },
+    [applyTone]
+  )
 
   /**
    * Handle answer submission
@@ -67,13 +91,14 @@ export const ReviewCard = memo(function ReviewCard({
       return
     }
 
-    if (!userInput.trim()) {
+    const finalInput = getFinalValue()
+    if (!finalInput.trim()) {
       return
     }
 
     isSubmittingRef.current = true
 
-    const answeredCorrectly = comparePinyinExact(userInput, correctPinyin)
+    const answeredCorrectly = comparePinyinExact(finalInput, correctPinyin)
 
     setIsCorrect(answeredCorrectly)
     setIsAnswerSubmitted(true)
@@ -86,7 +111,7 @@ export const ReviewCard = memo(function ReviewCard({
     setTimeout(() => {
       isSubmittingRef.current = false
     }, 100)
-  }, [userInput, correctPinyin, isAnswerSubmitted])
+  }, [getFinalValue, correctPinyin, isAnswerSubmitted])
 
   /**
    * Handle continue/next - auto-calculates grade based on response time
@@ -99,14 +124,15 @@ export const ReviewCard = memo(function ReviewCard({
     const responseTime = Date.now() - startTime
     const correct = isCorrect ?? false
     const autoGrade = calculateGradeFromTime(responseTime, character.length, correct)
+    const finalInput = getFinalValue()
 
     onSubmit({
-      userAnswer: userInput,
+      userAnswer: finalInput,
       isCorrect: correct,
       grade: autoGrade,
       responseTimeMs: responseTime,
     })
-  }, [userInput, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
+  }, [getFinalValue, isCorrect, startTime, onSubmit, character.length, isAnswerSubmitted])
 
   /**
    * Keyboard shortcuts (window-level when input not focused)
@@ -171,15 +197,16 @@ export const ReviewCard = memo(function ReviewCard({
                 value={userInput}
                 onChange={setUserInput}
                 selectedTone={selectedTone}
-                onToneChange={setSelectedTone}
+                onToneChange={handleToneSelect}
                 disabled={isAnswerSubmitted}
                 onSubmit={handleSubmitAnswer}
+                onCursorChange={handleCursorChange}
                 autoFocus
               />
 
               <ToneSelector
                 selectedTone={selectedTone}
-                onToneSelect={setSelectedTone}
+                onToneSelect={handleToneSelect}
                 disabled={isAnswerSubmitted}
               />
 
@@ -208,7 +235,7 @@ export const ReviewCard = memo(function ReviewCard({
             <div className="space-y-6">
               <PinyinFeedback
                 isCorrect={isCorrect}
-                userAnswer={userInput}
+                userAnswer={getFinalValue()}
                 correctAnswer={correctPinyin}
                 show={isAnswerSubmitted}
               />

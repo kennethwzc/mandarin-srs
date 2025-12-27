@@ -22,4 +22,6 @@ export interface PinyinInputProps {
   onSubmit?: () => void
   /** Whether to auto-focus on mount */
   autoFocus?: boolean
+  /** Callback when cursor position changes (for syllable-aware tone application) */
+  onCursorChange?: (position: number) => void
 }
