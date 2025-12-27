@@ -1,7 +1,9 @@
 # Lessons Page UI/UX Improvement Plan
 
 ## Executive Summary
-This plan outlines comprehensive UI/UX improvements for the Mandarin SRS lessons page to create a more modern, user-friendly, and engaging learning experience.
+This plan outlines comprehensive UI/UX improvements for the Mandarin SRS lessons page, following principles of clean, professional design with focus on clarity, usability, and performance.
+
+**Design Philosophy**: Inspired by Apple's approach—minimalist, functional, and elegant. Every element serves a purpose.
 
 ---
 
@@ -11,354 +13,333 @@ This plan outlines comprehensive UI/UX improvements for the Mandarin SRS lessons
 **Current State:** Flat cards with minimal visual hierarchy
 **Proposed Changes:**
 
-#### Enhanced Card Styling
-- **Depth & Elevation**
-  - Add subtle shadows with multiple layers for depth
-  - Implement hover state with elevated shadow (lift effect)
-  - Use border gradient effects for completed lessons
+#### Clean Card Styling
+- **Subtle Depth**
+  - Single-layer soft shadow: `0 2px 8px rgba(0, 0, 0, 0.08)`
+  - Hover elevation: `0 4px 16px rgba(0, 0, 0, 0.12)`
+  - Clean white background (light mode) / dark surface (dark mode)
+  - Crisp 1px border with subtle color
 
-- **Card States Redesign**
-  - **Unlocked/Active**:
-    - Vibrant gradient borders (subtle, brand-colored)
-    - Smooth scale transform on hover (1.02x)
-    - Background blur effect (glassmorphism)
-    - Animated gradient background
+- **Card States**
+  - **Active/Unlocked**:
+    - Clean white/dark background
+    - Subtle hover lift: `translateY(-2px)`
+    - Smooth shadow transition
+    - No borders or minimal accent
 
   - **Completed**:
-    - Success gradient (green-400 to emerald-500)
-    - Animated confetti or sparkle effect on first completion
-    - Subtle glow effect around border
-    - More prominent completion badge with animation
+    - Minimal green accent (left border or checkmark only)
+    - No background gradients
+    - Simple checkmark icon in corner
+    - Maintains clean aesthetic
 
   - **Locked**:
-    - Frosted glass effect with blur
-    - Reduced opacity with clearer visual distinction
-    - Animated lock icon (subtle pulse)
-    - "Coming soon" or progress bar showing unlock requirements
+    - Reduced opacity (0.5)
+    - Gray tint overlay
+    - Static lock icon
+    - No animations
 
-#### Typography & Hierarchy
-- **Lesson Title**: Increase font weight (semibold → bold)
-- **Level Badge**: Add gradient background, increase size
-- **Description**: Improve line height and contrast
-- **Stats**: Use icons with color coding (characters = blue, vocabulary = purple)
+#### Typography Hierarchy
+- **Lesson Title**: SF Pro or Inter, 18px, font-weight 600
+- **Level Badge**: Small, understated, neutral gray
+- **Description**: 14px, regular weight, comfortable line-height (1.6)
+- **Stats**: 13px, medium weight for numbers, regular for labels
 
-### 1.2 Color System Enhancement
+### 1.2 Color System Refinement
 **Current State:** Minimal color usage
 **Proposed Changes:**
 
 ```css
-/* Level-based Color Coding */
-Level 1: gradient(blue-500 → cyan-400)
-Level 2: gradient(purple-500 → violet-400)
-Level 3: gradient(amber-500 → orange-400)
-Level 4: gradient(rose-500 → pink-400)
-Level 5: gradient(emerald-500 → teal-400)
-Level 6: gradient(indigo-500 → blue-400)
+/* Minimal Color Palette */
+Primary: Single brand color (e.g., #007AFF - subtle blue)
+Success: #34C759 (Apple green)
+Background: #FFFFFF (light) / #1C1C1E (dark)
+Surface: #F5F5F7 (light) / #2C2C2E (dark)
+Border: #E5E5E7 (light) / #3A3A3C (dark)
+Text Primary: #000000 (light) / #FFFFFF (dark)
+Text Secondary: #6E6E73 (both modes)
 ```
 
-- Apply subtle gradient overlays to card backgrounds based on level
-- Use color-coded level badges
-- Maintain WCAG AA contrast ratios for accessibility
+**Level Indicators**: Subtle, monochrome approach
+- Simple numeric badge in neutral gray
+- No rainbow color coding
+- Rely on typography and spacing for hierarchy
 
-### 1.3 Layout Improvements
+### 1.3 Layout & Spacing
 **Current State:** Basic grid layout
 **Proposed Changes:**
 
-- **Responsive Grid Enhancement**
+- **Generous White Space**
   ```
-  Mobile: 1 column (full width cards)
-  Tablet: 2 columns with comfortable spacing
-  Desktop: 3 columns (current)
-  Large Desktop (>1536px): 4 columns for better space utilization
+  Mobile: 1 column, 16px side padding, 20px gap
+  Tablet: 2 columns, 24px side padding, 24px gap
+  Desktop: 3 columns, 32px side padding, 32px gap
+  Large Desktop: 3 columns (maintain readability, don't overcrowd)
   ```
 
-- **Spacing System**
-  - Increase gap between cards (4 → 6)
-  - Add section spacing for visual breathing room
-  - Implement consistent padding scale (4, 6, 8, 12)
+- **Consistent Spacing Scale**
+  - Use 4px base unit: 4, 8, 12, 16, 20, 24, 32, 48, 64
+  - Card padding: 24px (mobile) → 32px (desktop)
+  - Section spacing: 48px between major sections
+  - Comfortable breathing room around all elements
 
 ---
 
 ## 2. User Experience Enhancements
 
 ### 2.1 Progress Visualization
-**Current State:** Simple text-based statistics
-**Proposed Changes:**
 
 #### Card-Level Progress
-- **Circular Progress Ring**: Show lesson completion percentage
-  - Position: Top-right corner (replacing simple completed badge)
-  - Animation: Animated stroke on load and update
-  - States: 0% (not started), 1-99% (in progress), 100% (completed)
+- **Simple Progress Indicator**
+  - Thin progress bar at bottom of card (2px height)
+  - Single color (primary brand color)
+  - Smooth animation on load
+  - No circular rings or complex visualizations
 
-- **Mini Progress Bar**
-  - Bottom of card showing character/vocabulary mastery
-  - Dual-bar system (characters vs vocabulary)
-  - Color-coded by SRS level (new, learning, review, guru)
+- **Completion Status**
+  - Small checkmark icon (16px) in top-right corner
+  - Green color for completed
+  - No badges, no animations
+  - Clean and clear
 
-- **Visual Stats**
-  - Replace text counts with icon + number badges
-  - Add mini pie chart or icon fill for quick visual scanning
-  - Tooltip on hover showing detailed breakdown
+- **Statistics Display**
+  - Simple text format: "3 characters · 5 vocabulary"
+  - Small bullet separator
+  - No icons, no color coding
+  - Secondary text color
 
 #### Page-Level Progress
-- **Hero Section Enhancement**
-  - Add overall completion percentage with large circular progress
-  - Show total characters/vocabulary learned
-  - Display streak counter or study consistency indicator
-  - Quick stats: lessons completed, items mastered, time invested
+- **Clean Header Section**
+  - Simple progress text: "12 of 24 lessons completed"
+  - Optional: minimal progress bar showing overall completion
+  - No large circular graphics
+  - Understated and informative
 
-- **Progress Timeline**
-  - Visual path showing lesson progression
-  - Connected nodes for sequential lessons
-  - Checkpoints for level completion
-  - "You are here" indicator
-
-### 2.2 Interactive Elements & Micro-interactions
+### 2.2 Interactive Elements
 
 #### Hover States
-```javascript
-// Enhanced hover effects
-- Card lift: translateY(-4px) + shadow elevation
-- Icon animations: subtle bounce or rotate
-- Stats highlight: color shift and scale
-- Background: gradient shift or animated mesh
-- Border: animated gradient rotation
+```css
+/* Minimal hover feedback */
+- Card: translateY(-2px) + shadow elevation
+- Transition: 200ms ease-out
+- No scale transforms
+- No color changes
+- Subtle and smooth
 ```
 
 #### Click/Tap Feedback
-- Ripple effect on card press (Material Design)
-- Haptic feedback on mobile (if supported)
-- Smooth transition to lesson detail page
-- Loading state with skeleton transition
+- Subtle opacity change (0.6) on tap
+- No ripple effects
+- Instant navigation
+- Clean state transitions
 
 #### Loading States
-- Skeleton screens with gradient animation
-- Progressive image loading for lesson thumbnails
-- Stagger animation for card entry (cascade effect)
-- Smooth fade-in when data loads
+- Simple skeleton screens (gray blocks)
+- Fade-in animation (300ms)
+- No elaborate loading animations
+- Progressive content loading
 
 ### 2.3 Information Architecture
 
-#### Lesson Grouping
-- **Group by Level**: Add level section headers
+#### Lesson Organization
+- **Simple Grouping**
   ```
-  📚 HSK 1 - Beginner
+  HSK 1
   ├── Greetings
   ├── Numbers 1-5
   └── ...
-
-  📚 HSK 2 - Elementary
-  ├── ...
   ```
 
-- **Collapsible Sections**: Allow hiding completed levels
-- **Filter & Sort Controls**
-  - Filter: All / Not Started / In Progress / Completed
-  - Sort: Default / Name / Progress / Difficulty
-  - Search: Find lessons by keyword
+- **Clean Section Headers**
+  - Simple text header: "HSK 1" in larger font
+  - Optional: completion count "3/6 completed"
+  - No collapsible sections (avoid complexity)
+  - Clear visual separation with space
 
-#### Smart Recommendations
-- **"Recommended for You"** section at top
-  - Show next unlocked lesson prominently
-  - Suggest review if many items due
-  - Highlight lessons matching user's learning pace
+#### Smart Navigation
+- **Search**: Clean search bar at top
+  - Simple input field with subtle border
+  - Magnifying glass icon
+  - Instant results
 
-- **Learning Path Visualization**
-  - Show prerequisite connections
-  - Display recommended learning order
-  - Indicate parallel vs sequential lessons
+- **Filter**: Minimal pill-style toggles
+  - All / In Progress / Completed
+  - Neutral colors
+  - Clean selection state
 
-### 2.4 Gamification Elements
+- **Sort**: Simple dropdown
+  - Standard select element
+  - No custom styling unless necessary
+  - Clear labels
 
-#### Achievement System
-- **Badges on Cards**
-  - "Quick Learner" - completed in one session
-  - "Perfect Score" - 100% accuracy in practice
-  - "Streak Master" - studied X days in a row
+### 2.4 Motivation Without Gamification
 
-- **Unlock Animations**
-  - Animated "unlock" sequence when prerequisites complete
-  - Celebration modal or confetti on milestone achievements
-  - Sound effects (toggleable in settings)
+**Philosophy**: Encourage progress through clarity, not gimmicks
 
-#### Progress Motivation
-- **Completion Percentage**: Large, prominent display
-- **Next Milestone**: "2 more lessons to complete HSK 1!"
-- **Estimated Time**: "~30 minutes to complete this lesson"
-- **Difficulty Indicator**: Visual stars or level indicator
+- **Clear Progress Indicators**
+  - Simple percentage or fraction
+  - "You're making great progress"
+  - No badges, no achievements, no confetti
+
+- **Next Steps**
+  - Clear CTA: "Continue with Numbers 1-5"
+  - Estimated time: "~20 minutes"
+  - Simple, actionable
+
+- **Completion Feedback**
+  - Simple checkmark
+  - "Lesson completed" text
+  - No animations or celebrations
 
 ---
 
 ## 3. Accessibility Improvements
 
 ### 3.1 Keyboard Navigation
-- **Tab Order**: Logical flow through cards
-- **Focus Indicators**: Enhanced focus rings with color and animation
+- **Tab Order**: Logical, predictable flow
+- **Focus Indicators**:
+  - 2px solid outline in primary color
+  - 4px offset for visibility
+  - High contrast against all backgrounds
+
 - **Keyboard Shortcuts**
-  - Arrow keys: Navigate between cards
-  - Enter: Open lesson
-  - Ctrl+F: Quick search
-  - Escape: Clear filters
+  - Standard browser shortcuts only
+  - Don't override system defaults
+  - Let users navigate naturally
 
 ### 3.2 Screen Reader Support
 ```html
-<!-- Enhanced ARIA labels -->
+<!-- Clear, descriptive labels -->
 <article
   role="article"
-  aria-label="Lesson: HSK 1 - Greetings. Level 1. Completed. 3 characters, 5 vocabulary, 8 total items."
-  aria-describedby="lesson-description-1">
+  aria-label="HSK 1 - Greetings. 3 characters, 5 vocabulary. Completed.">
 
-  <!-- Progress announced -->
-  <div
-    role="status"
-    aria-live="polite"
-    aria-label="Lesson progress: 100% completed">
+  <div role="status" aria-live="polite">
+    Lesson completed
   </div>
 </article>
 ```
 
 ### 3.3 Visual Accessibility
-- **High Contrast Mode**: Support Windows high contrast
+- **High Contrast**: WCAG AAA where possible (7:1 ratio)
 - **Reduced Motion**: Respect `prefers-reduced-motion`
-- **Font Scaling**: Test at 200% zoom level
-- **Color Blindness**: Don't rely solely on color for status
-  - Use icons + color
-  - Use patterns in gradients
-  - Test with color blindness simulators
+  - Disable all animations
+  - Instant state transitions
+- **Font Scaling**: Support up to 200% zoom
+- **Color Independence**: Never use color alone
+  - Icons + color
+  - Text + color
+  - Pattern + color
 
 ---
 
-## 4. Mobile-First Enhancements
+## 4. Mobile-First Design
 
 ### 4.1 Mobile Optimizations
+
 **Touch Targets**
-- Minimum 44x44px touch targets
-- Increase card padding on mobile
-- Larger tap areas for interactive elements
+- Minimum 44x44px (Apple HIG standard)
+- Generous padding around interactive elements
+- Full card is tappable (not just button)
 
 **Responsive Typography**
-- Fluid typography scale using clamp()
-- Adjust line heights for mobile readability
-- Reduce text in card stats on small screens
+```css
+/* Fluid scale */
+font-size: clamp(16px, 4vw, 18px);
+line-height: 1.5;
+```
 
-**Mobile Gestures**
-- Swipe to navigate between cards (carousel mode)
-- Pull to refresh lesson data
-- Long-press for quick actions menu
+**Mobile Layout**
+- Single column on mobile
+- Full-width cards for easy tapping
+- Comfortable scrolling
+- No horizontal scrolling
 
 ### 4.2 Progressive Enhancement
-- **Core Experience**: Works without JavaScript
-- **Enhanced Experience**: Animations and interactivity
-- **Offline Support**: Cache lesson data with service worker
-- **App-like Feel**: Install prompt for PWA
+- **Core Experience**: Fully functional without JavaScript
+- **Enhanced**: Smooth transitions and animations
+- **Offline**: Graceful offline message
+- **Performance**: Fast initial load (<2s)
 
 ---
 
 ## 5. Performance Optimizations
 
 ### 5.1 Rendering Performance
-**Current**: All cards render simultaneously
-**Proposed**:
-- **Virtual Scrolling**: For users with many lessons (50+)
-- **Intersection Observer**: Lazy load card content
-- **Stagger Animation**: Reduce jank on initial render
-- **Image Optimization**: Use Next.js Image component for thumbnails
+- **Efficient Rendering**
+  - Render all cards (unless 100+ lessons)
+  - Use CSS `content-visibility: auto` for offscreen cards
+  - Lazy load images if added later
+  - Optimize re-renders with React.memo
 
 ### 5.2 Animation Performance
-- Use `transform` and `opacity` only (GPU-accelerated)
-- Add `will-change` hints sparingly
-- Use CSS animations over JavaScript where possible
-- Implement `content-visibility: auto` for offscreen cards
+- **GPU-Accelerated Only**
+  - Use `transform` and `opacity` only
+  - Avoid layout thrashing
+  - 60fps target
+  - CSS animations over JavaScript
+
+### 5.3 Bundle Size
+- No unnecessary dependencies
+- Tree-shake unused code
+- Use existing libraries (framer-motion for minimal animations)
+- Keep JavaScript minimal
 
 ---
 
-## 6. Modern Design Patterns
+## 6. Design Principles
 
-### 6.1 Glassmorphism
-Apply to cards and modals:
-```css
-.glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-}
-```
+### 6.1 Minimalism
+- Remove everything that's not essential
+- Let content breathe
+- White space is a feature, not empty space
+- One primary action per card
 
-### 6.2 Neumorphism (Subtle)
-For completed lesson badges:
-```css
-.neuro-badge {
-  background: linear-gradient(145deg, #e6f7e6, #c3e6c3);
-  box-shadow: 5px 5px 10px #a8d5a8, -5px -5px 10px #ffffff;
-}
-```
+### 6.2 Clarity Over Creativity
+- Clear labels over icons alone
+- Standard patterns over novel interactions
+- Predictable behavior
+- No surprises
 
-### 6.3 Animated Gradients
-```css
-.gradient-border {
-  background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
-  background-size: 300% 300%;
-  animation: gradient-shift 15s ease infinite;
-}
-```
+### 6.3 Typography First
+- Use excellent typography to create hierarchy
+- Font size, weight, and spacing are primary tools
+- Limit to 2-3 font sizes per card
+- Comfortable reading experience
 
-### 6.4 Mesh Gradients
-For hero section background:
-- Animated mesh gradient with multiple color stops
-- Subtle movement on scroll (parallax effect)
-- Blur for softer appearance
+### 6.4 Consistency
+- Same patterns throughout
+- Predictable spacing
+- Consistent colors
+- Familiar interactions
 
 ---
 
-## 7. Component Architecture Improvements
+## 7. Component Architecture
 
-### 7.1 Enhanced Component Structure
+### 7.1 Clean Component Structure
 ```
 /components/features/lessons/
-├── lesson-card/
-│   ├── index.tsx                    # Main card component
-│   ├── lesson-card-header.tsx       # Title, level, badges
-│   ├── lesson-card-progress.tsx     # Progress visualization
-│   ├── lesson-card-stats.tsx        # Character/vocab counts
-│   ├── lesson-card-actions.tsx      # CTA buttons
-│   └── lesson-card.styles.ts        # Tailwind variants
-│
-├── lesson-grid/
-│   ├── index.tsx                    # Grid container
-│   ├── lesson-grid-header.tsx       # Filters, search, sort
-│   ├── lesson-grid-empty.tsx        # Empty state
-│   └── lesson-grid-skeleton.tsx     # Loading skeleton
-│
-├── lesson-filters/
-│   ├── index.tsx                    # Filter controls
-│   ├── lesson-search.tsx            # Search input
-│   └── lesson-sort.tsx              # Sort dropdown
-│
-└── lesson-progress-hero/
-    ├── index.tsx                    # Hero section
-    ├── progress-ring.tsx            # Circular progress
-    └── stats-overview.tsx           # Overall stats
+├── lesson-card.tsx              # Single component, simple
+├── lessons-grid.tsx             # Grid container with gap
+├── lessons-header.tsx           # Title + search/filter
+├── lesson-section.tsx           # HSK level grouping
+└── progress-bar.tsx             # Reusable progress bar
 ```
 
-### 7.2 Reusable Design Tokens
+**Note**: Keep it simple. Don't over-engineer with excessive sub-components.
+
+### 7.2 Design Tokens
 ```typescript
-// lesson-card.styles.ts
+// Simple, clean variants
 export const lessonCardVariants = cva(
-  "lesson-card-base",
+  "rounded-xl bg-card border transition-all duration-200",
   {
     variants: {
       status: {
-        locked: "opacity-60 cursor-not-allowed blur-[0.5px]",
-        unlocked: "hover:scale-[1.02] hover:shadow-xl",
-        completed: "border-success shadow-success-lg",
-      },
-      level: {
-        1: "border-l-blue-500",
-        2: "border-l-purple-500",
-        3: "border-l-amber-500",
-        // ...
+        locked: "opacity-50 cursor-not-allowed",
+        unlocked: "hover:shadow-md hover:-translate-y-0.5",
+        completed: "border-l-2 border-l-success",
       },
     },
   }
@@ -369,92 +350,67 @@ export const lessonCardVariants = cva(
 
 ## 8. Implementation Phases
 
-### Phase 1: Foundation (Week 1)
+### Phase 1: Foundation (3-4 days)
 **Priority: High**
-- [ ] Enhance card visual design (shadows, borders, spacing)
-- [ ] Implement level-based color coding
+- [ ] Refine card design (clean shadows, spacing, borders)
 - [ ] Improve typography hierarchy
-- [ ] Add hover effects and micro-interactions
-- [ ] Enhance locked/unlocked state visuals
+- [ ] Add generous white space
+- [ ] Implement subtle hover states
+- [ ] Clean up locked/completed states
 
-**Effort**: 2-3 days
-**Impact**: High - Immediately modernizes appearance
+**Impact**: High - Immediate professional appearance
 
-### Phase 2: Progress & Gamification (Week 2)
+### Phase 2: Progress & Navigation (2-3 days)
 **Priority: High**
-- [ ] Add circular progress rings to cards
-- [ ] Implement mini progress bars
-- [ ] Create hero section with overall progress
-- [ ] Add achievement badges
-- [ ] Implement unlock animations
+- [ ] Add simple progress bars to cards
+- [ ] Clean completion indicators
+- [ ] Implement search functionality
+- [ ] Add filter toggles
+- [ ] Simple section headers
 
-**Effort**: 3-4 days
-**Impact**: High - Increases engagement
+**Impact**: High - Better usability
 
-### Phase 3: Interactivity & UX (Week 3)
-**Priority: Medium**
-- [ ] Implement lesson grouping by level
-- [ ] Add filter and sort controls
-- [ ] Create search functionality
-- [ ] Add smart recommendations section
-- [ ] Implement learning path visualization
-
-**Effort**: 3-4 days
-**Impact**: Medium - Improves navigation
-
-### Phase 4: Polish & Accessibility (Week 4)
-**Priority: Medium**
+### Phase 3: Accessibility & Polish (2-3 days)
+**Priority: High**
 - [ ] Enhance keyboard navigation
 - [ ] Improve screen reader support
-- [ ] Add reduced motion support
-- [ ] Implement high contrast mode
-- [ ] Mobile gesture enhancements
+- [ ] Add focus indicators
+- [ ] Test with reduced motion
+- [ ] Color contrast audit
 
-**Effort**: 2-3 days
-**Impact**: Medium - Critical for inclusive design
+**Impact**: Medium - Essential for inclusive design
 
-### Phase 5: Performance & Advanced Features (Week 5)
-**Priority: Low**
-- [ ] Implement virtual scrolling
-- [ ] Add intersection observer lazy loading
-- [ ] Optimize animations for performance
-- [ ] Add offline support
-- [ ] PWA enhancements
+### Phase 4: Performance (1-2 days)
+**Priority: Medium**
+- [ ] Optimize animations
+- [ ] Add content-visibility
+- [ ] Performance audit
+- [ ] Lighthouse optimization
 
-**Effort**: 3-4 days
-**Impact**: Low - Nice to have, performance gains
+**Impact**: Medium - Smooth experience
 
 ---
 
 ## 9. Design System Updates
 
-### 9.1 New Components Needed
-1. **ProgressRing**: Circular progress indicator
-2. **GradientBorder**: Animated gradient wrapper
-3. **LevelBadge**: Enhanced badge with colors
-4. **StatsIcon**: Icon + number component
-5. **UnlockAnimation**: Modal/overlay for unlocking
-6. **FilterBar**: Filtering and sorting controls
-7. **SearchBox**: Debounced search input
-8. **EmptyState**: Beautiful empty/no-results state
+### 9.1 New/Updated Components
+1. **LessonCard** - Refined with clean styling
+2. **ProgressBar** - Simple linear indicator
+3. **SearchInput** - Clean search field
+4. **FilterToggle** - Pill-style filter buttons
+5. **SectionHeader** - Clean typography-based header
 
-### 9.2 Tailwind Configuration Updates
+### 9.2 Tailwind Configuration
 ```javascript
-// Add to tailwind.config.ts
+// Minimal additions
 theme: {
   extend: {
-    animation: {
-      'gradient-shift': 'gradient-shift 15s ease infinite',
-      'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      'unlock': 'unlock 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-    },
     boxShadow: {
-      'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
-      'success-lg': '0 10px 40px -10px rgba(34, 197, 94, 0.4)',
-      'lift': '0 20px 50px -10px rgba(0, 0, 0, 0.15)',
+      'soft': '0 2px 8px rgba(0, 0, 0, 0.08)',
+      'soft-lg': '0 4px 16px rgba(0, 0, 0, 0.12)',
     },
-    backdropBlur: {
-      'xs': '2px',
+    spacing: {
+      // Use default Tailwind spacing
     },
   },
 },
@@ -464,227 +420,155 @@ theme: {
 
 ## 10. Testing Strategy
 
-### 10.1 Visual Regression Testing
-- Screenshot comparison with Percy or Chromatic
-- Test across breakpoints: 375px, 768px, 1024px, 1440px
+### 10.1 Visual Testing
+- Compare designs at standard breakpoints
 - Test light and dark modes
-- Test locked/unlocked/completed states
+- Verify all states (locked, active, completed)
+- Check spacing consistency
 
 ### 10.2 Accessibility Testing
-- Automated: axe-core, Lighthouse
-- Manual: Keyboard navigation testing
-- Screen reader: NVDA, JAWS, VoiceOver
-- Color contrast: Check all text against backgrounds
+- **Automated**: axe-core, Lighthouse (target: 100)
+- **Manual**: Full keyboard navigation
+- **Screen readers**: Test with VoiceOver, NVDA
+- **Contrast**: WCAG AAA compliance
 
 ### 10.3 Performance Testing
-- Lighthouse performance scores (target: >90)
-- First Contentful Paint (target: <1.5s)
-- Time to Interactive (target: <3.5s)
-- Animation frame rates (target: 60fps)
+- **Lighthouse**: 95+ on all metrics
+- **FCP**: <1.2s
+- **TTI**: <2.5s
+- **Animations**: Consistent 60fps
 
 ### 10.4 User Testing
-- A/B test new design vs current (if possible)
-- Conduct usability testing with 5-10 users
-- Measure: time to find next lesson, comprehension of locked state
-- Gather qualitative feedback on visual appeal
+- 5-8 user tests
+- Measure: time to find lessons, clarity of states
+- Qualitative feedback on cleanliness and professionalism
 
 ---
 
-## 11. Mockup Ideas & References
+## 11. Design References
 
-### 11.1 Visual Inspiration
-**Color & Depth**:
-- Duolingo lesson cards (gamification, progress)
-- Notion databases (clean cards, hover states)
-- Linear issues (subtle gradients, modern design)
-- Stripe Dashboard (glassmorphism, spacing)
+### 11.1 Inspiration Sources
+**Clean Design**:
+- Apple.com/education (clean cards, minimal design)
+- Linear.app (professional, minimal, fast)
+- Stripe Dashboard (clarity, professionalism)
+- Things 3 (minimal task design)
 
-**Progress Visualization**:
-- Apple Fitness rings (circular progress)
-- GitHub contribution graph (achievement tracking)
-- Habitica task cards (gamification)
+**Typography & Spacing**:
+- Apple Human Interface Guidelines
+- Google Material Design (spacing principles)
+- Tailwind Labs website (professional layouts)
 
-**Layout & Hierarchy**:
-- Pinterest masonry (if varying card heights later)
-- Netflix tiles (large, engaging previews)
-- Spotify playlists (clear CTAs, hover states)
-
-### 11.2 Animation References
-- Framer Motion examples: https://www.framer.com/motion/
-- Aceternity UI: Modern card hover effects
-- Magic UI: Gradient animations and glassmorphism
-- Tailwind Labs: Professional spacing and typography
+**Progress Indicators**:
+- Apple Fitness (simple rings)
+- iOS Settings app (simple progress bars)
 
 ---
 
 ## 12. Success Metrics
 
-### 12.1 Quantitative Metrics
-- **Engagement**: Click-through rate on lesson cards (+20% target)
-- **Completion**: Lesson start → completion rate (+15% target)
-- **Time on Page**: Average session duration (+10% target)
-- **Performance**: Lighthouse score >90 (current baseline)
-- **Accessibility**: Zero critical WCAG violations
+### 12.1 Quantitative
+- **Performance**: Lighthouse score 95+ (all metrics)
+- **Accessibility**: Zero WCAG violations
+- **Engagement**: Lesson click-through rate baseline + 15%
+- **Load Time**: FCP <1.2s, TTI <2.5s
 
-### 12.2 Qualitative Metrics
-- User satisfaction surveys (5-point scale, target: 4.5+)
-- Net Promoter Score (NPS) improvement
-- User feedback: "more modern", "easier to use", "motivating"
-- Reduced support requests about navigation
+### 12.2 Qualitative
+- User feedback: "clean", "professional", "clear"
+- Reduced confusion about locked states
+- Improved perception of quality
+- Positive sentiment in feedback
 
 ---
 
 ## 13. Technical Considerations
 
 ### 13.1 Browser Support
-- Modern browsers: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+- Modern evergreen browsers
 - Graceful degradation for older browsers
 - Progressive enhancement approach
+- No browser-specific hacks
 
 ### 13.2 Dependencies
-**New Libraries** (optional):
-- `framer-motion`: Already installed ✓
-- `react-intersection-observer`: For lazy loading
-- `react-confetti`: For celebration effects
-- `class-variance-authority`: Already installed ✓
+**Existing** (no new dependencies needed):
+- `framer-motion`: Minimal animations
+- `class-variance-authority`: Component variants
+- `tailwindcss`: Styling
+- `lucide-react`: Icons
 
-**Tailwind Plugins**:
-- `@tailwindcss/container-queries`: For responsive card internals
-- `tailwindcss-animate`: Already installed ✓
+**No new packages required**
 
 ### 13.3 Breaking Changes
-**None Expected** - All changes are additive enhancements to existing components
+None - All changes are visual enhancements
 
 ---
 
 ## 14. Rollout Plan
 
-### 14.1 Feature Flags (Optional)
-```typescript
-// Use feature flags for gradual rollout
-const features = {
-  newCardDesign: true,
-  progressRings: true,
-  levelGrouping: true,
-  animations: true,
-};
-```
+### 14.1 Development
+- Implement in feature branch
+- Test thoroughly
+- Review with team
+- Merge to production
 
-### 14.2 Beta Testing
-- Release to internal users first (if applicable)
-- Gather feedback for 1 week
-- Iterate on issues
-- Full public release
-
-### 14.3 Documentation
-- Update component Storybook (if used)
-- Document new design tokens
-- Create migration guide for future developers
-- Add inline code comments for complex animations
+### 14.2 Monitoring
+- Watch for performance regressions
+- Monitor user feedback
+- Track engagement metrics
+- Iterate based on data
 
 ---
 
-## 15. Maintenance & Future Enhancements
+## 15. Code Examples
 
-### 15.1 Analytics Integration
-- Track card interactions (clicks, hovers)
-- Monitor most accessed lessons
-- Identify drop-off points
-- A/B test design variations
-
-### 15.2 Future Ideas (Post-Launch)
-- **Lesson Thumbnails**: Custom illustrations for each lesson
-- **Animated Icons**: Lottie animations for lesson themes
-- **3D Effects**: Subtle 3D tilt on hover (perspective transforms)
-- **Social Features**: Share progress, compete with friends
-- **Personalization**: Custom themes, card layouts
-- **Voice Interface**: "Show me my next lesson"
-- **AR Preview**: View characters in AR (mobile)
-
----
-
-## Appendix: Code Examples
-
-### Example 1: Enhanced Lesson Card Component
+### Example 1: Clean Lesson Card
 ```tsx
-// components/features/lessons/lesson-card/index.tsx
-import { motion } from 'framer-motion';
+// components/features/lessons/lesson-card.tsx
+'use client';
+
 import { cva } from 'class-variance-authority';
-import { BookOpen, Lock, Check, TrendingUp } from 'lucide-react';
-import { ProgressRing } from '@/components/ui/progress-ring';
+import { Check, Lock } from 'lucide-react';
+import Link from 'next/link';
 
 const cardVariants = cva(
-  "relative rounded-xl p-6 transition-all duration-300 border-2",
+  "block rounded-xl bg-card border p-6 transition-all duration-200",
   {
     variants: {
       status: {
-        locked: "bg-muted/50 opacity-60 cursor-not-allowed backdrop-blur-sm",
-        unlocked: "bg-card hover:shadow-lift cursor-pointer",
-        completed: "bg-gradient-to-br from-success/5 to-success/10 border-success/30 shadow-success-lg",
-      },
-      level: {
-        1: "border-l-4 border-l-blue-500",
-        2: "border-l-4 border-l-purple-500",
-        3: "border-l-4 border-l-amber-500",
+        locked: "opacity-50 cursor-not-allowed border-border",
+        unlocked: "hover:shadow-soft-lg hover:-translate-y-0.5 border-border",
+        completed: "border-l-2 border-l-success border-border",
       },
     },
   }
 );
 
 export function LessonCard({ lesson, progress, isLocked }) {
-  const completionPercentage = progress?.completed
-    ? 100
-    : (progress?.itemsLearned / lesson.totalItems) * 100 || 0;
+  const Wrapper = isLocked ? 'div' : Link;
+  const wrapperProps = isLocked ? {} : { href: `/lessons/${lesson.id}` };
+
+  const status = isLocked ? 'locked' : progress?.completed ? 'completed' : 'unlocked';
+  const completionPercent = progress?.itemsLearned
+    ? (progress.itemsLearned / lesson.totalItems) * 100
+    : 0;
 
   return (
-    <motion.article
-      whileHover={!isLocked ? { scale: 1.02, y: -4 } : {}}
-      whileTap={!isLocked ? { scale: 0.98 } : {}}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={cardVariants({
-        status: isLocked ? 'locked' : progress?.completed ? 'completed' : 'unlocked',
-        level: lesson.level
-      })}
-    >
-      {/* Progress Ring - Top Right */}
-      {!isLocked && (
-        <div className="absolute -top-2 -right-2">
-          <ProgressRing
-            percentage={completionPercentage}
-            size={60}
-            strokeWidth={4}
-            color={progress?.completed ? "success" : "primary"}
-          >
-            {progress?.completed ? (
-              <Check className="w-4 h-4 text-success" />
-            ) : (
-              <span className="text-xs font-bold">
-                {Math.round(completionPercentage)}%
-              </span>
-            )}
-          </ProgressRing>
+    <Wrapper {...wrapperProps} className={cardVariants({ status })}>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-xs font-medium text-muted-foreground">
+          Level {lesson.level}
         </div>
-      )}
-
-      {/* Lock Icon - Locked State */}
-      {isLocked && (
-        <motion.div
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute top-4 right-4"
-        >
-          <Lock className="w-6 h-6 text-muted-foreground" />
-        </motion.div>
-      )}
-
-      {/* Level Badge */}
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 mb-3">
-        <BookOpen className="w-3 h-3" />
-        <span className="text-xs font-semibold">Level {lesson.level}</span>
+        {progress?.completed && (
+          <Check className="w-4 h-4 text-success" aria-label="Completed" />
+        )}
+        {isLocked && (
+          <Lock className="w-4 h-4 text-muted-foreground" aria-label="Locked" />
+        )}
       </div>
 
       {/* Title & Description */}
-      <h3 className="text-xl font-bold mb-2 line-clamp-2">
+      <h3 className="text-lg font-semibold mb-2 line-clamp-2">
         {lesson.title}
       </h3>
       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
@@ -692,167 +576,114 @@ export function LessonCard({ lesson, progress, isLocked }) {
       </p>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-sm">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-blue-500" />
-          <span className="font-medium">{lesson.characterCount}</span>
-          <span className="text-muted-foreground">characters</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <span className="font-medium">{lesson.vocabularyCount}</span>
-          <span className="text-muted-foreground">vocabulary</span>
-        </div>
+      <div className="text-xs text-muted-foreground mb-4">
+        {lesson.characterCount} characters · {lesson.vocabularyCount} vocabulary
       </div>
 
-      {/* Mini Progress Bar */}
-      {!isLocked && completionPercentage > 0 && completionPercentage < 100 && (
-        <div className="mt-4 h-1.5 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${completionPercentage}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-primary to-primary/80"
+      {/* Progress Bar */}
+      {!isLocked && completionPercent > 0 && completionPercent < 100 && (
+        <div className="h-0.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary transition-all duration-300"
+            style={{ width: `${completionPercent}%` }}
           />
         </div>
       )}
-    </motion.article>
+    </Wrapper>
   );
 }
 ```
 
-### Example 2: Progress Ring Component
+### Example 2: Simple Progress Bar
 ```tsx
-// components/ui/progress-ring.tsx
-'use client';
-
-import { motion } from 'framer-motion';
-
-interface ProgressRingProps {
-  percentage: number;
-  size?: number;
-  strokeWidth?: number;
-  color?: 'primary' | 'success' | 'warning';
-  children?: React.ReactNode;
+// components/ui/progress-bar.tsx
+interface ProgressBarProps {
+  value: number; // 0-100
+  className?: string;
 }
 
-export function ProgressRing({
-  percentage,
-  size = 80,
-  strokeWidth = 6,
-  color = 'primary',
-  children,
-}: ProgressRingProps) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  const colorClasses = {
-    primary: 'stroke-primary',
-    success: 'stroke-success',
-    warning: 'stroke-warning',
-  };
-
+export function ProgressBar({ value, className }: ProgressBarProps) {
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          className="text-muted/30"
-        />
-
-        {/* Progress circle */}
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          className={colorClasses[color]}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1, ease: "easeInOut" }}
-          style={{
-            strokeDasharray: circumference,
-          }}
-        />
-      </svg>
-
-      {/* Center content */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {children}
-      </div>
+    <div className={`h-0.5 bg-muted rounded-full overflow-hidden ${className}`}>
+      <div
+        className="h-full bg-primary transition-all duration-300"
+        style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      />
     </div>
   );
 }
 ```
 
-### Example 3: Level Section Header
+### Example 3: Clean Section Header
 ```tsx
-// components/features/lessons/lesson-grid/level-section.tsx
-import { motion } from 'framer-motion';
-import { ChevronDown, BookOpen } from 'lucide-react';
-import { useState } from 'react';
+// components/features/lessons/lesson-section.tsx
+export function LessonSection({ level, completedCount, totalCount, children }) {
+  return (
+    <section className="mb-12">
+      {/* Simple header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold mb-1">
+          HSK {level}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {completedCount} of {totalCount} completed
+        </p>
+      </div>
 
-export function LevelSection({ level, lessons, children }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+      {/* Grid of lessons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {children}
+      </div>
+    </section>
+  );
+}
+```
 
-  const completedCount = lessons.filter(l => l.progress?.completed).length;
-  const totalCount = lessons.length;
-  const completionPercentage = (completedCount / totalCount) * 100;
-
+### Example 4: Clean Search & Filter Header
+```tsx
+// components/features/lessons/lessons-header.tsx
+export function LessonsHeader({ onSearch, onFilter, activeFilter }) {
   return (
     <div className="mb-8">
-      {/* Section Header */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full flex items-center justify-between mb-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
-      >
-        <div className="flex items-center gap-3">
-          <BookOpen className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold">HSK {level}</h2>
-          <span className="text-sm text-muted-foreground">
-            {completedCount} / {totalCount} completed
-          </span>
-        </div>
+      {/* Title */}
+      <h1 className="text-3xl font-bold mb-2">Lessons</h1>
+      <p className="text-muted-foreground mb-6">
+        Learn new characters and vocabulary through structured lessons
+      </p>
 
-        <div className="flex items-center gap-4">
-          {/* Progress Bar */}
-          <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${completionPercentage}%` }}
-            />
-          </div>
-
-          {/* Chevron */}
-          <ChevronDown
-            className={`w-5 h-5 transition-transform duration-300 ${
-              isCollapsed ? 'rotate-0' : 'rotate-180'
-            }`}
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Search */}
+        <div className="flex-1">
+          <input
+            type="search"
+            placeholder="Search lessons..."
+            onChange={(e) => onSearch(e.target.value)}
+            className="w-full px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-      </button>
 
-      {/* Lessons Grid */}
-      <motion.div
-        initial={false}
-        animate={{
-          height: isCollapsed ? 0 : 'auto',
-          opacity: isCollapsed ? 0 : 1,
-        }}
-        transition={{ duration: 0.3 }}
-        className="overflow-hidden"
-      >
-        {children}
-      </motion.div>
+        {/* Filter */}
+        <div className="flex gap-2">
+          {['All', 'In Progress', 'Completed'].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => onFilter(filter)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeFilter === filter
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -862,18 +693,26 @@ export function LevelSection({ level, lessons, children }) {
 
 ## Summary
 
-This comprehensive plan transforms the lessons page from a functional but basic interface into a modern, engaging, and user-friendly learning experience. The phased approach allows for iterative improvements while maintaining stability and gathering user feedback along the way.
+This plan transforms the lessons page into a clean, professional, Apple-inspired interface focused on clarity, usability, and performance.
 
-**Key Improvements**:
-1. ✨ Modern visual design with depth, gradients, and animations
-2. 📊 Enhanced progress visualization with rings and charts
-3. 🎯 Better UX with grouping, filtering, and recommendations
-4. ♿ Improved accessibility for all users
-5. 📱 Mobile-first responsive design
-6. ⚡ Performance optimizations
-7. 🎮 Gamification elements for motivation
+**Core Principles**:
+1. **Minimalism** - Remove unnecessary elements
+2. **Clean Typography** - Clear hierarchy through type
+3. **Generous Spacing** - Let content breathe
+4. **Subtle Interactions** - Smooth, purposeful animations
+5. **Accessibility First** - Inclusive by design
+6. **Performance** - Fast and responsive
 
-**Estimated Total Time**: 4-5 weeks for full implementation
-**Recommended Start**: Phase 1 (Foundation) for immediate visual impact
+**Key Changes**:
+- Clean card design with subtle shadows
+- Simple progress indicators
+- Clear typography hierarchy
+- Generous white space
+- Minimal color palette
+- No flashy effects or gamification
+- Professional and timeless
 
-This plan maintains the solid technical foundation already in place (Next.js, Tailwind, shadcn/ui, Framer Motion) while elevating the user experience to meet modern design standards and best practices.
+**Timeline**: 8-12 days total
+**Approach**: Start with Phase 1 for immediate visual impact
+
+This design will age well, perform excellently, and provide a professional learning experience that users trust.
