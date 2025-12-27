@@ -12,7 +12,8 @@ interface PracticePageProps {
 }
 
 export async function generateMetadata({ params }: PracticePageProps) {
-  const lesson = await getLessonById(Number.parseInt(params.id, 10))
+  const { id } = await params
+  const lesson = await getLessonById(Number.parseInt(id, 10))
 
   if (!lesson) {
     return {
@@ -36,6 +37,8 @@ export async function generateMetadata({ params }: PracticePageProps) {
  * - Can be repeated unlimited times
  */
 export default async function LessonPracticePage({ params }: PracticePageProps) {
+  const { id } = await params
+
   const supabase = createClient()
   const {
     data: { user },
@@ -44,10 +47,10 @@ export default async function LessonPracticePage({ params }: PracticePageProps) 
 
   // Redirect to login if not authenticated
   if (authError || !user) {
-    redirect(`/login?redirectTo=/lessons/${params.id}/practice`)
+    redirect(`/login?redirectTo=/lessons/${id}/practice`)
   }
 
-  const lessonId = Number.parseInt(params.id, 10)
+  const lessonId = Number.parseInt(id, 10)
 
   if (Number.isNaN(lessonId)) {
     notFound()

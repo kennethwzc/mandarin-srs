@@ -20,7 +20,8 @@ interface LessonPageProps {
 }
 
 export async function generateMetadata({ params }: LessonPageProps) {
-  const lesson = await getLessonById(Number.parseInt(params.id, 10))
+  const { id } = await params
+  const lesson = await getLessonById(Number.parseInt(id, 10))
 
   if (!lesson) {
     return {
@@ -35,6 +36,8 @@ export async function generateMetadata({ params }: LessonPageProps) {
 }
 
 export default async function LessonPage({ params }: LessonPageProps) {
+  const { id } = await params
+
   const supabase = createClient()
   const {
     data: { user },
@@ -43,10 +46,10 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   // Redirect to login if not authenticated (fail-safe for middleware edge cases)
   if (authError || !user) {
-    redirect(`/login?redirectTo=/lessons/${params.id}`)
+    redirect(`/login?redirectTo=/lessons/${id}`)
   }
 
-  const lessonId = Number.parseInt(params.id, 10)
+  const lessonId = Number.parseInt(id, 10)
   const lesson = await getLessonById(lessonId)
 
   if (!lesson) {
