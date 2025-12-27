@@ -119,7 +119,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     'cursor-pointer hover:-translate-y-0.5 hover:shadow-soft-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:gap-6 lg:grid-cols-3">
       {statCards.map((stat, index) => {
         const ariaLabel = `${stat.title}: ${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}. ${stat.description}`
 

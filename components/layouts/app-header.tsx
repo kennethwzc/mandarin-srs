@@ -5,7 +5,7 @@
  * Includes mobile menu trigger and user actions.
  *
  * Mobile responsiveness:
- * - Shows hamburger menu on mobile (md:hidden)
+ * - Shows hamburger menu on mobile/tablet (lg:hidden)
  * - Touch-friendly icon buttons (48px touch targets)
  * - Responsive padding and text sizing
  */
@@ -25,11 +25,11 @@ export function AppHeader() {
     <>
       <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Mobile menu trigger - only visible on mobile */}
+          {/* Mobile menu trigger - visible on mobile/tablet (< lg) */}
           <Button
             variant="ghost"
             size="icon"
-            className="h-12 w-12 md:hidden"
+            className="h-12 w-12 lg:hidden"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}

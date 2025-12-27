@@ -571,7 +571,7 @@ function WidgetSkeleton() {
  */
 function StatsSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
+    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 md:gap-6 lg:grid-cols-3">
       {[...Array(6)].map((_, index) => (
         <div key={index} className="h-32 animate-pulse rounded-xl border border-border bg-muted" />
       ))}
