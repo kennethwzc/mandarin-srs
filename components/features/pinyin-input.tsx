@@ -4,17 +4,18 @@ import { useCallback, useEffect, useRef } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { addToneMark } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
 /**
- * Pinyin Input Component (Simplified - controlled by parent)
+ * Pinyin Input Component
  *
  * Clean, prominent pinyin input with:
  * - Large, centered text
  * - Multiple input formats (ni3, nǐ, ni + tone button)
  * - Smart ü/v conversion (nv → nü)
  * - Keyboard shortcuts for tones (1-5)
- * - Space auto-converts tone numbers
+ * - Space auto-converts tone numbers (ni3 + space → nǐ)
  */
 
 interface PinyinInputProps {
@@ -50,13 +51,12 @@ export function PinyinInput({
   // Apply tone mark when tone is selected from ToneSelector
   useEffect(() => {
     if (selectedTone !== null) {
-      // Notify parent to apply tone via the hook
       onToneChange(selectedTone)
     }
   }, [selectedTone, onToneChange])
 
   /**
-   * Handle input changes with auto-corrections
+   * Handle input changes with auto-corrections and normalization
    */
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,6 +68,13 @@ export function PinyinInput({
         .replace(/lv([1-5]?)/g, 'lü$1')
         .replace(/nue/g, 'nüe')
         .replace(/lue/g, 'lüe')
+
+      // Remove any unexpected characters (periods, commas, etc.)
+      // Keep only: letters, tone-marked vowels, numbers 1-5, spaces, and ü
+      newValue = newValue.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+
+      // Normalize multiple consecutive spaces to single space
+      newValue = newValue.replace(/  +/g, ' ')
 
       onChange(newValue)
     },
@@ -88,6 +95,48 @@ export function PinyinInput({
         e.preventDefault()
         onToneChange(parseInt(e.key, 10))
         return
+      }
+
+      // Space: Smart handling for tone number conversion
+      if (e.key === ' ') {
+        const input = e.currentTarget
+        const cursorPos = input.selectionStart ?? value.length
+        const beforeCursor = value.slice(0, cursorPos)
+
+        // Check if text before cursor ends with tone number (1-5)
+        const match = beforeCursor.match(/([a-zü]+)([1-5])$/)
+
+        if (match && match[1] && match[2]) {
+          // Found a syllable with tone number - convert it
+          e.preventDefault()
+
+          const baseSyllable = match[1]
+          const tone = parseInt(match[2], 10)
+
+          try {
+            const withTone = addToneMark(baseSyllable, tone)
+            const afterCursor = value.slice(cursorPos)
+
+            // Replace the syllable+number with toned syllable + space
+            const newBeforeCursor = beforeCursor.slice(0, -match[0].length) + withTone
+            const newValue = newBeforeCursor + ' ' + afterCursor.trimStart()
+
+            onChange(newValue)
+
+            // Set cursor after the space
+            setTimeout(() => {
+              const newCursorPos = newBeforeCursor.length + 1
+              input.setSelectionRange(newCursorPos, newCursorPos)
+            }, 0)
+          } catch {
+            // If conversion fails, just add space normally
+            onChange(value.slice(0, cursorPos) + ' ' + value.slice(cursorPos))
+          }
+          return
+        }
+
+        // No tone number to convert - allow normal space (don't preventDefault)
+        // Browser will handle adding the space character naturally
       }
 
       // Enter submits
@@ -134,7 +183,12 @@ export function PinyinInput({
         .replace(/lv([1-5]?)/g, 'lü$1')
         .replace(/nue/g, 'nüe')
         .replace(/lue/g, 'lüe')
-        .replace(/\s+/g, ' ')
+
+      // Remove unexpected characters
+      pastedText = pastedText.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+
+      // Normalize spaces
+      pastedText = pastedText.replace(/\s+/g, ' ')
 
       onChange(pastedText)
     },
@@ -177,7 +231,9 @@ export function PinyinInput({
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"
-        spellCheck="false"
+        spellCheck={false}
+        data-form-type="other"
+        data-lpignore="true"
         maxLength={50}
       />
 
