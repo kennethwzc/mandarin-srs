@@ -1,7 +1,9 @@
 /**
  * Dashboard Stats Component Tests
  *
- * Tests all functionality of the dashboard stats cards
+ * Tests all functionality of the dashboard stats cards.
+ * Note: Cards have responsive layouts (mobile horizontal, desktop vertical)
+ * so text elements appear twice in the DOM.
  */
 
 import { render, screen } from '@testing-library/react'
@@ -20,24 +22,26 @@ describe('DashboardStats', () => {
   it('renders all stat cards', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    expect(screen.getByText('Items Learned')).toBeInTheDocument()
-    expect(screen.getByText('Reviews Due')).toBeInTheDocument()
-    expect(screen.getByText('Current Streak')).toBeInTheDocument()
-    expect(screen.getByText('Accuracy')).toBeInTheDocument()
-    expect(screen.getByText('Today')).toBeInTheDocument()
-    expect(screen.getByText('Momentum')).toBeInTheDocument()
+    // Each title appears twice (mobile + desktop layouts)
+    expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Reviews Due').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Current Streak').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Accuracy').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Today').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Momentum').length).toBeGreaterThanOrEqual(1)
   })
 
   it('displays correct values', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    expect(screen.getByText('150')).toBeInTheDocument()
-    expect(screen.getByText('25')).toBeInTheDocument()
-    expect(screen.getByText('7')).toBeInTheDocument()
-    expect(screen.getByText('85')).toBeInTheDocument()
-    // "10" appears twice (Today Reviews and Momentum)
+    // Values appear twice (mobile + desktop layouts)
+    expect(screen.getAllByText('150').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('25').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('7').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('85').length).toBeGreaterThanOrEqual(1)
+    // "10" appears in Today and Momentum cards, each with 2 layouts
     const allTens = screen.getAllByText('10')
-    expect(allTens.length).toBeGreaterThanOrEqual(1)
+    expect(allTens.length).toBeGreaterThanOrEqual(2)
   })
 
   it('shows correct suffixes', () => {
@@ -47,14 +51,16 @@ describe('DashboardStats', () => {
     const daysText = screen.getAllByText(/days/i)
     expect(daysText.length).toBeGreaterThan(0)
 
-    // Should show percentage
-    expect(screen.getByText('%')).toBeInTheDocument()
+    // Should show percentage (appears in both layouts)
+    const percentSigns = screen.getAllByText('%')
+    expect(percentSigns.length).toBeGreaterThanOrEqual(1)
   })
 
   it('displays streak description correctly', () => {
     render(<DashboardStats stats={mockStats} />)
 
-    expect(screen.getByText(/Longest: 14 days/i)).toBeInTheDocument()
+    const longestTexts = screen.getAllByText(/Longest: 14 days/i)
+    expect(longestTexts.length).toBeGreaterThanOrEqual(1)
   })
 
   it('handles zero values gracefully', () => {
@@ -70,9 +76,8 @@ describe('DashboardStats', () => {
     render(<DashboardStats stats={zeroStats} />)
 
     // Should render without errors
-    expect(screen.getByText('Items Learned')).toBeInTheDocument()
-    // There are 6 cards total: Items Learned, Reviews Due, Current Streak, Accuracy, Today, Momentum
-    // Current Streak and Accuracy have suffixes, so "0" appears standalone in 4 cards, plus 2 with suffixes
+    expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
+    // Zeros appear in multiple cards with dual layouts
     const allZeros = screen.getAllByText('0')
     expect(allZeros.length).toBeGreaterThanOrEqual(4)
   })
@@ -90,9 +95,9 @@ describe('DashboardStats', () => {
 
     render(<DashboardStats stats={singleDayStats} />)
 
-    // Should show "day" singular - the text is split across elements
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByText('day')).toBeInTheDocument()
+    // Should show "1" and "day" singular
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('day').length).toBeGreaterThanOrEqual(1)
   })
 
   it('calculates momentum correctly', () => {
@@ -100,10 +105,9 @@ describe('DashboardStats', () => {
 
     // Momentum should be max(currentStreak, reviewsCompletedToday)
     // In this case: max(7, 10) = 10
-    // Just verify the momentum card renders
-    expect(screen.getByText('Momentum')).toBeInTheDocument()
+    expect(screen.getAllByText('Momentum').length).toBeGreaterThanOrEqual(1)
 
-    // Check that "10" appears (may be in multiple places)
+    // Check that "10" appears
     const allTens = screen.getAllByText('10')
     expect(allTens.length).toBeGreaterThan(0)
   })
@@ -111,15 +115,15 @@ describe('DashboardStats', () => {
   it('applies correct color coding for accuracy', () => {
     // High accuracy (green)
     const { rerender } = render(<DashboardStats stats={{ ...mockStats, accuracyPercentage: 90 }} />)
-    expect(screen.getByText('Accuracy')).toBeInTheDocument()
+    expect(screen.getAllByText('Accuracy').length).toBeGreaterThanOrEqual(1)
 
     // Medium accuracy (yellow)
     rerender(<DashboardStats stats={{ ...mockStats, accuracyPercentage: 70 }} />)
-    expect(screen.getByText('Accuracy')).toBeInTheDocument()
+    expect(screen.getAllByText('Accuracy').length).toBeGreaterThanOrEqual(1)
 
     // Low accuracy (red)
     rerender(<DashboardStats stats={{ ...mockStats, accuracyPercentage: 50 }} />)
-    expect(screen.getByText('Accuracy')).toBeInTheDocument()
+    expect(screen.getAllByText('Accuracy').length).toBeGreaterThanOrEqual(1)
 
     // Component handles different accuracy levels
     // (Color coding is handled via CSS classes, hard to test in JSDOM)
@@ -146,8 +150,8 @@ describe('DashboardStats', () => {
     render(<DashboardStats stats={largeStats} />)
 
     // Verify component renders with large numbers
-    expect(screen.getByText('Items Learned')).toBeInTheDocument()
-    expect(screen.getByText('9999')).toBeInTheDocument()
+    expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('9999').length).toBeGreaterThanOrEqual(1)
   })
 
   it('memoizes correctly and does not re-render unnecessarily', () => {
@@ -157,12 +161,12 @@ describe('DashboardStats', () => {
     rerender(<DashboardStats stats={mockStats} />)
 
     // Component should still be there
-    expect(screen.getByText('Items Learned')).toBeInTheDocument()
+    expect(screen.getAllByText('Items Learned').length).toBeGreaterThanOrEqual(1)
 
     // Re-render with different stats
     rerender(<DashboardStats stats={{ ...mockStats, totalItemsLearned: 200 }} />)
 
     // Should show new value
-    expect(screen.getByText('200')).toBeInTheDocument()
+    expect(screen.getAllByText('200').length).toBeGreaterThanOrEqual(1)
   })
 })

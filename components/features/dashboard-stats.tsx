@@ -22,20 +22,37 @@ interface StatCardContentProps {
 function StatCardContent({ title, value, suffix, description, icon: Icon }: StatCardContentProps) {
   return (
     <>
-      {/* Header with title and icon */}
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      {/* Mobile: horizontal layout with number on right */}
+      <div className="flex items-center justify-between gap-4 sm:hidden">
+        <div className="min-w-0 flex-1">
+          <p className="mb-1.5 text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+          <p className="text-3xl font-bold tabular-nums leading-none text-foreground">
+            {value}
+            {suffix && (
+              <span className="ml-1 text-sm font-normal text-muted-foreground">{suffix}</span>
+            )}
+          </p>
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        </div>
       </div>
 
-      {/* Value */}
-      <p className="mb-1 text-3xl font-bold text-foreground">
-        {value}
-        {suffix && <span className="ml-1 text-sm font-normal text-muted-foreground">{suffix}</span>}
-      </p>
-
-      {/* Description */}
-      <p className="text-xs text-muted-foreground">{description}</p>
+      {/* Desktop: vertical layout with number below title (original design) */}
+      <div className="hidden sm:block">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        </div>
+        <p className="mb-1 text-3xl font-bold tabular-nums text-foreground">
+          {value}
+          {suffix && (
+            <span className="ml-1 text-sm font-normal text-muted-foreground">{suffix}</span>
+          )}
+        </p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
     </>
   )
 }
@@ -114,7 +131,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
   )
 
   const baseCardClasses =
-    'rounded-xl border border-border bg-card p-6 shadow-soft-md transition-all duration-base'
+    'rounded-xl border border-border bg-card p-4 sm:p-6 shadow-soft-md transition-all duration-base'
   const interactiveClasses =
     'cursor-pointer hover:-translate-y-0.5 hover:shadow-soft-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
 
