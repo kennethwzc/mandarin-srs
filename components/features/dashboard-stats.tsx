@@ -9,25 +9,31 @@ import { cn } from '@/lib/utils/cn'
 import type { DashboardStatsProps } from './dashboard-stats.types'
 
 /**
- * Color schemes for stat card icons (Duolingo-inspired)
+ * Color schemes for stat card icons (Professional design)
  */
 type ColorScheme = 'blue' | 'purple' | 'orange' | 'green' | 'cyan' | 'yellow'
 
-const colorSchemes: Record<ColorScheme, string> = {
-  blue: 'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-950 dark:to-blue-900/50 text-blue-600 dark:text-blue-400',
-  purple:
-    'bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-950 dark:to-purple-900/50 text-purple-600 dark:text-purple-400',
-  orange:
-    'bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-950 dark:to-orange-900/50 text-orange-600 dark:text-orange-400',
-  green:
-    'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950 dark:to-green-900/50 text-green-600 dark:text-green-400',
-  cyan: 'bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-950 dark:to-cyan-900/50 text-cyan-600 dark:text-cyan-400',
-  yellow:
-    'bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-950 dark:to-yellow-900/50 text-yellow-600 dark:text-yellow-400',
+const iconBackgrounds: Record<ColorScheme, string> = {
+  blue: 'bg-blue-50 dark:bg-blue-500/10',
+  purple: 'bg-purple-50 dark:bg-purple-500/10',
+  orange: 'bg-orange-50 dark:bg-orange-500/10',
+  green: 'bg-green-50 dark:bg-green-500/10',
+  cyan: 'bg-cyan-50 dark:bg-cyan-500/10',
+  yellow: 'bg-yellow-50 dark:bg-yellow-500/10',
+}
+
+const iconColors: Record<ColorScheme, string> = {
+  blue: 'text-blue-600 dark:text-blue-400',
+  purple: 'text-purple-600 dark:text-purple-400',
+  orange: 'text-orange-600 dark:text-orange-400',
+  green: 'text-green-600 dark:text-green-400',
+  cyan: 'text-cyan-600 dark:text-cyan-400',
+  yellow: 'text-yellow-600 dark:text-yellow-400',
 }
 
 /**
- * Stat card content - Duolingo-inspired horizontal layout
+ * Stat card content - Professional horizontal layout
+ * Visual hierarchy: Number (primary) > Title (secondary) > Description (tertiary)
  */
 interface StatCardContentProps {
   title: string
@@ -48,45 +54,64 @@ function StatCardContent({
 }: StatCardContentProps) {
   return (
     <div className="flex items-center gap-3 sm:gap-4">
-      {/* Icon - Left side, visually prominent with colored background */}
+      {/* Icon Container - Fixed size, professional styling */}
       <div className="flex-shrink-0">
         <div
           className={cn(
-            'flex h-12 w-12 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl',
-            colorSchemes[colorScheme]
+            'flex items-center justify-center rounded-2xl',
+            'h-12 w-12 sm:h-14 sm:w-14',
+            'transition-transform duration-200 ease-out',
+            'group-hover:scale-110 motion-reduce:group-hover:scale-100',
+            iconBackgrounds[colorScheme]
           )}
+          aria-hidden="true"
         >
-          <Icon className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden="true" />
+          <Icon className={cn('h-6 w-6 sm:h-7 sm:w-7', iconColors[colorScheme])} strokeWidth={2} />
         </div>
       </div>
 
-      {/* Content - Right side */}
-      <div className="min-w-0 flex-1">
-        <div className="mb-0.5 flex items-baseline justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <span className="flex-shrink-0 text-xl font-bold tabular-nums text-foreground sm:text-2xl">
-            {value}
+      {/* Content Container - Professional hierarchy */}
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 sm:gap-4">
+        {/* Left: Title and Description */}
+        <div className="min-w-0 flex-1 space-y-1">
+          <h3 className="truncate text-[13px] font-semibold leading-none text-foreground sm:text-sm">
+            {title}
+          </h3>
+          <p className="truncate text-[11px] leading-none text-muted-foreground sm:text-xs">
+            {description}
+          </p>
+        </div>
+
+        {/* Right: Number - Primary focus */}
+        <div className="flex-shrink-0">
+          <div className="flex items-baseline justify-end gap-0.5">
+            <span className="text-xl font-bold tabular-nums leading-none tracking-tight text-foreground sm:text-2xl">
+              {value}
+            </span>
             {suffix && (
-              <span className="ml-0.5 text-xs font-medium text-muted-foreground sm:ml-1 sm:text-sm">
+              <span className="text-xs font-medium leading-none text-muted-foreground sm:text-sm">
                 {suffix}
               </span>
             )}
-          </span>
+          </div>
         </div>
-        <p className="line-clamp-1 text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
   )
 }
 
 /**
- * Dashboard Stats Component (Duolingo-inspired design)
+ * Dashboard Stats Component (Professional design)
  *
- * Displays key learning metrics with:
- * - Large colorful icons on the left
- * - Content on the right (title, number, description)
- * - Consistent horizontal layout across all breakpoints
+ * Features:
+ * - Clear visual hierarchy (Number > Title > Description)
+ * - Generous padding and consistent spacing
+ * - Subtle shadows and refined borders
+ * - Smooth micro-interactions
  * - Color-coded icons for visual interest
+ * - Responsive typography scaling
+ * - Accessibility compliant (WCAG AA)
+ * - Dark mode optimized
  */
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
   const {
@@ -144,8 +169,8 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
         value: Math.max(currentStreak, reviewsCompletedToday),
         description:
           currentStreak >= reviewsCompletedToday
-            ? `${currentStreak} day${currentStreak === 1 ? '' : 's'} streak active`
-            : `${reviewsCompletedToday} review${reviewsCompletedToday === 1 ? '' : 's'} today`,
+            ? `${currentStreak} day streak active`
+            : `${reviewsCompletedToday} reviews today`,
         icon: TrendingUp,
         colorScheme: 'yellow' as const,
       },
@@ -160,15 +185,45 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ]
   )
 
-  const baseCardClasses =
-    'rounded-xl border border-border bg-card p-3 sm:p-4 shadow-soft-md transition-all duration-base'
-  const interactiveClasses =
-    'cursor-pointer hover:-translate-y-0.5 hover:shadow-soft-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+  // Professional card styling with subtle elevation
+  const baseCardClasses = cn(
+    // Structure
+    'group relative overflow-hidden rounded-2xl',
+    // Borders - Professional treatment (subtle)
+    'border border-border/50',
+    // Background
+    'bg-card',
+    // Spacing - Generous, professional
+    'p-4 sm:p-5',
+    // Shadows - Subtle elevation
+    'shadow-sm',
+    // Transitions - Smooth, professional
+    'transition-all duration-200 ease-out motion-reduce:transition-none'
+  )
+
+  // Interactive card enhancements
+  const interactiveClasses = cn(
+    // Interactivity
+    'cursor-pointer',
+    // Hover state - Subtle lift
+    'hover:shadow-md hover:-translate-y-0.5 hover:border-border motion-reduce:hover:transform-none',
+    // Focus state - Accessibility
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    // Active state - Press feedback
+    'active:translate-y-0 active:shadow-sm'
+  )
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-4 xl:gap-5">
       {statCards.map((stat, index) => {
-        const ariaLabel = `${stat.title}: ${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}. ${stat.description}`
+        const ariaLabel = [
+          stat.title,
+          `${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}`,
+          stat.description,
+          stat.action ? 'Click to navigate' : '',
+        ]
+          .filter(Boolean)
+          .join('. ')
 
         if (stat.action) {
           return (
