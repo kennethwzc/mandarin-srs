@@ -12,7 +12,7 @@ import { redirect } from 'next/navigation'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { RefreshButton } from '@/components/ui/refresh-button'
-import { getAllLessons } from '@/lib/db/queries'
+import { getAllLessons, getUserLessonProgress } from '@/lib/db/queries'
 import { getAuthenticatedUser } from '@/lib/supabase/get-user'
 import { isAbortedError, safeAsync } from '@/lib/utils/request-helpers'
 import { AlertCircle, Info } from 'lucide-react'
@@ -105,14 +105,35 @@ async function LessonsContent() {
     )
   }
 
-  // Step 4: Process lessons with progress
-  const lessonsWithProgress = lessons.map((lesson, index) => ({
-    ...lesson,
-    characterCount: lesson.character_ids?.length || 0,
-    vocabularyCount: lesson.vocabulary_ids?.length || 0,
-    isUnlocked: index === 0, // First lesson always unlocked
-    isCompleted: false,
-  }))
+  // Step 4: Fetch user progress with timeout protection
+  const progress = await safeAsync(
+    () =>
+      withTimeout(
+        getUserLessonProgress(user.id),
+        QUERY_TIMEOUT_MS,
+        'Progress query timeout - database may be slow'
+      ),
+    [],
+    undefined
+  )
+
+  // Create a map of progress data keyed by lesson ID for efficient lookup
+  const progressMap = new Map(progress.map((p) => [p.id, p]))
+
+  // Step 5: Merge lesson data with user progress
+  const lessonsWithProgress = lessons.map((lesson) => {
+    const userProgress = progressMap.get(lesson.id)
+    return {
+      id: lesson.id,
+      level: lesson.level,
+      title: lesson.title,
+      description: lesson.description,
+      characterCount: lesson.character_ids?.length || 0,
+      vocabularyCount: lesson.vocabulary_ids?.length || 0,
+      isUnlocked: userProgress?.isUnlocked ?? lesson.sort_order === 1,
+      isCompleted: userProgress?.isCompleted ?? false,
+    }
+  })
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
