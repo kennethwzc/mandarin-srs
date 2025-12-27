@@ -136,7 +136,7 @@ async function LessonsContent() {
   })
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8">
       {lessonsWithProgress.map((lesson) => (
         <LessonCard key={lesson.id} lesson={lesson} />
       ))}
@@ -156,15 +156,17 @@ export default async function LessonsPage() {
     }
 
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
-          <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
+      <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="mb-2 text-3xl font-bold">Lessons</h1>
+          <p className="text-muted-foreground">
             Learn new characters and vocabulary through structured lessons
           </p>
         </div>
 
-        <Alert className="mb-8">
+        {/* Info Alert - Clean, minimal styling */}
+        <Alert className="mb-12 border-border">
           <Info className="h-4 w-4" />
           <AlertTitle>How Lessons Work</AlertTitle>
           <AlertDescription>
@@ -174,6 +176,7 @@ export default async function LessonsPage() {
           </AlertDescription>
         </Alert>
 
+        {/* Lessons Grid */}
         <Suspense fallback={<LessonsSkeleton />}>
           <LessonsContent />
         </Suspense>
@@ -211,11 +214,11 @@ export default async function LessonsPage() {
  */
 function LessonsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8">
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
-          className="h-48 animate-pulse rounded-lg border bg-muted"
+          className="h-44 animate-pulse rounded-xl border bg-muted"
           aria-label="Loading lesson"
         />
       ))}
@@ -228,10 +231,10 @@ function LessonsSkeleton() {
  */
 function LessonsMinimalFallback({ message }: { message: string }) {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="mb-2 text-2xl font-bold sm:text-3xl md:text-4xl">Lessons</h1>
-        <p className="text-sm text-muted-foreground sm:text-base md:text-lg">
+    <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
+      <div className="mb-8">
+        <h1 className="mb-2 text-3xl font-bold">Lessons</h1>
+        <p className="text-muted-foreground">
           Learn new characters and vocabulary through structured lessons
         </p>
       </div>

@@ -40,7 +40,8 @@ describe('LessonCard', () => {
 
     render(<LessonCard lesson={completedLesson} />)
 
-    expect(screen.getByText(/completed/i)).toBeInTheDocument()
+    // Check for the checkmark icon with aria-label
+    expect(screen.getByLabelText('Completed')).toBeInTheDocument()
   })
 
   it('is clickable when unlocked', () => {
@@ -55,8 +56,9 @@ describe('LessonCard', () => {
 
     render(<LessonCard lesson={lockedLesson} />)
 
-    // Locked cards still have a link element but with href="#" (disabled)
-    const card = screen.getByRole('link')
-    expect(card).toHaveAttribute('href', '#')
+    // Locked cards use a div instead of a link
+    const card = screen.getByTestId('lesson-card')
+    expect(card.tagName).toBe('DIV')
+    expect(card).not.toHaveAttribute('href')
   })
 })
