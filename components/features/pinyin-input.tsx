@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { addToneMark } from '@/lib/utils/pinyin-utils'
 import { cn } from '@/lib/utils/cn'
 
 /**
@@ -15,7 +14,7 @@ import { cn } from '@/lib/utils/cn'
  * - Multiple input formats (ni3, nǐ, ni + tone button)
  * - Smart ü/v conversion (nv → nü)
  * - Keyboard shortcuts for tones (1-5)
- * - Space auto-converts tone numbers (ni3 + space → nǐ)
+ * - Tone numbers converted on submit (NOT on space)
  */
 
 interface PinyinInputProps {
@@ -90,53 +89,29 @@ export function PinyinInput({
         return
       }
 
-      // Numbers 1-5 select tones (apply to current syllable)
+      // Numbers 1-5 select tones (apply to current syllable immediately)
       if (e.key >= '1' && e.key <= '5') {
         e.preventDefault()
         onToneChange(parseInt(e.key, 10))
         return
       }
 
-      // Space: Smart handling for tone number conversion
+      // Space: Just add space - NO auto-conversion
+      // Users can type "zai4 jian4" format naturally
+      // Conversion happens on submit via getFinalValue()
       if (e.key === ' ') {
         const input = e.currentTarget
-        const cursorPos = input.selectionStart ?? value.length
-        const beforeCursor = value.slice(0, cursorPos)
+        const cursorPos = input.selectionStart ?? 0
+        const charBeforeCursor = value.charAt(cursorPos - 1)
 
-        // Check if text before cursor ends with tone number (1-5)
-        const match = beforeCursor.match(/([a-zü]+)([1-5])$/)
-
-        if (match && match[1] && match[2]) {
-          // Found a syllable with tone number - convert it
+        // Prevent double spaces
+        if (charBeforeCursor === ' ') {
           e.preventDefault()
-
-          const baseSyllable = match[1]
-          const tone = parseInt(match[2], 10)
-
-          try {
-            const withTone = addToneMark(baseSyllable, tone)
-            const afterCursor = value.slice(cursorPos)
-
-            // Replace the syllable+number with toned syllable + space
-            const newBeforeCursor = beforeCursor.slice(0, -match[0].length) + withTone
-            const newValue = newBeforeCursor + ' ' + afterCursor.trimStart()
-
-            onChange(newValue)
-
-            // Set cursor after the space
-            setTimeout(() => {
-              const newCursorPos = newBeforeCursor.length + 1
-              input.setSelectionRange(newCursorPos, newCursorPos)
-            }, 0)
-          } catch {
-            // If conversion fails, just add space normally
-            onChange(value.slice(0, cursorPos) + ' ' + value.slice(cursorPos))
-          }
           return
         }
 
-        // No tone number to convert - allow normal space (don't preventDefault)
-        // Browser will handle adding the space character naturally
+        // Otherwise, let space through naturally (don't preventDefault)
+        // Browser will handle adding the space character
       }
 
       // Enter submits
