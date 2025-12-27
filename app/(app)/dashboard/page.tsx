@@ -80,14 +80,6 @@ const UpcomingReviews = dynamicImport(
   { ssr: false, loading: () => <WidgetSkeleton /> }
 )
 
-const StreakDisplay = dynamicImport(
-  () =>
-    import('@/components/features/streak-display').then((m) => ({
-      default: m.StreakDisplay,
-    })),
-  { ssr: false, loading: () => <StreakSkeleton /> }
-)
-
 export const metadata = {
   title: 'Dashboard',
   description: 'View your learning progress and statistics',
@@ -240,7 +232,6 @@ async function DashboardStatsSection({ userId }: { userId: string }) {
         </div>
       )}
       <DashboardStats stats={stats} />
-      <StreakDisplay currentStreak={stats.currentStreak} longestStreak={stats.longestStreak} />
     </>
   )
 }
@@ -575,26 +566,16 @@ function WidgetSkeleton() {
   return <div className="h-[200px] animate-pulse rounded-xl border border-border bg-muted" />
 }
 
-function StreakSkeleton() {
-  return <div className="h-[100px] animate-pulse rounded-xl border border-border bg-muted" />
-}
-
 /**
  * Skeleton for stats section (critical, above fold)
  */
 function StatsSkeleton() {
   return (
-    <>
-      <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-        {[...Array(6)].map((_, index) => (
-          <div
-            key={index}
-            className="h-32 animate-pulse rounded-xl border border-border bg-muted"
-          />
-        ))}
-      </div>
-      <StreakSkeleton />
-    </>
+    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
+      {[...Array(6)].map((_, index) => (
+        <div key={index} className="h-32 animate-pulse rounded-xl border border-border bg-muted" />
+      ))}
+    </div>
   )
 }
 

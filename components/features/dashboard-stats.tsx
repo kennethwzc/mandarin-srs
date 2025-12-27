@@ -96,7 +96,10 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
       {
         title: 'Momentum',
         value: Math.max(currentStreak, reviewsCompletedToday),
-        description: 'Keep learning daily',
+        description:
+          currentStreak >= reviewsCompletedToday
+            ? `${currentStreak} day${currentStreak === 1 ? '' : 's'} streak active`
+            : `${reviewsCompletedToday} review${reviewsCompletedToday === 1 ? '' : 's'} today`,
         icon: TrendingUp,
       },
     ],
@@ -116,7 +119,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     'cursor-pointer hover:-translate-y-0.5 hover:shadow-soft-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 md:gap-6">
       {statCards.map((stat, index) => {
         const ariaLabel = `${stat.title}: ${stat.value}${stat.suffix ? ` ${stat.suffix}` : ''}. ${stat.description}`
 
