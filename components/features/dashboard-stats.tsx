@@ -32,12 +32,19 @@ const iconColors: Record<ColorScheme, string> = {
 }
 
 /**
- * Stat card content - Professional horizontal layout with CSS Grid alignment
+ * Stat card content - Professional layout with perfect number alignment
  *
- * Uses CSS Grid for perfect number alignment across all cards:
- * - Number column spans 2 rows for consistent vertical positioning
- * - Description can wrap to 2 lines without affecting alignment
- * - Tabular numbers ensure digit alignment
+ * Layout structure:
+ * ┌────────────────────────────────────┐
+ * │ [Icon] │ Title            │  123  │ ← row 1, number aligned right
+ * │        │ Description...   │ days  │ ← row 2, suffix below number
+ * └────────────────────────────────────┘
+ *
+ * Key features:
+ * - Title never truncates (flex-1 allows wrapping)
+ * - Number has fixed-width container (56px) for perfect alignment
+ * - Suffix positioned below number, doesn't affect number position
+ * - Description flows below title, can wrap to 2 lines
  */
 interface StatCardContentProps {
   title: string
@@ -57,41 +64,46 @@ function StatCardContent({
   colorScheme,
 }: StatCardContentProps) {
   return (
-    <div className="flex h-full items-start gap-3 sm:gap-4">
-      {/* Icon Container - Fixed size, consistent across all cards */}
-      <div className="flex-shrink-0">
+    <div className="flex h-full items-start gap-3.5">
+      {/* Icon Container - Compact, professional */}
+      <div className="flex-shrink-0 pt-0.5">
         <div
           className={cn(
-            'flex h-12 w-12 items-center justify-center rounded-xl sm:h-14 sm:w-14 sm:rounded-2xl',
+            'flex h-11 w-11 items-center justify-center rounded-xl',
             'transition-transform duration-200 ease-out',
-            'group-hover:scale-105 motion-reduce:group-hover:scale-100',
+            'group-hover:scale-110 motion-reduce:group-hover:scale-100',
             iconBackgrounds[colorScheme]
           )}
           aria-hidden="true"
         >
-          <Icon className={cn('h-6 w-6 sm:h-7 sm:w-7', iconColors[colorScheme])} strokeWidth={2} />
+          <Icon className={cn('h-[22px] w-[22px]', iconColors[colorScheme])} strokeWidth={2.5} />
         </div>
       </div>
 
-      {/* Content Grid - Perfect alignment structure */}
-      <div className="grid min-w-0 flex-1 auto-rows-min grid-cols-[1fr_auto] items-start gap-x-3 gap-y-1">
-        {/* Title - Grid row 1, column 1 */}
-        <h3 className="truncate text-sm font-semibold leading-tight text-foreground">{title}</h3>
+      {/* Content Grid - Perfect flow and alignment */}
+      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-start gap-x-4 gap-y-1.5">
+        {/* Title - Grid position: row 1, col 1 - Never truncates */}
+        <h3 className="self-start text-sm font-semibold leading-tight text-foreground">{title}</h3>
 
-        {/* Number - Grid row 1-2, column 2 - ALIGNED ACROSS ALL CARDS */}
-        <div className="row-span-2 flex items-baseline justify-end gap-0.5 pt-0.5">
-          <span className="text-xl font-bold tabular-nums leading-none tracking-tight text-foreground sm:text-2xl">
-            {value}
-          </span>
-          {suffix && (
-            <span className="whitespace-nowrap text-xs font-medium leading-none text-muted-foreground sm:text-sm">
-              {suffix}
+        {/* Number Container - Grid position: row 1-2, col 2 (spans both rows) */}
+        <div className="row-span-2 flex flex-col items-end justify-start pt-0.5">
+          {/* Fixed-width container for perfect alignment across cards */}
+          <div className="flex min-w-14 flex-col items-end">
+            <span className="text-2xl font-bold tabular-nums leading-none text-foreground">
+              {value}
             </span>
-          )}
+            {suffix && (
+              <span className="mt-1 text-[10px] font-semibold leading-none text-muted-foreground/70">
+                {suffix}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Description - Grid row 2, column 1 - Can wrap to 2 lines */}
-        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        {/* Description - Grid position: row 2, col 1 - Can wrap to 2 lines */}
+        <p className="line-clamp-2 pr-1 text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
     </div>
   )
@@ -102,9 +114,11 @@ function StatCardContent({
  *
  * Features:
  * - CSS Grid for perfect number alignment across cards
+ * - Fixed-width number containers (56px min) ensure alignment
+ * - Suffix below number, doesn't affect positioning
+ * - Titles never truncate
+ * - Descriptions can wrap to 2 lines
  * - Consistent card heights with auto-rows-fr
- * - 2-line description wrapping with line-clamp-2
- * - Optimized breakpoints (480px for 2-column)
  * - Smooth micro-interactions
  * - Color-coded icons for visual interest
  * - Accessibility compliant (WCAG AA)
@@ -182,19 +196,19 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ]
   )
 
-  // Professional card styling with consistent height
+  // Professional card styling
   const baseCardClasses = cn(
     // Structure
     'group relative overflow-hidden rounded-2xl',
-    // Height consistency
-    'h-full min-h-[100px]',
-    // Borders - Subtle
+    // Height
+    'h-full',
+    // Borders
     'border border-border/40',
     // Background
     'bg-card',
     // Spacing
-    'p-4 sm:p-5',
-    // Elevation
+    'p-4',
+    // Shadows
     'shadow-sm',
     // Transitions
     'transition-all duration-200 ease-out motion-reduce:transition-none'
@@ -209,7 +223,7 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
   )
 
   return (
-    <div className="grid auto-rows-fr grid-cols-1 gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-4 lg:grid-cols-3 lg:gap-4 xl:gap-5">
+    <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-4">
       {statCards.map((stat, index) => {
         const ariaLabel = [
           stat.title,
