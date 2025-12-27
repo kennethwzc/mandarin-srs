@@ -5,20 +5,18 @@ import { useRef, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils/cn'
+import { addToneMark, TONE_MARKS } from '@/lib/utils/pinyin-utils'
 
 /**
- * Pinyin Input Component (KISS - Keep It Simple, Stupid)
+ * Pinyin Input Component with Real-Time Tone Conversion
  *
- * This is a NORMAL text input with minimal magic:
+ * When user types "zai4", it immediately shows "zài" - no waiting!
+ *
+ * Features:
+ * - Real-time conversion: ni3 → nǐ (instantly)
+ * - Smart backspace: zài → zai (removes tone, keeps letter)
  * - Space works naturally
- * - Backspace works naturally
- * - Typing works naturally
- * - No auto-conversion during typing
- * - Conversion happens on SUBMIT only
- *
- * Accepts both formats:
- * - "ni3 hao3" (tone numbers)
- * - "nǐ hǎo" (tone marks)
+ * - v → ü auto-conversion
  */
 
 interface PinyinInputProps {
@@ -27,6 +25,33 @@ interface PinyinInputProps {
   disabled?: boolean
   onSubmit?: () => void
   autoFocus?: boolean
+}
+
+/**
+ * Get base vowel from a tone-marked vowel
+ * Example: "à" → "a", "ǐ" → "i"
+ */
+function getBaseVowel(toneMarkedChar: string): string | null {
+  for (const [baseVowel, marks] of Object.entries(TONE_MARKS)) {
+    if ((marks as readonly string[]).includes(toneMarkedChar)) {
+      return baseVowel
+    }
+  }
+  return null
+}
+
+/**
+ * Check if a character is a tone-marked vowel
+ */
+function isToneMarkedVowel(char: string): boolean {
+  return getBaseVowel(char) !== null
+}
+
+/**
+ * Get all tone-marked vowels as a flat array
+ */
+function getAllToneMarkedVowels(): string[] {
+  return Object.values(TONE_MARKS).flat()
 }
 
 export function PinyinInput({
@@ -46,60 +71,120 @@ export function PinyinInput({
   }, [autoFocus])
 
   /**
-   * SIMPLIFIED: Just handle basic input
-   * No space interception, no number key interception, no magic
+   * Handle input changes with real-time tone conversion
+   * When user types "zai4", immediately shows "zài"
    */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let newValue = e.target.value.toLowerCase()
 
-    // Only basic normalization:
-    // 1. Convert v to ü (standard pinyin convention)
+    // 1. Convert v to ü (standard pinyin)
     newValue = newValue.replace(/v/g, 'ü')
 
-    // 2. Remove invalid characters
-    // Keep: a-z, ü, tone-marked vowels, spaces, numbers 1-5
-    newValue = newValue.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+    // 2. Real-time tone number conversion
+    // Pattern: letters + tone number → tone mark
+    // Example: "zai4" → "zài" (immediately!)
+    newValue = newValue.replace(
+      /([a-zü]+)([1-5])/gi,
+      (_match, syllable: string, toneNum: string) => {
+        const tone = parseInt(toneNum, 10)
+        try {
+          return addToneMark(syllable, tone)
+        } catch {
+          // Invalid syllable, just keep base letters (strip the number)
+          return syllable
+        }
+      }
+    )
 
-    // 3. Normalize multiple spaces to single (gently)
+    // 3. Remove any remaining numbers (0, 6-9) and other invalid chars
+    // Keep: a-z, ü, spaces, and all tone-marked vowels
+    const toneVowels = getAllToneMarkedVowels().join('')
+    const validCharsRegex = new RegExp(`[^a-zü\\s${toneVowels}]`, 'g')
+    newValue = newValue.replace(validCharsRegex, '')
+
+    // 4. Normalize multiple spaces to single space
     newValue = newValue.replace(/  +/g, ' ')
 
     onChange(newValue)
   }
 
   /**
-   * SIMPLIFIED: Only handle Enter for submit
-   * NO space interception, NO number key interception
-   * Let the browser handle everything else naturally
+   * Handle keyboard shortcuts
+   * Special handling for backspace on tone-marked vowels
    */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (disabled) {
       return
     }
 
-    // ONLY handle Enter for submit
-    if (e.key === 'Enter' && onSubmit && value.trim()) {
+    // Enter to submit
+    if (e.key === 'Enter' && value.trim()) {
       e.preventDefault()
-      onSubmit()
+      onSubmit?.()
       return
     }
 
-    // Everything else: let browser handle naturally
-    // Space → adds space (browser default)
-    // Backspace → deletes character (browser default)
-    // Numbers → types numbers (browser default)
+    // Backspace: Remove tone mark but keep base vowel
+    // Example: "zài" + backspace → "zai" (not "zà")
+    if (e.key === 'Backspace') {
+      const input = e.currentTarget
+      const cursorPos = input.selectionStart ?? 0
+
+      // Only handle if there's something to delete
+      if (cursorPos > 0) {
+        const charBeforeCursor = value.charAt(cursorPos - 1)
+
+        // Check if it's a tone-marked vowel
+        if (isToneMarkedVowel(charBeforeCursor)) {
+          e.preventDefault()
+
+          // Get the base vowel
+          const baseVowel = getBaseVowel(charBeforeCursor) || ''
+
+          // Replace tone-marked vowel with base vowel
+          const newValue =
+            value.substring(0, cursorPos - 1) + baseVowel + value.substring(cursorPos)
+
+          onChange(newValue)
+
+          // Keep cursor in same position
+          setTimeout(() => {
+            input.setSelectionRange(cursorPos, cursorPos)
+          }, 0)
+
+          return
+        }
+      }
+    }
+
+    // Everything else: let browser handle naturally (space, regular backspace, etc.)
   }
 
   /**
-   * Handle paste - just basic cleanup
+   * Handle paste - apply same conversions
    */
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
 
     let pastedText = e.clipboardData.getData('text').toLowerCase()
 
-    // Same normalization as handleChange
+    // Apply same conversions as handleChange
     pastedText = pastedText.replace(/v/g, 'ü')
-    pastedText = pastedText.replace(/[^a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü\s1-5]/g, '')
+    pastedText = pastedText.replace(
+      /([a-zü]+)([1-5])/gi,
+      (_match, syllable: string, toneNum: string) => {
+        const tone = parseInt(toneNum, 10)
+        try {
+          return addToneMark(syllable, tone)
+        } catch {
+          return syllable
+        }
+      }
+    )
+
+    const toneVowels = getAllToneMarkedVowels().join('')
+    const validCharsRegex = new RegExp(`[^a-zü\\s${toneVowels}]`, 'g')
+    pastedText = pastedText.replace(validCharsRegex, '')
     pastedText = pastedText.replace(/\s+/g, ' ')
 
     // Insert at cursor position
@@ -142,7 +227,7 @@ export function PinyinInput({
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         disabled={disabled}
-        placeholder="Type pinyin (e.g., ni3 hao3 or nǐ hǎo)"
+        placeholder="Type: ni3 hao3 → shows: nǐ hǎo"
         className={cn(
           'h-auto px-6 py-4 text-center text-2xl sm:text-3xl',
           'rounded-xl border-2 border-border bg-background',
@@ -162,7 +247,7 @@ export function PinyinInput({
 
       <div className="space-y-1 text-center">
         <p className="text-xs text-muted-foreground">
-          Type with numbers (ni3 hao3) or use tone buttons below
+          Type 1-5 after syllable to add tone (ni3 → nǐ)
         </p>
         {syllableCount > 0 && (
           <p className="text-xs text-muted-foreground/70">

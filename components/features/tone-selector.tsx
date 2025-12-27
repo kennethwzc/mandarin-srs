@@ -77,7 +77,7 @@ export function ToneSelector({ selectedTone, onToneSelect, disabled = false }: T
 
       {/* Simplified help text */}
       <p className="text-center text-xs text-muted-foreground">
-        Click to apply tone to last syllable
+        Click a tone or type 1-5 after syllable
       </p>
     </div>
   )

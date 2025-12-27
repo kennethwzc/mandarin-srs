@@ -1,15 +1,14 @@
 /**
  * PinyinInput Component Tests
  *
- * Tests the simplified pinyin input functionality.
- * Key principle: KISS - Keep It Simple, Stupid
+ * Tests the real-time tone conversion functionality.
  *
  * Input behavior:
- * - Space works naturally (no auto-conversion)
- * - Backspace works naturally
- * - Numbers 1-5 are typed as characters (no special handling)
- * - Only Enter is intercepted for submit
- * - Conversion happens on submit
+ * - Real-time conversion: ni3 → nǐ (immediately!)
+ * - Smart backspace: zài → zai (removes tone, keeps letter)
+ * - Space works naturally
+ * - v → ü auto-conversion
+ * - Enter to submit
  */
 
 import { render, screen } from '@testing-library/react'
@@ -31,12 +30,12 @@ describe('PinyinInput', () => {
   })
 
   describe('Basic Rendering', () => {
-    it('renders input field', () => {
+    it('renders input field with placeholder', () => {
       render(<PinyinInput {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
       expect(input).toBeInTheDocument()
-      expect(input).toHaveAttribute('placeholder', expect.stringMatching(/ni3|nǐ/i))
+      expect(input).toHaveAttribute('placeholder', expect.stringMatching(/ni3.*nǐ/i))
     })
 
     it('auto-focuses when autoFocus prop is true', () => {
@@ -61,7 +60,23 @@ describe('PinyinInput', () => {
     })
   })
 
-  describe('Basic Input', () => {
+  describe('Real-Time Tone Conversion', () => {
+    it('converts tone number to tone mark immediately', async () => {
+      const user = userEvent.setup()
+
+      // Start with "ni" already in the input
+      render(<PinyinInput {...defaultProps} value="ni" />)
+
+      const input = screen.getByRole('textbox')
+      // Type just the tone number
+      await user.type(input, '3')
+
+      // Should call onChange with converted value containing tone mark
+      expect(mockOnChange).toHaveBeenCalled()
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]
+      expect(lastCall[0]).toContain('ǐ')
+    })
+
     it('accepts text input', async () => {
       const user = userEvent.setup()
 
@@ -73,27 +88,15 @@ describe('PinyinInput', () => {
       expect(mockOnChange).toHaveBeenCalled()
     })
 
-    it('allows typing tone numbers as characters', async () => {
-      const user = userEvent.setup()
-
-      render(<PinyinInput {...defaultProps} value="ni" />)
-
-      const input = screen.getByRole('textbox')
-      await user.type(input, '3')
-
-      // Number 3 should be typed as a character (no interception)
-      expect(mockOnChange).toHaveBeenCalled()
-    })
-
     it('allows typing spaces naturally', async () => {
       const user = userEvent.setup()
 
-      render(<PinyinInput {...defaultProps} value="ni3" />)
+      render(<PinyinInput {...defaultProps} value="nǐ" />)
 
       const input = screen.getByRole('textbox')
       await user.type(input, ' ')
 
-      // Space should be added normally (no auto-conversion)
+      // Space should be added normally
       expect(mockOnChange).toHaveBeenCalled()
     })
 
@@ -113,23 +116,26 @@ describe('PinyinInput', () => {
     it('converts v to ü automatically', async () => {
       const user = userEvent.setup()
 
-      render(<PinyinInput {...defaultProps} value="l" />)
+      render(<PinyinInput {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
-      await user.type(input, 'v')
+      await user.type(input, 'lv')
 
-      expect(mockOnChange).toHaveBeenCalled()
+      // Should convert v to ü
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]
+      expect(lastCall[0]).toContain('ü')
     })
 
-    it('handles special pinyin characters correctly', async () => {
+    it('handles nv to nü conversion', async () => {
       const user = userEvent.setup()
 
-      render(<PinyinInput {...defaultProps} value="n" />)
+      render(<PinyinInput {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
-      await user.type(input, 'v')
+      await user.type(input, 'nv')
 
-      expect(mockOnChange).toHaveBeenCalled()
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]
+      expect(lastCall[0]).toContain('ü')
     })
   })
 
@@ -158,14 +164,29 @@ describe('PinyinInput', () => {
   })
 
   describe('Paste Handling', () => {
-    it('handles paste events', async () => {
+    it('handles paste events with tone conversion', async () => {
       const user = userEvent.setup()
 
       render(<PinyinInput {...defaultProps} />)
 
       const input = screen.getByRole('textbox')
       await user.click(input)
-      await user.paste('ni3')
+      await user.paste('ni3 hao3')
+
+      // Should call onChange with converted value
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1]
+      expect(lastCall[0]).toContain('ǐ')
+      expect(lastCall[0]).toContain('ǎ')
+    })
+
+    it('handles paste of already-toned pinyin', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      await user.click(input)
+      await user.paste('nǐ hǎo')
 
       expect(mockOnChange).toHaveBeenCalled()
     })
@@ -183,6 +204,13 @@ describe('PinyinInput', () => {
       input = screen.getByRole('textbox') as HTMLInputElement
       expect(input.value).toBe('')
     })
+
+    it('displays tone marks correctly', () => {
+      render(<PinyinInput value="nǐ hǎo" onChange={mockOnChange} />)
+
+      const input = screen.getByRole('textbox') as HTMLInputElement
+      expect(input.value).toBe('nǐ hǎo')
+    })
   })
 
   describe('Character Filtering', () => {
@@ -195,7 +223,18 @@ describe('PinyinInput', () => {
       await user.type(input, '!@#')
 
       // These should be filtered out
-      // onChange is called but with filtered content
+      expect(mockOnChange).toHaveBeenCalled()
+    })
+
+    it('filters out numbers 0 and 6-9', async () => {
+      const user = userEvent.setup()
+
+      render(<PinyinInput {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      await user.type(input, 'ni09')
+
+      // 0 and 9 should be filtered out, only "ni" remains
       expect(mockOnChange).toHaveBeenCalled()
     })
   })
