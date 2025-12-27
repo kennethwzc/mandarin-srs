@@ -32,14 +32,19 @@ const iconColors: Record<ColorScheme, string> = {
 }
 
 /**
- * Stat card content - Vertically centered layout
+ * Stat card content - Fixed position layout
+ *
+ * Number uses ABSOLUTE POSITIONING for stability:
+ * - Position never changes regardless of content
+ * - Always at exact vertical center
+ * - Fixed distance from right edge
  *
  * Layout:
  * ┌─────────────────────────────────────┐
- * │                                     │ ← Equal top space
- * │ 📊  Title                      8    │ ← Everything centered
+ * │                                     │
+ * │ 📊  Title                       8   │ ← Number absolutely centered
  * │     Description                     │
- * │                                     │ ← Equal bottom space
+ * │                                     │
  * └─────────────────────────────────────┘
  */
 interface StatCardContentProps {
@@ -60,9 +65,9 @@ function StatCardContent({
   showDaysLabel = false,
 }: StatCardContentProps) {
   return (
-    // Main container - VERTICALLY CENTER EVERYTHING
-    <div className="flex h-full items-center gap-3">
-      {/* Icon - Vertically centered with content */}
+    // Fixed height container with centered content
+    <div className="relative flex h-full min-h-[78px] items-center gap-3">
+      {/* Icon - Vertically centered */}
       <div className="flex-shrink-0">
         <div
           className={cn(
@@ -77,29 +82,22 @@ function StatCardContent({
         </div>
       </div>
 
-      {/* Content Grid - gap-x-6 (24px) for more right spacing */}
-      <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto] gap-x-6 gap-y-0.5">
-        {/* Title */}
-        <h3 className="text-sm font-semibold leading-snug text-foreground">{title}</h3>
+      {/* Content - Left side, with right padding to avoid number overlap */}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 pr-16">
+        <h3 className="text-sm font-semibold leading-tight text-foreground">{title}</h3>
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{description}</p>
+      </div>
 
-        {/* Number Container */}
-        <div className="row-span-2 flex items-start justify-end">
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[28px] font-bold tabular-nums leading-none tracking-tight text-foreground">
-              {value}
-            </span>
-            {showDaysLabel && (
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/50">
-                days
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        <p className="line-clamp-2 pt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {description}
-        </p>
+      {/* Number - ABSOLUTE POSITION for stability */}
+      <div className="absolute right-0 top-1/2 flex -translate-y-1/2 flex-col items-end gap-0.5">
+        <span className="text-[28px] font-bold tabular-nums leading-none tracking-tight text-foreground">
+          {value}
+        </span>
+        {showDaysLabel && (
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/50">
+            days
+          </span>
+        )}
       </div>
     </div>
   )
@@ -109,10 +107,11 @@ function StatCardContent({
  * Dashboard Stats Component (Professional design)
  *
  * Features:
- * - Vertically centered content in fixed-height cards
- * - 24px right spacing for numbers (gap-x-6)
- * - Optional "days" label for streak card
- * - Clean, aligned number display
+ * - ABSOLUTE positioning for stable number placement
+ * - Numbers always at exact vertical center
+ * - Fixed distance from right edge
+ * - Content-independent layout
+ * - No reflow or shifting when resizing
  */
 export const DashboardStats = memo(function DashboardStats({ stats }: DashboardStatsProps) {
   const {
@@ -185,10 +184,10 @@ export const DashboardStats = memo(function DashboardStats({ stats }: DashboardS
     ]
   )
 
-  // Professional card styling with fixed height for vertical centering
+  // Professional card styling with fixed height
   const baseCardClasses = cn(
     'group relative overflow-hidden rounded-2xl',
-    // Fixed height for consistent vertical centering
+    // Fixed height for stable positioning
     'h-[110px]',
     'border border-border/40',
     'bg-card',
